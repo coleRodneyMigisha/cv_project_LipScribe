@@ -1,0 +1,21 @@
+https://www.scopus.com/pages/publications/85058981464?origin=resultslist (Deep Audio-Visual Speech Recognition)
+
+https://www.scopus.com/pages/publications/85148976068?origin=resultslist (Audio-Visual and Gesture Recognition by Sensors of Mobile Devices)
+
+https://www.scopus.com/pages/publications/85129037103?origin=resultslist (Deep Learning Based Assistive Technology on Audio Visual Speech Recognition for Hearing Impaired)
+
+https://www.scopus.com/pages/publications/85087799376?origin=resultslist (Lip_Image_Segmentation_Based_on_a_Fuzzy_Convolutional_Neural_Network)
+
+https://www.scopus.com/pages/publications/85149176973?origin=resultslist (Improving Speech Recognition Performance in Noisy Environments by Enhancing Lip Reading Accuracy)
+
+https://www.scopus.com/pages/publications/85200217086?origin=resultslist (LipSyncNet_A_Novel_Deep_Learning_Approach_for_Visual_Speech_Recognition_in_Audio-Challenged_Situations)
+
+https://www.scopus.com/pages/publications/105035186645?origin=resultslist (KanAVNet: A CNN-BiLSTM-CTC-Based Audio-Visual Speech Recognition System for Kannada to Assist the Hearing Impaired)
+
+https://www.scopus.com/pages/publications/85124636691?origin=resultslist (Computational Intelligence and Neuroscience - 2022 - Siam - Deploying Machine Learning Techniques for Human Emotion)
+
+https://www.scopus.com/pages/publications/85192022782?origin=resultslist (Applied Computational Intelligence and Soft Computing - 2024 - Aripin - Indonesian Lip‐Reading Detection and Recognition)
+
+https://www.scopus.com/pages/publications/85123765627?origin=resultslist (Beyond the Edge: Markerless Pose Estimation of Speech Articulators from Ultrasound and Camera Images Using DeepLabCut)
+
+https://www.scopus.com/pages/publications/85205869674?origin=resultslist (Deep_Transfer_Learning_for_Lip_Reading_Based_on_NASNetMobile_Pretrained_Model_in_Wild_Dataset)
