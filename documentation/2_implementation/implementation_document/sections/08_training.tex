@@ -1,0 +1,164 @@
+% =====================================================================
+\section{Training Procedure and Experiment Management}
+\label{sec:training}
+% =====================================================================
+
+\subsection{Training workflow}
+Training is driven by a single script, \texttt{train.py}, that reads one YAML
+configuration file and performs the following steps.
+
+\begin{enumerate}
+  \item \textbf{Set up.} Load the configuration, set all random seeds, create a
+        run directory named after the experiment and timestamp, and copy the
+        configuration and Git commit hash into it.
+  \item \textbf{Build datasets.} Filter \texttt{manifest.csv} by the speakers
+        listed for each partition in \texttt{splits.csv}. The training dataset
+        returns, per utterance, the cached mouth crops, the clean waveform mixed
+        with noise at a randomly drawn SNR, and the encoded transcript. Validation
+        and test datasets read the fixed pre-mixed noisy files.
+  \item \textbf{Build batches.} A custom collate function pads waveforms and crop
+        sequences, computes feature and encoder lengths, builds padding masks and
+        concatenates targets for CTC (\cref{sec:audio}). Log-Mel extraction and
+        normalisation run on the GPU on the padded batch.
+  \item \textbf{Initialise the model.} Convolution and linear layers use PyTorch's
+        default (Kaiming-uniform) initialisation; LSTM forget-gate biases are set
+        to 1 to ease gradient flow early in training; the CTC output bias for the
+        blank symbol is left at zero.
+  \item \textbf{Train.} For each batch: forward pass (\cref{alg:forward}), CTC loss
+        (\cref{eq:ctc}) averaged over target lengths, backward pass with automatic
+        mixed precision (AMP), gradient-norm clipping, optimiser step and
+        scheduler step.
+  \item \textbf{Validate.} After each epoch, compute validation CTC loss and
+        greedy-decoded WER and CER at every SNR, and their mean.
+  \item \textbf{Checkpoint.} Save the latest state and, separately, the best state
+        by mean validation WER. A checkpoint contains model, optimiser,
+        scheduler and AMP scaler states, the epoch, the configuration and the
+        vocabulary.
+  \item \textbf{Stop.} End training when mean validation WER has not improved for
+        the patience period, or at the maximum epoch count.
+  \item \textbf{Restore and export.} Reload the best checkpoint, run the final
+        evaluation (\cref{sec:evaluation}) and export the model weights for the
+        demonstration.
+\end{enumerate}
+
+\subsection{Initial hyperparameters}
+\Cref{tab:hparams} lists starting values \rec. They are common defaults for
+models of this size and are \emph{not} established optimal settings for
+LipScribe; the most sensitive values (learning rate, dropout and modality-dropout
+rates) will be tuned on the validation set.
+
+\begin{table}[H]
+\centering
+\caption{Initial training hyperparameters (starting values to be tuned).}
+\label{tab:hparams}
+\small
+\begin{tabularx}{\textwidth}{@{}p{4.2cm}p{3.4cm}X@{}}
+\toprule
+\textbf{Hyperparameter} & \textbf{Starting value} & \textbf{Rationale} \\
+\midrule
+Optimiser & AdamW & Robust default for recurrent and attention models \\
+Peak learning rate & $3\times10^{-4}$ & Tuned over $\{10^{-4}, 3\times10^{-4}, 10^{-3}\}$ \\
+Weight decay & $10^{-2}$ & Mild regularisation; not applied to biases or norms \\
+Schedule & 1 epoch linear warm-up, then cosine decay & Warm-up stabilises early CTC training \\
+Batch size & 16 utterances & Expected to fit an 8\,GB GPU with AMP; use gradient accumulation otherwise \\
+Gradient clipping & global norm 5.0 & Prevents LSTM gradient explosions \\
+Dropout & 0.3 (encoders), 0.1 (attention) & Limits overfitting to 27 training speakers \\
+Modality dropout & $p_a=0.25$, $p_v=0.15$ & \Cref{sec:modality-dropout} \\
+Maximum epochs & 60 & Upper bound; early stopping usually ends sooner \\
+Early-stopping patience & 8 epochs & Measured on mean validation WER \\
+Beam width (evaluation) & 10 & \Cref{sec:ctc} \\
+Random seeds & 1, 2, 3 & Three seeds for the final models, if compute allows \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{Gradient management.} LSTMs and CTC can produce occasional very large
+gradients, particularly early in training. Global-norm clipping bounds the update
+size. With AMP, gradients are unscaled before clipping. If a batch produces a
+non-finite loss, the step is skipped and logged; more than a handful of such
+events indicates a data or length bug rather than bad luck.
+
+\paragraph{Curriculum for visual models.} Visual-only CTC training is known to be
+slow to start. If the visual-only baseline has not begun to reduce validation
+CER after several epochs, the team will first train the visual encoder alone and
+then use its weights to initialise the visual stream of the fused model \tbd.
+
+\subsection{Experiment logging and management}
+Each run logs training loss, validation loss, WER and CER per SNR, learning rate,
+gradient norm and mean gate value to TensorBoard, and appends one summary row to
+\texttt{experiments/results.csv} on completion. Run directories are never
+overwritten. An experiment is reported only if its configuration file is
+committed, so that every number in the final report can be traced to a
+configuration, a commit and a checkpoint.
+
+\begin{lstlisting}[language={},caption={Abbreviated experiment configuration for the proposed model \rec.},label={lst:config}]
+experiment: proposed_attention_fusion
+seed: 1
+data:
+  manifest: data/manifest.csv
+  splits: data/splits.csv
+  train_snrs: [clean, 10, 5, 0, -5]
+  eval_snrs:  [clean, 10, 5, 0, -5]
+model:
+  streams: [audio, visual]
+  visual_encoder: conv3d_bilstm      # V1; alternative: conv3d_effnetb0
+  audio_features: logmel80           # A1; alternatives: mfcc39, logmel_mfcc
+  fusion: cross_attention_gated      # alternatives: concat, none
+  modality_dropout: {audio: 0.25, visual: 0.15}
+train:
+  optimiser: adamw
+  lr: 3.0e-4
+  batch_size: 16
+  max_epochs: 60
+  patience: 8
+  grad_clip: 5.0
+decode: {method: beam, beam_width: 10}
+\end{lstlisting}
+
+\subsection{Baselines and experiment plan}
+The proposal requires three simple baselines---audio-only, visual-only and
+simple concatenation---followed by the full system with a 3D convolutional
+visual encoder and adaptive cross-modal attention with modality
+dropout~\spec. All models share the same code, encoders, data partitions,
+noise files, feature normalisation, optimiser, schedule, maximum epoch count and
+early-stopping rule. Only the components under test differ. The audio-only
+baseline is trained with the same multi-condition noise as the fused models; a
+baseline trained only on clean audio would be unrealistically weak in noise and
+make the comparison unfair.
+
+\begin{itemize}
+  \item \textbf{B1 Audio-only:} audio encoder $\rightarrow$ sequence BiLSTM $\rightarrow$ CTC.
+  \item \textbf{B2 Visual-only:} visual encoder (V1) $\rightarrow$ sequence BiLSTM $\rightarrow$ CTC.
+  \item \textbf{B3 Simple fusion:} concatenate $\mathbf{A}$ and $\mathbf{V}$ per frame,
+        linear projection to 256, then the same sequence BiLSTM and CTC; no attention,
+        no modality dropout.
+  \item \textbf{P Proposed:} the complete model of \cref{sec:model}.
+\end{itemize}
+
+\begin{table}[H]
+\centering
+\caption{Planned experiments. No results are reported; the last column states what
+each comparison is designed to reveal.}
+\label{tab:experiments}
+\small
+\begin{tabularx}{\textwidth}{@{}p{0.6cm}p{3.2cm}p{3.6cm}X@{}}
+\toprule
+\textbf{ID} & \textbf{Model} & \textbf{Key comparison} & \textbf{Diagnostic value} \\
+\midrule
+B1 & Audio-only & Reference for all fused models & How fast ASR alone degrades as SNR falls \\
+B2 & Visual-only & Constant across SNR by design & Upper bound on what the lips alone can provide on GRID; checks the visual pipeline works \\
+B3 & Concatenation fusion & B3 vs.\ B1 & Whether adding video helps at all without adaptive weighting \\
+P  & Attention fusion + modality dropout & P vs.\ B3, P vs.\ B1 & Benefit of adaptive fusion, especially at 0 and $-5$\,dB \\
+X1 & P without modality dropout & X1 vs.\ P & Contribution of modality dropout; whether video is otherwise ignored \\
+X2 & P with concatenation in place of attention, keeping dropout & X2 vs.\ P & Contribution of attention itself, separated from dropout \\
+X3 & P with a 2D per-frame CNN instead of the 3D front-end & X3 vs.\ P & Contribution of 3D (spatiotemporal) convolution \\
+X4 & P with EfficientNet-B0 trunk (V2) & X4 vs.\ P & Value of a pretrained 2D backbone (optional) \\
+X5 & B1 with A2 / A3 features & vs.\ B1 & Whether MFCC features add anything to log-Mel \\
+X6 & P with SNR auxiliary head & X6 vs.\ P & Whether an explicit noise estimate improves gating (optional) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+B1, B2, B3 and P form the core and are completed first. X1--X3 are the ablations
+the proposal asks for and are run next. X4--X6 are optional and depend on
+remaining time and compute.

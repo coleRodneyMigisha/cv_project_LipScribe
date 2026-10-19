@@ -1,0 +1,131 @@
+% =====================================================================
+\section{Application Integration and Live Captioning}
+\label{sec:application}
+% =====================================================================
+
+\subsection{Batch prototype versus streaming application}
+Two kinds of application are possible, and the distinction determines how much
+engineering the demonstration needs.
+\begin{itemize}
+  \item A \textbf{batch prototype} processes a complete recorded clip---uploaded
+        or recorded in the browser---and returns its caption. It reuses the
+        evaluation code almost unchanged and its correctness is easy to verify.
+  \item A \textbf{streaming application} captions speech while it is being spoken.
+        It needs buffering, synchronisation of two live devices, and repeated
+        inference on overlapping windows. Because the encoders are bidirectional,
+        the model needs future context and cannot emit a character the moment a
+        frame arrives; streaming is therefore approximated by re-decoding recent
+        windows, which introduces latency of roughly one window.
+\end{itemize}
+
+The recommended plan \rec\ is to build the batch prototype first (Mode~A) and
+then a windowed pseudo-streaming mode (Mode~B) that reuses its preprocessing and
+inference functions. Mode~A is the guaranteed deliverable; Mode~B is the live
+captioning demonstration. A fully streaming model with unidirectional encoders
+is outside the six-week scope.
+
+\subsection{Mode A: batch captioning in Gradio}
+A Gradio page offers a webcam-and-microphone recorder and a file-upload box. On
+submission, the server extracts frames with OpenCV and audio with
+\texttt{ffmpeg}, resamples video to 25\,fps and audio to 16\,kHz, runs the visual
+and audio pipelines, the model and beam search, and displays the caption beside
+the video. The page also shows the mouth-crop sequence and a plot of the
+per-frame fusion gate, which makes the system's behaviour visible during the
+presentation. An optional control adds MUSAN noise at a chosen SNR to the clip,
+so that the audience can see captions with and without noise on the same
+recording.
+
+\subsection{Mode B: windowed live captioning}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  node distance=6mm and 8mm,
+  th/.style={draw=lsblue, rounded corners=2pt, fill=lsblue!6, align=center,
+             font=\scriptsize\sffamily, minimum height=11mm, text width=27mm},
+  buf/.style={draw=black!50, fill=black!4, align=center, font=\scriptsize\sffamily,
+              minimum height=8mm, text width=27mm},
+  ar/.style={-{Stealth[length=2mm]}, thick}]
+\node[th] (cam) {Camera thread\\OpenCV, timestamped frames};
+\node[th, below=of cam] (mic) {Audio callback\\sounddevice, 16\,kHz blocks};
+\node[buf, right=of cam] (vb) {Frame ring buffer\\(last 4\,s)};
+\node[buf, right=of mic] (ab) {Audio ring buffer\\(last 4\,s)};
+\node[th, right=of $(vb)!0.5!(ab)$, text width=30mm] (inf) {Inference worker\\every 1\,s: extract 3\,s window,\\crop, features, model, beam search};
+\node[th, right=of inf, text width=24mm] (ui) {Display\\partial / final caption overlay};
+\draw[ar] (cam) -- (vb); \draw[ar] (mic) -- (ab);
+\draw[ar] (vb) -- (inf); \draw[ar] (ab) -- (inf); \draw[ar] (inf) -- (ui);
+\end{tikzpicture}
+\caption{Threads and buffers of the windowed live-captioning mode.}
+\label{fig:live}
+\end{figure}
+
+\paragraph{Input and buffering.} A camera thread reads frames with OpenCV and
+stores each with a timestamp from a single monotonic clock. A
+\texttt{sounddevice} callback appends 16\,kHz audio blocks, also timestamped, to a
+ring buffer. Both buffers hold the most recent four seconds, which bounds memory
+use (four seconds of $640\times480$ colour frames at 30\,fps is about 110\,MB; the
+buffer can store downscaled frames or pre-computed crops to reduce this).
+
+\paragraph{Temporal synchronisation.} Webcams rarely deliver exactly 25\,fps and
+may drop frames. For a window covering times $[t_0, t_0+3\,\text{s})$ the worker
+selects, for each of the 75 target instants $t_0 + 40k$\,ms, the buffered frame
+with the nearest timestamp, and cuts the matching 48{,}000 audio samples. Any
+constant offset between the camera and microphone pipelines is measured once
+with a hand-clap test (comparing the frame where the hands meet with the audio
+onset) and subtracted \rec.
+
+\paragraph{Windowing and preprocessing.} Every second the worker processes the
+latest 3\,s window, matching the duration of GRID training utterances and giving
+$T=75$, which satisfies the CTC length condition (\cref{eq:ctc-cond}). Face Mesh
+runs on each new frame as it arrives rather than once per window, so each frame is
+processed only once even though windows overlap; the crop smoothing uses an
+exponential moving average over past frames. Audio features are computed with
+the stored training statistics.
+
+\paragraph{Inference and decoding.} The model runs in evaluation mode, with
+gradient tracking disabled by \texttt{torch.inference\_mode()}, and its output
+is decoded by beam search. If more than half of
+the window's frames lack a face, the visual stream is replaced by
+$\mathbf{e}_{\text{miss}}$ and the caption is marked ``audio only''.
+
+\paragraph{Partial and final captions.} A simple energy-based voice-activity
+detector tracks speech on the audio buffer. While speech continues, the caption
+for the latest window is shown as a grey \emph{partial} caption and replaced each
+second. When the detector reports at least 500\,ms of silence, the worker decodes
+one window aligned to the detected utterance and displays it as a \emph{final}
+caption in black, appended to a short caption history. Restricting final
+captions to detected utterances avoids the difficult problem of merging text
+from overlapping windows.
+
+\paragraph{Errors and missing input.} If the camera or microphone cannot be
+opened, the application reports it and continues in the remaining modality
+where possible. Exceptions in the inference worker are logged and the window is
+skipped, so a single failure does not stop the display loop.
+
+\subsection{Latency, cost and memory}
+Caption latency in Mode~B is the sum of waiting for the window to fill (up to
+1\,s for partial captions, the end-of-speech delay for final ones), Face Mesh on
+the latest frames, and model and beam-search time. The 3D convolutions over 75
+frames dominate model cost; the per-window cost is the same as one test
+utterance and will be measured as described in \cref{sec:evaluation}. Real-time
+audio-visual recognition on modest hardware is still an active research
+problem~\cite{ryumin2023,aripin2024}, so these measurements, rather than
+assumptions, will decide the final window settings. If latency
+is too high, the team will, in order: run inference every 1.5\,s instead of 1\,s,
+reduce beam width, run the model on a GPU, or quantise the model weights.
+
+\subsection{Testing the application}
+\begin{itemize}
+  \item \textbf{Pre-recorded clips.} Held-out GRID test clips are played through
+        Mode~A and through Mode~B (by feeding the file to the buffers in real time).
+        Their captions must match those produced by the evaluation script for the
+        same clips, which confirms that the application path is equivalent to the
+        evaluated path.
+  \item \textbf{Live input.} Team members read GRID-grammar sentences to the
+        webcam in a quiet room and with played-back background noise. Because the
+        model is trained on GRID, it is expected to work only on GRID-like sentences
+        spoken in similar framing; free conversation is outside its training
+        distribution, and the demonstration will say so.
+  \item \textbf{Failure cases.} Covering the mouth, turning the head and leaving the
+        frame must produce ``audio only'' captions rather than crashes.
+\end{itemize}

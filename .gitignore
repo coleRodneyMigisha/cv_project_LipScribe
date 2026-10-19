@@ -1,0 +1,15 @@
+# LaTeX build outputs (implementation document)
+documentation/**/*.aux
+documentation/**/*.log
+documentation/**/*.toc
+documentation/**/*.lof
+documentation/**/*.lot
+documentation/**/*.loa
+documentation/**/*.out
+documentation/**/*.fls
+documentation/**/*.fdb_latexmk
+documentation/**/*.synctex.gz
+documentation/2_implementation/implementation_document/main.pdf
+
+# Office lock files created while a document is open
+~$*

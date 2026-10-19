@@ -1,0 +1,102 @@
+% =====================================================================
+\section{Implementation Schedule and Milestones}
+\label{sec:schedule}
+% =====================================================================
+
+The schedule covers the six-week capstone period and is ordered by dependency:
+no model can be trained before the data are verified, and no fusion experiment is
+meaningful before both single-modality baselines work. Training runs are long,
+so they are started as early as possible and overlap with development of the
+next component. The optional extensions are scheduled only in slack time after
+the core system is complete. \Cref{fig:gantt} shows the timeline and
+\cref{tab:milestones} the deliverables and completion criteria of each
+milestone.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=1.65cm, y=0.62cm,
+  bar/.style={fill=lsblue!70, draw=lsblue, rounded corners=1pt},
+  opt/.style={fill=black!15, draw=black!40, rounded corners=1pt, dashed},
+  lab/.style={font=\scriptsize\sffamily, anchor=east}]
+% grid
+\foreach \w in {0,...,6} \draw[black!20] (\w,0.4) -- (\w,-10.4);
+\foreach \w in {1,...,6} \node[font=\scriptsize\sffamily\bfseries] at (\w-0.5,1) {Week \w};
+% bars: \y, start, end, label
+\foreach \y/\s/\e/\l in {
+  0/0/1/{M1 Environment \& dataset verification},
+  1/0.5/2/{M2 Preprocessing \& alignment},
+  2/1.5/2.5/{M3 Audio-only baseline (B1)},
+  3/2/3.5/{M4 Visual encoder, B2, B3},
+  4/3/4/{M5 Multimodal fusion (P)},
+  5/3.5/5/{M6 Training \& tuning},
+  6/4.5/5.5/{M7 Evaluation \& ablations},
+  7/4.5/6/{M8 Application integration},
+  8/5.5/6/{M9 Testing, docs \& demo}} {
+  \draw[bar] (\s,-\y-0.35) rectangle (\e,-\y+0.35);
+  \node[lab] at (-0.05,-\y) {\l};
+}
+\draw[opt] (5,-9-0.35) rectangle (6,-9+0.35);
+\node[lab] at (-0.05,-9) {Optional extensions (if time)};
+\draw[red!60!black, thick] (5,0.5) -- (5,-10.4) node[below, font=\scriptsize\sffamily, text=red!60!black] {core freeze};
+\end{tikzpicture}
+\caption{Gantt-style implementation timeline. Dashed bar: optional work, started only
+after the core system is frozen at the end of week~5.}
+\label{fig:gantt}
+\end{figure}
+
+{\small
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{@{}p{0.8cm}p{3.0cm}p{1.1cm}p{4.4cm}p{5.1cm}@{}}
+\caption{Milestones, dependencies, deliverables and completion criteria.}\label{tab:milestones}\\
+\toprule
+\textbf{ID} & \textbf{Milestone} & \textbf{Needs} & \textbf{Deliverables} & \textbf{Completion criteria} \\
+\midrule
+\endfirsthead
+\multicolumn{5}{@{}l}{\small\itshape \Cref{tab:milestones} continued}\\
+\toprule
+\textbf{ID} & \textbf{Milestone} & \textbf{Needs} & \textbf{Deliverables} & \textbf{Completion criteria} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+M1 & Environment setup and dataset verification & -- &
+Repository skeleton, pinned environment, raw GRID and MUSAN, integrity report, \texttt{splits.csv} &
+Every member runs the test suite; integrity report lists usable utterances per speaker; speaker sets disjoint; GPU access confirmed \\
+M2 & Preprocessing and data alignment & M1 &
+Cached mouth crops, 16\,kHz audio, manifest, noise mixer, fixed noisy test sets, normalisation statistics, data loader &
+Crop contact sheets reviewed; noise-mixing tests pass; one batch loads with consistent lengths; train/infer parity test passes \\
+M3 & Baseline implementation (audio-only) & M2 &
+Training and evaluation scripts, B1 checkpoint &
+B1 overfits 8 utterances; full B1 run completes and is evaluated at all five SNRs \\
+M4 & Visual and audio encoder development & M2 &
+Visual encoder V1, B2 and B3 checkpoints &
+Encoder shape tests pass; B2 validation CER falls clearly below that of an untrained model; B3 evaluated at all SNRs \\
+M5 & Multimodal fusion & M3, M4 &
+Attention fusion, gate, modality dropout, first P checkpoint &
+Fusion unit tests pass; no NaN under full-modality dropout; P trains stably \\
+M6 & Training and hyperparameter tuning & M5 &
+Tuned P configuration; final checkpoints of B1--B3 and P &
+Learning-rate and modality-dropout sweeps logged; best configuration chosen on validation data only \\
+M7 & Evaluation and ablation studies & M6 &
+Per-SNR WER/CER tables and plots, ablations X1--X3, gate analysis, latency measurements &
+All core models evaluated on identical test audio; every number traceable to a config and checkpoint \\
+M8 & Application integration & M3 (Mode A), M6 (final) &
+Gradio Mode A, live Mode B, \texttt{transcribe.py} &
+Mode A captions match the evaluation script on test clips; Mode B runs for 5 minutes without error \\
+M9 & Testing, documentation and demonstration & M7, M8 &
+Final report, README, demonstration rehearsal, frozen release tag &
+Fresh clone installs and reproduces one evaluation; demonstration rehearsed with a recorded fallback clip \\
+\end{longtable}
+}
+
+\paragraph{Prioritisation.} If the schedule slips, work is dropped in this order:
+optional extensions; experiments X4--X6; Mode B live captioning (Mode A remains);
+multiple seeds. Baselines B1--B3, the proposed model P, the per-SNR evaluation and
+ablations X1--X3 are never dropped, because they constitute the core contribution
+described in the proposal.
+
+\paragraph{Team organisation.} Work is divided into three pairs \rec: a data pair
+(M1--M2, noise and integrity), a model pair (encoders, fusion, training) and an
+application pair (inference script, Gradio interface, live mode, tests), with all
+members contributing to evaluation and the report. A short weekly review checks
+completion criteria and re-plans.

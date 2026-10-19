@@ -1,0 +1,123 @@
+% =====================================================================
+\section{Development Environment and Technology Stack}
+\label{sec:stack}
+% =====================================================================
+
+\subsection{Framework decisions}
+The team will implement LipScribe in Python and select one tool for each role
+to keep the codebase small and the learning burden manageable. Two choices
+shape the rest of the project.
+
+\paragraph{Deep-learning framework: PyTorch \rec.}
+PyTorch provides every model component the proposal requires---3D
+convolutions (\texttt{nn.Conv3d}), bidirectional LSTMs with packed
+variable-length sequences, multi-head attention
+(\texttt{nn.MultiheadAttention}) and a built-in CTC loss (\texttt{nn.CTCLoss}).
+Its eager execution makes tensor shapes easy to inspect during debugging, and
+\texttt{torchaudio} supplies log-Mel and MFCC transforms that run identically
+on CPU and GPU. \texttt{torchvision} supplies an ImageNet-pretrained
+EfficientNet-B0~\cite{tan2019} for the backbone experiment in \cref{sec:visual}.
+TensorFlow could serve equally well; the team chooses PyTorch so that one
+framework covers training, evaluation and inference.
+
+\paragraph{Interface framework: Gradio \rec.}
+Gradio builds a browser-based demonstration from Python functions, with
+ready-made webcam, microphone and video-upload components. This matches the
+``simple web demonstration'' promised in the proposal \spec\ without requiring
+front-end development. The lower-latency live mode (\cref{sec:application})
+uses an OpenCV display window driven by the same inference code, because
+it avoids browser round-trips; it is a development tool rather than a second
+interface framework.
+
+\subsection{Technology stack}
+\Cref{tab:stack} lists each technology, its purpose and where it is used.
+
+\begin{table}[H]
+\centering
+\caption{Technology stack \rec.}
+\label{tab:stack}
+\small
+\begin{tabularx}{\textwidth}{@{}p{3.3cm}Xp{3.9cm}@{}}
+\toprule
+\textbf{Technology} & \textbf{Purpose} & \textbf{System component} \\
+\midrule
+Python 3.11 & Implementation language for all modules & Entire system \\
+PyTorch, torchaudio, torchvision & Model definition, training, CTC loss, audio
+features, pretrained EfficientNet-B0 & Encoders, fusion, training, inference \\
+OpenCV (\texttt{opencv-python}) & Video decoding, camera capture, cropping,
+resizing, live display & Visual pipeline, live demo \\
+MediaPipe & Face Mesh landmark detection~\cite{lugaresi2019,kartynnik2019} &
+Mouth localisation \\
+NumPy & Array manipulation and on-disk storage of cached crops & Preprocessing,
+data loading \\
+pandas & Dataset manifest (one row per utterance), split tables, result tables &
+Data management, evaluation \\
+soundfile & Reading and writing WAV audio & Audio pipeline, noise mixing \\
+librosa & Reference implementation used to cross-check feature extraction in
+tests & Unit tests \\
+sounddevice & Microphone capture for the live loop & Live demo \\
+scikit-learn & Speaker-grouped splitting (\texttt{GroupShuffleSplit}), confusion
+matrices for extensions & Data splits, extensions \\
+jiwer & Word and character error rate computation & Evaluation \\
+Matplotlib & Training curves, WER-versus-SNR plots, attention-gate plots &
+Experiment analysis \\
+TensorBoard & Live logging of losses, error rates and learning rate & Training \\
+PyYAML & Experiment configuration files & All scripts \\
+pytest & Unit, integration and end-to-end tests & Quality assurance \\
+Gradio & Web demonstration interface & Application \\
+Git and GitHub & Version control and collaboration & Project management \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Dependencies and compatibility}
+Three compatibility issues need attention when the environment is first
+created.
+\begin{itemize}
+  \item \textbf{MediaPipe and Python versions.} MediaPipe publishes wheels for a
+        limited range of Python versions. The team will confirm that the
+        chosen Python version has a MediaPipe wheel for every member's
+        operating system before fixing the version; Python~3.11 is proposed
+        because it is widely supported \tbd.
+  \item \textbf{PyTorch and CUDA.} The PyTorch build must match the CUDA driver
+        of whichever GPU is used. The CPU-only build is sufficient for
+        preprocessing, tests and the demonstration.
+  \item \textbf{Paired library versions.} \texttt{torch}, \texttt{torchaudio}
+        and \texttt{torchvision} must be installed as a matching set.
+\end{itemize}
+
+\subsection{Hardware requirements}
+The project has not yet established which hardware is available. The plan
+therefore states requirements rather than assuming a particular machine.
+\begin{itemize}
+  \item \textbf{Training} needs a CUDA-capable GPU; training the full model on a
+        CPU alone is unlikely to finish within the six-week schedule. Candidate
+        sources are a university GPU workstation, a team member's GPU, or a
+        cloud notebook service \tbd. With a GPU of about 8\,GB memory, the
+        recommended batch size of 16 clips with mixed precision is expected to
+        fit; this will be confirmed by a memory test in week~2.
+  \item \textbf{Storage.} Cached mouth crops for the whole corpus occupy roughly
+        23\,GB as uncompressed 8-bit arrays
+        ($\approx 33{,}000 \times 75 \times 96 \times 96$ bytes), plus the raw
+        corpus and MUSAN. About 100\,GB of free disk space is recommended.
+  \item \textbf{Demonstration} requires a laptop with a webcam and microphone. A
+        GPU is helpful but not required; latency will be measured on the actual
+        demonstration machine.
+\end{itemize}
+
+\subsection{Reproducibility measures}
+\begin{itemize}
+  \item Exact dependency versions are pinned in \texttt{requirements.txt} (and an
+        equivalent \texttt{environment.yml}), generated from a working
+        environment rather than written by hand.
+  \item Every experiment is defined by a YAML configuration file committed to
+        Git; the configuration and Git commit hash are saved inside each
+        checkpoint.
+  \item Random seeds for Python, NumPy and PyTorch are set from the
+        configuration, and the noise-mixing seed for the test set is fixed so
+        that every model is evaluated on identical noisy audio.
+  \item The speaker split is stored as a file (\texttt{splits.csv}) and loaded by
+        every script, never regenerated.
+  \item Preprocessing scripts are deterministic and record the MediaPipe
+        version and crop parameters in the dataset manifest.
+\end{itemize}

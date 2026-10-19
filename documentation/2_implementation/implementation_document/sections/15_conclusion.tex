@@ -1,0 +1,30 @@
+% =====================================================================
+\section{Conclusion}
+\label{sec:conclusion}
+% =====================================================================
+
+This document has translated the LipScribe proposal into an implementation plan.
+The system is built from separable modules: a visual stream that uses MediaPipe
+Face Mesh to extract stabilised $96\times96$ mouth crops and encodes them with a 3D
+convolutional front-end and a BiLSTM; an audio stream that converts 16\,kHz audio
+into log-Mel features and encodes them with strided convolutions and a BiLSTM at
+the same 25\,fps rate; a cross-modal attention and gating module that combines
+the two; and a CTC output layer decoded by prefix beam search. Modality dropout
+and multi-condition training with MUSAN noise are the mechanisms through which the
+fusion is expected to learn to rely on the lips when the audio degrades.
+
+The architecture, the development stages and the evaluation plan are tied
+together by design. Each milestone produces a component with its own tests; the
+baselines reuse the same components, so that every comparison isolates one
+change; and the per-SNR evaluation on held-out speakers measures exactly the
+property the project claims to improve. The same preprocessing code serves
+training and the captioning demonstration, so the demonstrated behaviour reflects
+the evaluated model.
+
+The plan also states what remains uncertain. The clean-condition target of WER
+below 10\% and the expected advantage at 0 and $-5$\,dB are hypotheses to be
+tested, not results. Emotion detection and language identification require data
+that GRID does not provide and are kept as optional extensions. By completing the
+core recogniser first, reporting outcomes faithfully---including any in which
+fusion does not help---and documenting every experiment, the team aims to deliver
+a working, verifiable audio-visual captioning system within the six-week course.
