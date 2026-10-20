@@ -1,0 +1,87 @@
+% LipScribe -- Progress Report, Week 1
+% Compile: pdflatex progress_report_week1.tex   (or: tectonic progress_report_week1.tex)
+\documentclass[11pt,a4paper]{article}
+\usepackage{lipscribe-report}
+\fancyhead[L]{\small\sffamily\color{lsgrey}LipScribe -- Progress Report 1}
+
+\begin{document}
+
+\docheader{Progress Report 1}{Implementation start-up (Week 1 of 6)}{20 October 2026}
+
+\section{Summary}
+The project set-up is complete and implementation has started. We have created
+the Trello board that tracks the Work Breakdown Structure (WBS), created the
+project repository, downloaded the dataset and secured a GPU for training. As
+of Monday 19~October 2026 the team is implementing the system according to the
+WBS, starting with Week~1 (\emph{Setup \& Data}), which ends with Milestone~M1
+on Sunday 25~October.
+
+\section{Work completed}
+
+\begin{description}[style=nextline,leftmargin=0pt,itemsep=4pt]
+  \item[Trello board]
+    The board turns the WBS into cards: one list per week, plus
+    \emph{In Progress}, \emph{In Review} and \emph{Done}. Each card has an
+    owner, a reviewer, a due date and a checklist, and each week ends with a
+    milestone card (M1--M9). Reference cards hold the team roles, the working
+    agreement and the order in which work is dropped if the schedule slips.
+  \item[Code repository]
+    The GitHub repository
+    (\url{https://github.com/coleRodneyMigisha/cv_project_LipScribe}) has been
+    created for all code and documentation. All code is merged through pull
+    requests that the card's reviewer must approve.
+  \item[Dataset]
+    The GRID audio-visual corpus has been downloaded. The data is stored
+    outside Git and is not modified; integrity checks and the
+    speaker-independent train/validation/test split follow this week.
+  \item[GPU for training]
+    A GPU has been secured for training the models, which removes the main risk
+    identified in the implementation plan.
+\end{description}
+
+\section{Week 1 plan and status}
+Week~1 tasks from the WBS, with their status on 20~October:
+
+{\small
+\rowcolors{2}{lsrow}{white}
+\begin{tabularx}{\textwidth}{@{}p{1.1cm}X>{\raggedright\arraybackslash}p{4.1cm}>{\raggedright\arraybackslash}p{2.0cm}p{1.7cm}@{}}
+\toprule
+\rowcolor{white}\sffamily\bfseries Card & \sffamily\bfseries Task & \sffamily\bfseries Owner & \sffamily\bfseries Due & \sffamily\bfseries Status \\
+\midrule
+W1-01 & Kick-off meeting, roles and Trello board & Charis Opol & Mon 19 Oct & \done \\
+W1-02 & GitHub repository & Ansasire Nehum Naamaye & Tue 20 Oct & \done \\
+W1-04 & Secure GPU access and storage & Charis Opol & Wed 21 Oct & \done \\
+W1-05 & Download the GRID corpus & Ainomugisha Faith & Wed 21 Oct & \done \\
+W1-03 & Pinned Python environment & Ansasire Nehum Naamaye & Wed 21 Oct & \planned \\
+W1-06 & MUSAN noise pools & Lisa Lusinga Namugenyi & Thu 22 Oct & \planned \\
+W1-11 & Module interface specification & Wakisa Isabelle & Thu 22 Oct & \planned \\
+W1-07 & Dataset integrity checker & Ainomugisha Faith & Fri 23 Oct & \planned \\
+W1-09 & Transcript normalisation and tokeniser & Lisa Lusinga Namugenyi & Fri 23 Oct & \planned \\
+W1-12 & Test framework and CI & Ansasire Nehum Naamaye & Fri 23 Oct & \planned \\
+W1-08 & Speaker-independent split & Ainomugisha Faith & Sat 24 Oct & \planned \\
+W1-10 & Mouth-cropping prototype & Cole Rodney Migisha & Sat 24 Oct & \planned \\
+M1 & Milestone review & All & Sun 25 Oct & \planned \\
+\bottomrule
+\end{tabularx}
+}
+
+\section{Next steps}
+\begin{enumerate}
+  \item Build the pinned environment and confirm it on every member's machine
+        and on the GPU machine.
+  \item Run the integrity checks on the downloaded data and fix the
+        speaker-independent split (4 test speakers, 3 validation, the rest for
+        training).
+  \item Build the tokeniser, the noise pools and the mouth-cropping prototype.
+  \item Hold the M1 review on Sunday 25~October and plan Week~2
+        (preprocessing; the audio-only baseline starts training).
+\end{enumerate}
+
+\section{Risks and issues}
+No blocking issues so far. With the GPU secured, the main open risk is
+software compatibility (MediaPipe supports only some Python versions), which
+the environment check this week addresses. The schedule and completion
+criteria for all milestones are in the accompanying \emph{Project Milestones}
+document.
+
+\end{document}
