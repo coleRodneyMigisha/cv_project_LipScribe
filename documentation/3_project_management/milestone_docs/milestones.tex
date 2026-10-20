@@ -1,0 +1,155 @@
+% LipScribe -- Project Milestones (M1--M9)
+% Compile: pdflatex milestones.tex   (or: tectonic milestones.tex)
+\documentclass[11pt,a4paper]{article}
+\usepackage{lipscribe-report}
+\fancyhead[L]{\small\sffamily\color{lsgrey}LipScribe -- Project Milestones}
+
+\begin{document}
+
+\docheader{Project Milestones}{Milestones M1--M9 and their completion criteria}{20 October 2026}
+
+\section{Purpose}
+This document lists the nine milestones of the LipScribe implementation, when
+each is due, and the criteria used to decide that it is complete. The
+milestones come from Section~12 of the \emph{Technical Implementation and
+System Development Document} and are tracked on the team's Trello board, where
+the Work Breakdown Structure (WBS) breaks each milestone into cards with an
+owner, a reviewer and a due date.
+
+The implementation runs for six weeks, from Monday 19~October to
+Sunday 29~November 2026. Each week ends with a milestone review on Sunday,
+chaired by the project coordinator (Charis Opol), where the completion criteria
+are checked and the next week is re-planned.
+
+\section{Timeline}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[x=1.85cm,y=0.62cm,font=\sffamily\small]
+  % week columns
+  \foreach \w/\d in {1/19--25 Oct,2/26 Oct--1 Nov,3/2--8 Nov,4/9--15 Nov,5/16--22 Nov,6/23--29 Nov}{
+    \fill[lslight] ({\w-1+0.03},0.3) rectangle ({\w-0.03},1.5);
+    \node[font=\sffamily\bfseries\small,text=lsblue] at ({\w-0.5},1.1) {Week \w};
+    \node[font=\sffamily\scriptsize] at ({\w-0.5},0.62) {\d};
+    \draw[lsgrey!40] (\w-1,0.3) -- (\w-1,-9.4);
+  }
+  \draw[lsgrey!40] (6,0.3) -- (6,-9.4);
+  % milestone bars: start, end, row, label
+  \foreach \s/\e/\r/\l in {0/1/1/{M1 Environment \& dataset},
+                           0.5/2/2/{M2 Preprocessing \& alignment},
+                           1.5/3/3/{M3 Audio-only baseline},
+                           2/3/4/{M4 Visual encoder, B2, B3},
+                           3/4/5/{M5 Multimodal fusion},
+                           3.5/5/6/{M6 Training \& tuning},
+                           4/5/7/{M7 Evaluation \& ablations},
+                           4/6/8/{M8 Application integration},
+                           5/6/9/{M9 Testing, docs \& demo}}{
+    \fill[lsblue!80,rounded corners=2pt] ({\s+0.04},{-\r+0.25}) rectangle ({\e-0.04},{-\r-0.25});
+    \node[anchor=east,font=\sffamily\scriptsize] at (-0.05,-\r) {\l};
+  }
+  % core freeze and submission
+  \draw[red!70!black,thick,dashed] (5,0.3) -- (5,-9.6) node[below left,font=\sffamily\scriptsize,text=red!70!black] {Core freeze 22 Nov};
+  \draw[lsdone,thick,dashed] (6,0.3) -- (6,-9.6) node[below left,yshift=-9pt,font=\sffamily\scriptsize,text=lsdone] {Submission 29 Nov};
+  % today
+  \draw[lsprog,very thick] (0.2,0.3) -- (0.2,-9.4);
+  \node[font=\sffamily\scriptsize\bfseries,text=lsprog,anchor=south] at (0.2,1.5) {Today};
+\end{tikzpicture}
+\caption{Milestone schedule over the six implementation weeks. Bars show the
+weeks in which each milestone's work takes place; the review is at the end of
+the last week of each bar.}
+\end{figure}
+
+\clearpage
+\section{Milestones and completion criteria}
+
+{\small
+\rowcolors{2}{lsrow}{white}
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{3.3cm}>{\raggedright\arraybackslash}p{2.0cm}>{\raggedright\arraybackslash}p{8.1cm}>{\raggedright\arraybackslash}p{1.7cm}@{}}
+\toprule
+\rowcolor{white}\sffamily\bfseries Milestone & \sffamily\bfseries Review & \sffamily\bfseries Completion criteria & \sffamily\bfseries Status \\
+\midrule
+\endhead
+\textbf{M1} Environment setup and dataset verification &
+Week 1 \newline Sun 25 Oct &
+Every member runs the test suite; GRID integrity report lists usable
+utterances per speaker; speaker-independent \texttt{splits.csv} committed and
+disjoint; GPU access confirmed; mouth-crop prototype approved. &
+\inprog \\
+\textbf{M2} Preprocessing and data alignment &
+Week 2 \newline Sun 1 Nov &
+Mouth crops cached and contact sheets reviewed; noise-mixing tests pass; one
+batch loads with consistent lengths; train/inference parity test passes;
+audio-only baseline (B1) full run started. &
+\planned \\
+\textbf{M3} Audio-only baseline &
+Week 3 \newline Sun 8 Nov &
+B1 evaluated at all five noise levels (clean, 10, 5, 0, $-5$\,dB);
+\texttt{evaluate.py} and beam search merged. &
+\planned \\
+\textbf{M4} Visual encoder, B2 and B3 &
+Week 3 \newline Sun 8 Nov &
+Encoder shape tests pass; visual-only B2 validation CER clearly below an
+untrained model; concatenation baseline B3 evaluated at all noise levels. &
+\planned \\
+\textbf{M5} Multimodal fusion &
+Week 4 \newline Sun 15 Nov &
+Fusion unit tests pass with no NaN under modality dropout; proposed model P
+trains stably and has first results; ablation configs X1--X3 ready;
+\texttt{transcribe.py} merged. &
+\planned \\
+\textbf{M6} Training and tuning &
+Week 5 \newline Sun 22 Nov &
+Learning-rate and modality-dropout sweeps logged; final configuration chosen on
+validation data only; final runs of B1, B2, B3 and P complete. &
+\planned \\
+\textbf{M7} Evaluation and ablations &
+Week 5 \newline Sun 22 Nov &
+All core models evaluated on identical test audio; ablations X1--X3 run; every
+number traceable to a config and checkpoint; repository tagged
+\texttt{v1.0-core} (core freeze). &
+\planned \\
+\textbf{M8} Application integration &
+Weeks 5--6 \newline Tue 24 Nov &
+Gradio upload demo (Mode A) and live captioning (Mode B) working; latency
+measured (target real-time factor $\le 0.5$); demo captions match
+\texttt{evaluate.py} on held-out clips. &
+\planned \\
+\textbf{M9} Testing, documentation and demonstration &
+Week 6 \newline Sun 29 Nov &
+Fresh clone installs and reproduces one evaluation; demo rehearsed with a
+recorded fallback video; all automated tests pass; report, code and release
+(\texttt{v1.0-final}) submitted. &
+\planned \\
+\bottomrule
+\end{longtable}
+}
+
+\section{Current status: Milestone M1}
+Implementation started on Monday 19~October 2026 according to the WBS.
+Progress against the M1 criteria as of 20~October:
+
+\begin{itemize}[label={}]
+  \item $\boxtimes$\; Trello board set up with weekly lists, owners, reviewers and due dates
+  \item $\boxtimes$\; GitHub repository created
+  \item $\boxtimes$\; GRID dataset downloaded
+  \item $\boxtimes$\; GPU access secured for training
+  \item $\square$\; Pinned environment and test suite running for all six members
+  \item $\square$\; Integrity report and speaker-independent split (\texttt{splits.csv})
+  \item $\square$\; Mouth-crop prototype approved
+\end{itemize}
+
+The details are given in the accompanying Progress Report (Week~1).
+
+\section{Review process and fallback plan}
+\begin{itemize}
+  \item A milestone is complete only when all its criteria are met and the
+        reviewer of each card has approved the work. Unfinished cards move to
+        the next week with a written reason.
+  \item If the schedule slips, work is dropped in this order: optional
+        extensions; experiments X4--X6; live Mode B (Mode A is kept); extra
+        random seeds.
+  \item Never dropped: baselines B1--B3, the proposed model P, the per-noise-level
+        evaluation and ablations X1--X3.
+\end{itemize}
+
+\end{document}
