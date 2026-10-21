@@ -1,0 +1,85 @@
+% =====================================================================
+\section{Risks, Limitations and Mitigation}
+\label{sec:risks}
+% =====================================================================
+
+\Cref{tab:risks} lists the main implementation risks, an assessment of their
+likelihood and impact, and the planned mitigation. Assessments are the team's
+judgement at the planning stage and will be reviewed weekly.
+
+{\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{longtable}{@{}p{3.5cm}p{1.4cm}p{10.2cm}@{}}
+\caption{Implementation risks and mitigation strategies (L/I = likelihood/impact, rated H = high, M = medium, L = low).}\label{tab:risks}\\
+\toprule
+\textbf{Risk} & \textbf{L / I} & \textbf{Mitigation} \\
+\midrule
+\endfirsthead
+\multicolumn{3}{@{}l}{\small\itshape \Cref{tab:risks} continued}\\
+\toprule
+\textbf{Risk} & \textbf{L / I} & \textbf{Mitigation} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+Limited compute resources & H / H &
+Confirm GPU access in week~1; use mixed precision and cached crops; develop on a
+subset of speakers; keep the model moderate in size; drop optional experiments
+first (\cref{sec:schedule}). \\
+Long training times & H / M &
+Start B1 in week~2 and overlap training with development; use early stopping;
+schedule long runs overnight; checkpoint every epoch so runs can be resumed. \\
+Misaligned audio and video & M / H &
+Never drop frames during cropping; integrity check of durations; automated
+train/infer parity test; time-shift sanity test (\cref{tab:tests}); clap-test
+calibration for live input. \\
+CTC training instability & M / H &
+Learning-rate warm-up, gradient clipping and \texttt{zero\_infinity}; assert the
+length condition (\cref{eq:ctc-cond}); overfit a tiny batch before full runs;
+log non-finite losses. \\
+Token distribution issues & M / L &
+The blank symbol dominates CTC outputs and GRID's grammar makes some characters
+much more frequent; monitor CER per word slot and the share of blank predictions;
+inspect the letter slot separately, as it is the hardest. \\
+Speaker leakage & L / H &
+Speaker-level split stored in one file; loader refuses overlapping speakers;
+disjointness unit test; statistics from training speakers only. \\
+Poor generalisation to unseen speakers & M / H &
+Crop jitter, horizontal flip, dropout and weight decay; model selection on
+held-out validation speakers; report per-speaker results honestly. \\
+Mouth detection failure (lighting, head pose, occlusion) & M / M &
+GRID is frontal and well lit, so this mainly affects the live demo; interpolate
+short gaps; fall back to audio-only captions using $\mathbf{e}_{\text{miss}}$; good
+lighting and frontal camera position for the demonstration. \\
+Attention fusion fails to improve performance & M / H &
+Report the outcome truthfully; diagnose with gate analysis, test-time modality
+ablations and the checklist in \cref{sec:evaluation}; tune modality dropout;
+B3 remains a working fused system. \\
+Excessive inference latency & M / M &
+Measure early on the demo machine; increase window hop, reduce beam width, use a
+GPU or quantise; Mode A batch captioning as the guaranteed fallback. \\
+Limited multilingual generalisation & H / L (core) &
+Treat language identification as an optional extension with its own data; state
+clearly that the core model covers GRID English only. \\
+Domain gap between GRID and live speech & H / M &
+Restrict the demonstration to GRID-grammar sentences; explain the closed
+vocabulary; identify larger datasets (e.g.\ those in~\cite{afouras2022}) as future
+work. \\
+Privacy of camera and microphone input & M / H &
+Process all input locally; do not store live video or audio by default; show a
+clear on-screen indicator while capturing; record any demonstration data only
+with written consent and delete it after the project; never upload live input to
+third-party services. \\
+\end{longtable}
+}
+
+\subsection{Limitations of the planned system}
+Even if every risk is managed, the system will have known limitations. GRID's
+fixed grammar and 51-word vocabulary~\cite{cooke2006} make the recognition task far
+easier than open captioning, so a low WER on GRID does not imply comparable
+accuracy on lectures or meetings~\cite{afouras2022}. Synthetic additive noise does
+not reproduce reverberation, competing speakers or microphone distortion. The
+visual front-end assumes a roughly frontal, unoccluded face, which the literature
+identifies as an open problem~\cite{ameer2025,kanavnet2026}. The final report will
+state these limitations alongside the results.

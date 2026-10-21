@@ -1,0 +1,209 @@
+% =====================================================================
+\section{Dataset Preparation and Management}
+\label{sec:dataset}
+% =====================================================================
+
+\subsection{The GRID audiovisual sentence corpus}
+The proposal selects the GRID corpus as the primary dataset \spec. GRID
+contains audio and frontal-face video recordings of 34 talkers, each speaking
+1000 short sentences~\cite{cooke2006}; the proposal quotes approximately
+33{,}000 usable sentences. Every sentence follows the same six-word grammar,
+\begin{center}
+\small\texttt{command}\;\;\texttt{colour}\;\;\texttt{preposition}\;\;\texttt{letter}\;\;\texttt{digit}\;\;\texttt{adverb},
+\end{center}
+as in ``place green at B 4 now''~\cite{cooke2006}. The vocabulary is therefore
+small and closed, which makes GRID suitable for a six-week project but also
+limits how far conclusions generalise to open conversation (\cref{sec:risks}).
+Each utterance is distributed with a word-level alignment file giving start
+and end times, from which the transcript is derived.
+
+\subsection{Acquisition and organisation}
+The team will download the video, audio and alignment archives for every
+speaker from the official distribution and record the download date and
+archive checksums in \texttt{data/raw/SOURCES.md}. The raw files are never
+modified. All derived data are written to a separate tree:
+
+\begin{lstlisting}[language={},caption={Proposed data directory layout \rec.},label={lst:layout}]
+data/
+  raw/grid/s1/video/*.mpg  s1/audio/*.wav  s1/align/*.align
+  raw/musan/noise/...
+  processed/
+    mouths/s1/<utt_id>.npy        # uint8 [T, 96, 96]
+    audio16k/s1/<utt_id>.wav      # 16 kHz mono, clean
+    noisy_test/<snr>/<utt_id>.wav # fixed noisy copies for evaluation
+  manifest.csv                     # one row per utterance
+  splits.csv                       # speaker -> train / val / test
+  stats/feature_norm.npz           # training-set mean and std
+\end{lstlisting}
+
+The manifest is the single index of the dataset. Each row records the
+utterance identifier, speaker, transcript, number of video frames, audio
+duration, the fraction of frames with a successful face detection, and the
+paths of all derived files. Scripts select data by filtering the manifest,
+never by listing directories.
+
+\subsection{Transcription normalisation and vocabulary}
+Transcripts are built from the alignment files by removing the silence and
+short-pause tokens and joining the remaining words with single spaces. Text is
+lower-cased and restricted to the characters \texttt{a}--\texttt{z} and space
+\rec. The letter slot is spelled as a single character (``b'') and digits as
+words (``four''), matching the alignment files. The output vocabulary is
+therefore
+\begin{equation}
+\mathcal{V} = \{\texttt{<blank>}, \texttt{\textvisiblespace}, \texttt{a}, \dots, \texttt{z}\},
+\qquad |\mathcal{V}| = 28,
+\label{eq:vocab}
+\end{equation}
+with the CTC blank at index~0. A character vocabulary is chosen over a word
+vocabulary because it keeps CER meaningful, lets the same model architecture
+be reused for other text later, and matches the CTC systems cited in the
+proposal~\cite{kanavnet2026,afouras2022}.
+
+\subsection{Audio and video standardisation}
+\begin{itemize}
+  \item \textbf{Audio.} All audio is converted to 16\,kHz, 16-bit, mono WAV
+        \rec. 16\,kHz is the standard rate for speech recognition, preserves the
+        frequency range relevant to speech, and matches the rate the
+        microphone path will deliver in the demonstration. Resampling uses a
+        band-limited (anti-aliasing) resampler.
+  \item \textbf{Video.} GRID video is recorded at 25 frames per second, and a
+        3\,s utterance nominally yields 75 frames. Frames are decoded with
+        OpenCV and their count checked against the audio duration. The training
+        pipeline assumes exactly 25\,fps; the live pipeline resamples camera
+        frames to 25\,fps by timestamp (\cref{sec:application}).
+  \item \textbf{Synchronisation.} Audio and video of a GRID utterance start
+        together. Sample $n$ of the 16\,kHz waveform corresponds to video frame
+        $\lfloor 25n/16000 \rfloor$, so one video frame spans 640 audio samples
+        and four 10\,ms audio feature frames. This fixed 4:1 ratio is used
+        throughout \cref{sec:audio,sec:model}.
+\end{itemize}
+
+\subsection{Training, validation and test partitions}
+The proposal requires evaluation on held-out speakers \spec. Partitions are
+therefore made by speaker, not by utterance: every utterance from a given
+speaker belongs to exactly one partition. The recommended split \rec\ is
+\begin{itemize}
+  \item \textbf{Test:} 4 speakers (2 female, 2 male), used only for final reporting;
+  \item \textbf{Validation:} 3 speakers, used for early stopping and model selection;
+  \item \textbf{Training:} all remaining speakers (about 27).
+\end{itemize}
+Speakers with missing or badly corrupted video, as identified by the integrity
+checks below, are excluded before the split is drawn. The split is generated
+once with a fixed seed, reviewed for gender balance, written to
+\texttt{splits.csv} and committed to the repository.
+
+\paragraph{Why speaker leakage matters.}
+If utterances from one speaker appear in both training and test data, the
+model can partly memorise that speaker's lip shape, face and voice. Test error
+then measures recognition of familiar people rather than generalisation to new
+users---the situation that matters for a captioning tool. Speaker leakage
+would make every reported WER optimistically biased. Three safeguards prevent
+it: the split file is the only source of partition membership; the data loader
+raises an error if a speaker appears in more than one partition; and an
+automated test (\cref{sec:testing}) asserts that the three speaker sets are
+disjoint. Normalisation statistics are computed on the training partition only,
+for the same reason.
+
+\subsection{Dataset integrity checks}
+A script \texttt{verify\_dataset.py} runs before any training and writes a
+report. It checks that:
+\begin{enumerate}
+  \item every utterance has a video file, an audio file and an alignment file;
+  \item video decodes without error and has $75 \pm 2$ frames;
+  \item audio duration matches video duration to within one frame (40\,ms);
+  \item the transcript contains exactly six words drawn from the GRID word list;
+  \item Face Mesh succeeds on at least 90\% of frames \rec; utterances below
+        this threshold are flagged and excluded;
+  \item no audio file is silent or clipped throughout (RMS and peak checks).
+\end{enumerate}
+The report records how many utterances pass each check. These counts become
+the dataset statistics quoted in the final report; no statistics are assumed
+in advance.
+
+\subsection{Noise preparation with MUSAN}
+\label{sec:noise}
+The proposal adds synthetic noise from the MUSAN corpus~\cite{snyder2015} at
+five conditions: clean, 10\,dB, 5\,dB, 0\,dB and $-5$\,dB SNR \spec. MUSAN
+contains separate music, speech and noise subsets. The core experiments use the
+\emph{noise} subset \rec, which matches the proposal's ``background noise''
+scenario; babble noise built from the speech subset is a possible later
+experiment.
+
+\paragraph{Noise partitions.} MUSAN noise files are split into disjoint
+training, validation and test pools by file \rec. Using different noise
+recordings at test time ensures that the evaluation measures robustness to
+unseen noise rather than recognition of memorised noise patterns.
+
+\paragraph{Mixing procedure.}
+Let $s[n]$ be the clean speech waveform of length $N$ and $\tilde{w}[n]$ a noise
+segment of the same length, cut at a random offset from a noise file (looped if
+the file is shorter than $N$). The signal powers are
+\begin{equation}
+P_s = \frac{1}{N}\sum_{n=1}^{N} s[n]^2, \qquad
+P_w = \frac{1}{N}\sum_{n=1}^{N} \tilde{w}[n]^2 .
+\label{eq:power}
+\end{equation}
+To obtain a target SNR of $\rho$\,dB, the noise is scaled by
+\begin{equation}
+\alpha = \sqrt{\frac{P_s}{P_w \cdot 10^{\rho/10}}},
+\qquad
+y[n] = s[n] + \alpha\,\tilde{w}[n],
+\label{eq:mix}
+\end{equation}
+which gives $10\log_{10}\!\big(P_s / (\alpha^2 P_w)\big) = \rho$ exactly. If
+the peak $\max_n |y[n]|$ exceeds 1.0, the whole mixture $y$ is scaled down;
+because speech and noise are scaled together, the SNR is unchanged.
+\Cref{alg:mix} summarises the procedure.
+
+\begin{algorithm}[H]
+\caption{Mixing noise into clean speech at a target SNR.}
+\label{alg:mix}
+\begin{algorithmic}[1]
+\Require clean speech $s$ (length $N$), noise pool $\mathcal{W}$, target SNR $\rho$ (dB), random generator $r$
+\Ensure noisy speech $y$, measured SNR $\hat{\rho}$
+\If{$\rho = \text{clean}$} \Return $s$, $\infty$ \EndIf
+\State $w \gets$ file drawn from $\mathcal{W}$ using $r$
+\State $\tilde{w} \gets$ segment of length $N$ from $w$ at random offset (loop $w$ if shorter)
+\State $P_s \gets \operatorname{mean}(s^2)$;\quad $P_w \gets \operatorname{mean}(\tilde{w}^2)$
+\State $\alpha \gets \sqrt{P_s / (P_w \cdot 10^{\rho/10})}$
+\State $y \gets s + \alpha\tilde{w}$
+\State $\hat{\rho} \gets 10\log_{10}\!\big(P_s / \operatorname{mean}((\alpha\tilde{w})^2)\big)$ \Comment{verification}
+\State \textbf{assert} $|\hat{\rho} - \rho| < 0.01$
+\If{$\max|y| > 1$} $y \gets y / \max|y|$ \Comment{preserves SNR}\EndIf
+\State \Return $y$, $\hat{\rho}$
+\end{algorithmic}
+\end{algorithm}
+
+\paragraph{Speech power definition.}
+\Cref{eq:power} measures speech power over the whole clip, including the short
+silences at the start and end of each GRID utterance \rec. This definition is
+simple and reproducible. Its drawback is that the SNR during active speech is
+somewhat higher than the nominal value. The final report will state this
+definition explicitly; measuring power over voiced frames only is an
+alternative that the team may adopt if consistency with a particular reference
+paper becomes important \tbd.
+
+\paragraph{Training versus test noise.}
+During training, noise is mixed on the fly: for each utterance an SNR is drawn
+from $\{\text{clean}, 10, 5, 0, -5\}$\,dB with equal probability \rec, so the
+model sees each utterance under many conditions over the course of training.
+For validation and testing, each utterance is mixed once per SNR with a fixed
+seed and the result is stored in \texttt{processed/noisy\_test/}. Every model
+is then evaluated on exactly the same audio.
+
+\paragraph{Labels under noise.}
+Adding noise changes only the audio waveform. The video and transcript of the
+utterance are unchanged, so every noisy copy keeps the transcript of its clean
+original. This property is what allows the same test sentences to be scored at
+every SNR and the results compared directly.
+
+\subsection{Storage of processed features and metadata}
+Mouth crops are stored as one uncompressed \texttt{uint8} NumPy array per
+utterance \rec, which allows fast memory-mapped loading; grey-scale storage
+reduces size threefold compared with colour. Clean audio is stored as 16\,kHz
+WAV, and log-Mel features are computed on the fly on the GPU, because the
+noise---and therefore the features---changes every time an utterance is
+loaded during training. Feature normalisation statistics (per-band mean and
+standard deviation of the log-Mel features over clean and noisy training audio)
+are stored in \texttt{stats/feature\_norm.npz} and loaded by both training and
+inference code.

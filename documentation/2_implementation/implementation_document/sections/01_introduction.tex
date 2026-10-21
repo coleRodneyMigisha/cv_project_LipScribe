@@ -1,0 +1,125 @@
+% =====================================================================
+\section{Introduction and Implementation Overview}
+\label{sec:intro}
+% =====================================================================
+
+\subsection{Purpose of LipScribe}
+LipScribe is an audio-visual speech recognition (AVSR) system that produces
+text captions from a speaker's voice and lip movements together. Conventional
+automatic speech recognition (ASR) performs well in quiet rooms but degrades
+sharply when background noise, overlapping speakers or muffled speech corrupt
+the audio signal. Lip movements are unaffected by acoustic noise, so a model
+that also watches the mouth retains a usable source of evidence when the audio
+becomes unreliable~\cite{li2023,afouras2022}. The implementation described here
+therefore aims to build a recogniser whose accuracy degrades more gracefully in
+noise than an audio-only system.
+
+The proposal identifies deaf and hard-of-hearing people as the primary
+beneficiaries, with lectures, meetings and public spaces as the intended
+settings \spec. These users depend on captions being correct rather than merely
+fast, so the implementation prioritises measurable transcription quality across
+noise levels and treats latency as a constraint to be measured, not assumed.
+
+\subsection{Problem statement and objectives}
+The proposal states the central problem as: \emph{how can transcription be
+improved by combining audio understanding with lip reading so that captions
+remain usable even when the audio channel is severely degraded?} \spec. It
+defines four objectives, each linked to a research question (RQ). \Cref{tab:objectives}
+maps each objective to the part of the implementation that addresses it and
+states whether that part belongs to the core system.
+
+\begin{table}[H]
+\centering
+\caption{Mapping of proposal objectives to implementation components.}
+\label{tab:objectives}
+\small
+\begin{tabularx}{\textwidth}{@{}p{3.4cm}X p{1.9cm}@{}}
+\toprule
+\textbf{Objective (RQ)} & \textbf{Implementation component} & \textbf{Scope} \\
+\midrule
+1. Disambiguate homophenes (RQ1) &
+Cross-modal attention lets acoustic context resolve visually identical lip
+shapes; temporal modelling over neighbouring frames (\cref{sec:model}). &
+Core \\
+2. Model temporal word sequences (RQ2) &
+3D-CNN front-end, BiLSTM encoders and CTC training map frame sequences to
+whole sentences (\cref{sec:visual,sec:audio,sec:model}). &
+Core \\
+3. Detect emotion from speaking style (RQ3) &
+Separate landmark-based classifier trained on an emotion-labelled dataset
+(\cref{sec:extensions}). &
+Extension \\
+4. Identify the spoken language (RQ4) &
+Separate language-identification head trained on multilingual data
+(\cref{sec:extensions}). &
+Extension \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{End-to-end workflow}
+At run time the system executes the same sequence of stages for every segment
+of input. \Cref{fig:workflow} summarises them; \cref{sec:architecture}
+describes each stage as a software module.
+
+\begin{enumerate}
+  \item \textbf{Capture} synchronised video frames and audio samples from a
+        camera and microphone, or read them from a recorded clip.
+  \item \textbf{Detect the face} in every frame with MediaPipe Face
+        Mesh~\cite{kartynnik2019,lugaresi2019} and locate the lip landmarks.
+  \item \textbf{Extract the mouth sequence} by cropping a fixed-size region
+        around the lips in each frame.
+  \item \textbf{Extract audio features} (log-Mel spectrograms, optionally MFCCs)
+        from the waveform.
+  \item \textbf{Encode each modality} with its own neural encoder: a 3D-CNN and
+        BiLSTM for video, and a BiLSTM for audio.
+  \item \textbf{Fuse} the two encoded sequences with cross-modal attention.
+  \item \textbf{Decode} the fused sequence into characters with a CTC output
+        layer and beam search.
+  \item \textbf{Display} the resulting text as a caption.
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  node distance=3mm,
+  st/.style={draw=lsblue, rounded corners=2pt, fill=lsblue!6, align=center,
+             font=\scriptsize\sffamily, minimum height=9mm, text width=13.5mm},
+  ar/.style={-{Stealth[length=2mm]}, thick, lsblue}]
+\node[st] (a) {Capture\\A/V};
+\node[st, right=of a] (b) {Face\\mesh};
+\node[st, right=of b] (c) {Mouth\\crop};
+\node[st, right=of c] (d) {Audio\\features};
+\node[st, right=of d] (e) {Encode\\streams};
+\node[st, right=of e] (f) {Attention\\fusion};
+\node[st, right=of f] (g) {CTC\\decode};
+\node[st, right=of g] (h) {Caption\\display};
+\foreach \x/\y in {a/b,b/c,c/d,d/e,e/f,f/g,g/h} \draw[ar] (\x) -- (\y);
+\end{tikzpicture}
+\caption{The eight stages of the LipScribe processing workflow.}
+\label{fig:workflow}
+\end{figure}
+
+\subsection{Scope of the initial implementation}
+The core deliverable is the audio-visual speech recogniser and a captioning
+demonstration built on it. It covers objectives~1 and~2 and the evaluation
+plan in the proposal: training on the GRID corpus~\cite{cooke2006} with
+MUSAN noise~\cite{snyder2015} added at clean, 10, 5, 0 and $-5$\,dB SNR, and
+reporting WER and CER on held-out speakers \spec.
+
+Emotion detection and language identification (objectives~3 and~4) are not
+part of the core architecture in this plan. GRID provides no emotion labels
+and contains a single language, so neither task can be trained or evaluated
+on it alone. \Cref{sec:extensions} describes how each could be investigated as
+a separate module with its own data and evaluation, to be attempted only after
+the core system works (\cref{sec:schedule}). Keeping them separate prevents
+unvalidated extensions from delaying or obscuring the main result.
+
+\subsection{Structure of this document}
+\Cref{sec:architecture,sec:stack} define the system architecture and
+technology stack. \Cref{sec:dataset,sec:visual,sec:audio} describe the data
+and the two preprocessing pipelines. \Cref{sec:model,sec:training,sec:evaluation}
+specify the model, its training and its evaluation. \Cref{sec:application}
+covers the live captioning application, \cref{sec:extensions} the optional
+extensions, and \cref{sec:schedule,sec:risks,sec:deliverables} the schedule,
+risks and deliverables.

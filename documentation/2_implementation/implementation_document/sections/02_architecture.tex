@@ -1,0 +1,172 @@
+% =====================================================================
+\section{System Architecture and Design}
+\label{sec:architecture}
+% =====================================================================
+
+\subsection{Architectural overview}
+LipScribe is organised as a pipeline of independent modules connected by
+well-defined tensor interfaces. Two parallel streams process the visual and
+audio inputs; a fusion module combines their encoded sequences; and a
+CTC-based head turns the fused sequence into text. \Cref{fig:architecture}
+shows the complete architecture. Each module can be developed, tested and
+replaced on its own, which lets team members work in parallel and lets the
+baselines in \cref{sec:training} reuse the same components.
+
+\begin{figure}[p]
+\centering
+\begin{tikzpicture}[
+  node distance=5.5mm and 10mm,
+  box/.style={draw, rounded corners=3pt, align=center, font=\footnotesize\sffamily,
+              minimum height=10mm, text width=46mm, inner sep=3pt},
+  vis/.style={box, fill=lsvisual, draw=orange!60!black},
+  aud/.style={box, fill=lsaudio, draw=lsblue},
+  fus/.style={box, fill=lsfuse, draw=green!40!black, text width=104mm},
+  outp/.style={box, fill=lsout, draw=violet!60!black, text width=104mm},
+  train/.style={draw=red!60!black, dashed, rounded corners=3pt, align=center,
+                font=\scriptsize\sffamily, fill=red!3, text width=26mm, inner sep=3pt},
+  ar/.style={-{Stealth[length=2.2mm]}, thick},
+  lab/.style={font=\scriptsize\itshape, text=lsgrey}]
+
+% ---- visual column
+\node[vis] (v0) {\textbf{Video acquisition}\\camera / GRID clip, 25\,fps};
+\node[vis, below=of v0] (v1) {\textbf{Frame extraction \& preprocessing}\\decode, RGB conversion};
+\node[vis, below=of v1] (v2) {\textbf{MediaPipe Face Mesh}\\468 landmarks per frame};
+\node[vis, below=of v2] (v3) {\textbf{Mouth crop \& resize}\\lip box + margin $\rightarrow$ $96{\times}96$ grey};
+\node[vis, below=of v3] (v4) {\textbf{Visual encoder}\\3D-CNN front-end + BiLSTM};
+
+% ---- audio column
+\node[aud, right=of v0] (a0) {\textbf{Audio acquisition}\\microphone / GRID audio};
+\node[aud, below=of a0] (a1) {\textbf{Resample \& normalise}\\16\,kHz mono, RMS level};
+\node[aud, below=of a1] (a2) {\textbf{Feature extraction}\\80-band log-Mel (MFCC optional)};
+\node[aud, below=of a2] (a3) {\textbf{Temporal subsampling}\\100\,fps $\rightarrow$ 25\,fps (Conv1d)};
+\node[aud, below=of a3] (a4) {\textbf{Audio encoder}\\BiLSTM};
+
+% ---- fusion and output
+\node[fus, below=12mm of $(v4.south)!0.5!(a4.south)$] (f)
+  {\textbf{Cross-modal attention \& gated fusion}\\
+   audio$\leftrightarrow$video multi-head attention; per-frame gate $g_t$ weights the two streams};
+\node[outp, below=of f] (c) {\textbf{Sequence model \& CTC output layer}\\fusion BiLSTM $\rightarrow$ linear $\rightarrow$ log-softmax over 28 symbols (incl.\ blank)};
+\node[outp, below=of c] (d) {\textbf{CTC decoding}\\greedy (validation) or prefix beam search (final evaluation, demo)};
+\node[outp, below=of d] (o) {\textbf{Caption rendering \& application interface}\\Gradio page / live overlay window};
+
+% ---- arrows
+\foreach \x/\y in {v0/v1,v1/v2,v2/v3,v3/v4,a0/a1,a1/a2,a2/a3,a3/a4,f/c,c/d,d/o}
+  \draw[ar] (\x) -- (\y);
+\draw[ar] (v4.south) -- ++(0,-5mm) -| ([xshift=-20mm]f.north);
+\draw[ar] (a4.south) -- ++(0,-5mm) -| ([xshift=20mm]f.north);
+\draw[ar, dashed, lsgrey] (v0.east) -- node[above, lab]{sync} (a0.west);
+
+% ---- training-only components
+\node[train, left=6mm of f] (md) {\textbf{Modality dropout}\\training only};
+\draw[ar, red!60!black, dashed] (md) -- (f);
+\node[train, left=6mm of c] (loss) {\textbf{CTC loss}\\training only};
+\draw[ar, red!60!black, dashed] (c) -- (loss);
+
+% ---- tensor annotations
+\node[lab, right=1mm of v4.south east, anchor=north west] {};
+\node[lab, anchor=west] at ($(v4.south)+(-22mm,-2.5mm)$) {$B{\times}75{\times}512$};
+\node[lab, anchor=east] at ($(a4.south)+(22mm,-2.5mm)$) {$B{\times}75{\times}512$};
+
+% ---- stream labels
+\begin{scope}[on background layer]
+  \node[draw=orange!60!black, dotted, rounded corners, fit=(v0)(v4), inner sep=3mm,
+        label={[font=\scriptsize\sffamily\bfseries, text=orange!60!black]above:Visual stream}] {};
+  \node[draw=lsblue, dotted, rounded corners, fit=(a0)(a4), inner sep=3mm,
+        label={[font=\scriptsize\sffamily\bfseries, text=lsblue]above:Audio stream}] {};
+\end{scope}
+\end{tikzpicture}
+\caption[LipScribe system architecture]{LipScribe system architecture. The
+visual (left) and audio (right) streams are processed independently, fused by
+cross-modal attention and decoded with CTC. Dashed red components are active
+only during training. Tensor sizes assume a 3\,s GRID clip ($T=75$ video
+frames) and the recommended configuration of \cref{sec:model}.}
+\label{fig:architecture}
+\end{figure}
+
+\subsection{Module descriptions}
+\Cref{tab:modules} lists every module with its inputs, outputs and
+connections. Interfaces are expressed as tensor shapes so that each module can
+be tested in isolation; $B$ is the batch size, $T$ the number of video frames,
+and $T_a$ the number of audio feature frames.
+
+{\small
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{@{}p{2.4cm}p{3.4cm}p{2.9cm}p{2.9cm}p{2.7cm}@{}}
+\caption{Module responsibilities and interfaces.}\label{tab:modules}\\
+\toprule
+\textbf{Module} & \textbf{Purpose} & \textbf{Input} & \textbf{Output} & \textbf{Connects to} \\
+\midrule
+\endfirsthead
+\multicolumn{5}{@{}l}{\small\itshape \Cref{tab:modules} continued}\\
+\toprule
+\textbf{Module} & \textbf{Purpose} & \textbf{Input} & \textbf{Output} & \textbf{Connects to} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+A/V acquisition & Read synchronised frames and samples from a file or device &
+Video file / camera, audio file / microphone & Frame list with timestamps; waveform &
+Frame extraction, resampling \\
+Frame extraction & Decode frames, convert colour space, enforce frame rate &
+Raw frames & RGB frames \shape{T,H,W,3} & Face Mesh \\
+MediaPipe Face Mesh & Locate 468 facial landmarks per frame~\cite{kartynnik2019} &
+RGB frame & Landmark array \shape{468,3} or ``not found'' & Mouth crop \\
+Mouth crop \& resize & Extract a stable, fixed-size lip region &
+Frame and lip landmarks & Grey crop \shape{96,96}, validity flag & Visual encoder \\
+Visual encoder & Model lip appearance and motion over time &
+Clip \shape{B,1,T,96,96} & Sequence \shape{B,T,512} & Fusion \\
+Audio resample \& normalise & Standardise sample rate, channels and level &
+Waveform at source rate & 16\,kHz mono waveform & Feature extraction \\
+Feature extraction & Compute time--frequency representation &
+Waveform \shape{N} & Log-Mel \shape{T_a,80}, $T_a\approx 4T$ & Audio encoder \\
+Audio encoder & Subsample to video rate and model acoustic context &
+Features \shape{B,T_a,80} & Sequence \shape{B,T,512} & Fusion \\
+Attention fusion & Combine streams, weighting the more reliable one &
+Two sequences \shape{B,T,512} & Fused sequence \shape{B,T,256} & CTC head \\
+CTC head & Produce per-frame character distributions &
+Fused sequence & Log-probabilities \shape{T,B,28} & Loss / decoder \\
+CTC decoder & Convert frame posteriors to text &
+Log-probabilities & Character string & Caption UI \\
+Caption UI & Display text and handle user interaction &
+String, timing information & Rendered caption & User \\
+\end{longtable}
+}
+
+\subsection{Training-time versus inference-time processing}
+The same model code runs in training and at inference, but the surrounding
+data path differs. Separating the two paths early avoids a common failure in
+which preprocessing at demonstration time silently diverges from the
+preprocessing the model was trained on.
+
+\begin{table}[H]
+\centering
+\caption{Differences between the training and inference data paths.}
+\label{tab:train-vs-infer}
+\small
+\begin{tabularx}{\textwidth}{@{}p{3.2cm}XX@{}}
+\toprule
+\textbf{Aspect} & \textbf{Training (offline)} & \textbf{Inference (demo)} \\
+\midrule
+Visual preprocessing & Mouth crops pre-computed once and cached to disk &
+Face Mesh and cropping run on every incoming frame \\
+Audio input & Clean GRID audio mixed with MUSAN noise on the fly at a sampled SNR &
+Raw microphone or clip audio; noise is whatever the room contains \\
+Augmentation & Random crop jitter, horizontal flip, modality dropout &
+None \\
+Normalisation & Statistics computed on the training split & Same stored
+statistics loaded from file \\
+Output & CTC loss computed against the transcript & Beam-search decoding to text \\
+Unit of processing & Complete 3\,s utterance & Fixed-length window from a
+rolling buffer (\cref{sec:application}) \\
+Model mode & \texttt{model.train()}: dropout and batch-norm updates active &
+\texttt{model.eval()} under \texttt{torch.inference\_mode()} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+All preprocessing functions that both paths need---mouth cropping, feature
+extraction, normalisation and token mapping---live in a single shared package
+(\texttt{lipscribe/preprocessing}). The training scripts and the demonstration
+import the same functions, and an integration test (\cref{sec:testing})
+checks that a GRID clip processed through the live path produces the same
+tensors as the cached training features.

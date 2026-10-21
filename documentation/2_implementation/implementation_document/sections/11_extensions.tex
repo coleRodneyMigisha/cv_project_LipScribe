@@ -1,0 +1,90 @@
+% =====================================================================
+\section{Additional Objectives: Emotion Detection and Language Identification}
+\label{sec:extensions}
+% =====================================================================
+
+The proposal includes emotion detection (objective~3) and spoken-language
+identification (objective~4) \spec. Neither can be trained on GRID alone:
+GRID has no emotion labels, and all of its sentences are in English with one
+fixed grammar~\cite{cooke2006}. Both are therefore planned as \emph{separate,
+optional modules} with their own data, models and evaluation. They share
+preprocessing code with the core system but do not change the speech-recognition
+architecture or its results, and work on them begins only after the core
+milestones in \cref{sec:schedule} are met.
+
+\subsection{Emotion detection from facial movement}
+\paragraph{Approach.} The literature reviewed in the proposal selects Face Mesh
+landmarks that correspond to Facial Action Coding System regions and converts
+them into compact geometric feature vectors, with reported classification
+accuracies of up to 97\% on their data~\cite{siam2022}. LipScribe would follow
+the same route \tbd:
+\begin{enumerate}
+  \item reuse the Face Mesh landmarks already computed by the visual pipeline;
+  \item compute geometric features per frame---normalised distances (mouth
+        width and opening, eyebrow-to-eye distance, eye aperture) and angles
+        between landmark triples---after aligning faces to remove head pose and
+        scale;
+  \item summarise their temporal changes over an utterance with statistics
+        (mean, range, velocity) or a small LSTM;
+  \item classify with a lightweight model (for example a random forest or
+        multilayer perceptron from scikit-learn) into a small set of emotion
+        categories.
+\end{enumerate}
+
+\paragraph{Data required.} An emotion-labelled audio-visual dataset is
+required. Candidates include CREMA-D~\cite{cao2014} and RAVDESS~\cite{livingstone2018},
+both of which provide acted emotional speech with frontal video; the team would
+confirm licence terms before use. Evaluation would again use speaker-disjoint
+splits and report per-class accuracy and a confusion matrix.
+
+\paragraph{Limitations.} Facial movement while speaking is dominated by
+articulation, so mouth landmarks partly reflect \emph{what} is said rather than
+how the speaker feels. Acted emotions in such datasets are more exaggerated than
+natural ones, facial expression is not a reliable indicator of internal emotional
+state, and expressions vary across individuals and cultures. Any emotion output
+would be presented as an experimental label, not as a statement about the user.
+
+\paragraph{Integration, if completed.} A separate classification head operating
+on landmark features, displayed as a tag next to each final caption. It would not
+share loss or weights with the speech recogniser.
+
+\subsection{Spoken-language identification}
+\paragraph{Approach.} Language identification predicts which language an
+utterance is spoken in. A natural design would add a separate utterance-level
+classification head to the existing encoders: time-pool the fused representation
+$\mathbf{F}$ and apply a linear classifier over the candidate languages, trained
+with cross-entropy alongside or after CTC training \tbd. Audio carries most of the
+evidence; the proposal's interest is whether lip movements add to it, since visual
+speech patterns differ between languages~\cite{aripin2024,kanavnet2026}.
+
+\paragraph{Data required.} Multilingual audio-visual data with language labels is
+essential, and recognising speech (not just identifying the language) in each
+additional language would need transcribed data and an extended character
+vocabulary. Candidate sources are the multilingual MuAViC corpus~\cite{anwar2023}
+or language-specific corpora such as those used for Indonesian and Kannada
+lipreading~\cite{aripin2024,kanavnet2026}, subject to availability and licensing.
+A locally recorded set of short phrases in English and a Ugandan language could
+serve as a small qualitative test, with participants' informed consent.
+
+\paragraph{Limitations.} A model trained on GRID has seen one language, a 51-word
+vocabulary and studio conditions. It cannot be expected to transfer to other
+languages, accents or scripts without new training data. Language identification
+on short utterances is also confounded by speaker identity if each language is
+spoken by different people, so speaker-disjoint evaluation is again required.
+
+\subsection{Summary of scope}
+\begin{table}[H]
+\centering
+\caption{Core deliverable versus optional extensions.}
+\label{tab:scope}
+\small
+\begin{tabularx}{\textwidth}{@{}p{3.2cm}XXp{2.2cm}@{}}
+\toprule
+\textbf{Capability} & \textbf{Data} & \textbf{Model change} & \textbf{Status} \\
+\midrule
+Audio-visual speech recognition & GRID + MUSAN & Full model (\cref{sec:model}) & Core \\
+Emotion detection & Emotion-labelled AV corpus (e.g.\ CREMA-D, RAVDESS) & Separate landmark-feature classifier & Optional \\
+Language identification & Multilingual AV corpus with language labels & New utterance-level head; new vocabulary for multilingual ASR & Optional \\
+\bottomrule
+\end{tabularx}
+\end{table}
