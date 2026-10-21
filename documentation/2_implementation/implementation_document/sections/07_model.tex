@@ -1,0 +1,300 @@
+% =====================================================================
+\section{Multimodal Model Architecture}
+\label{sec:model}
+% =====================================================================
+
+This section specifies the complete recognition model in enough detail to be
+implemented directly. It combines the encoders of \cref{sec:visual,sec:audio}
+with a fusion module and a CTC output layer. \Cref{tab:model-summary} gives the
+recommended dimensions \rec; all are starting values to be tuned.
+
+\begin{table}[H]
+\centering
+\caption{Summary of the proposed model (recommended starting configuration).}
+\label{tab:model-summary}
+\small
+\begin{tabularx}{\textwidth}{@{}p{3.2cm}Xl@{}}
+\toprule
+\textbf{Component} & \textbf{Configuration} & \textbf{Output} \\
+\midrule
+Visual encoder & 3 Conv3d blocks (32/64/96 ch.), Linear 512, 2-layer BiLSTM (256/dir.) & \shape{B,T,512} \\
+Audio encoder & 2 strided Conv1d (256 ch.), 2-layer BiLSTM (256/dir.) & \shape{B,T,512} \\
+Projections & Linear $512{\to}256$ per stream, LayerNorm & \shape{B,T,256} each \\
+Cross-modal attention & Two MHA blocks (A$\to$V, V$\to$A), 4 heads, $d=256$ & \shape{B,T,256} each \\
+Gated fusion & Per-frame scalar gate $g_t$ & \shape{B,T,256} \\
+Sequence model & 1-layer BiLSTM (128/dir.) & \shape{B,T,256} \\
+CTC output layer & Linear $256{\to}28$, log-softmax & \shape{T,B,28} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Visual encoder}
+\textbf{Purpose.} Convert a mouth-crop sequence into one feature vector per
+video frame that describes the lip configuration and its motion.
+\textbf{Input.} \shape{B,1,T,96,96} normalised crops and a frame mask.
+\textbf{Operations.} 3D convolutions apply kernels that extend over three
+consecutive frames as well as over space. A single kernel can therefore respond
+to a pattern such as ``lips closing'', which no single frame shows; this is how
+the encoder captures the motion that distinguishes otherwise similar mouth
+shapes~\cite{lipsyncnet2024,li2023}. Spatial pooling progressively removes
+position detail, and the BiLSTM integrates evidence across the whole
+utterance, using both past and future frames.
+\textbf{Output.} $\mathbf{H}_v \in \mathbb{R}^{B\times T\times 512}$.
+\textbf{Integration.} Passed to the fusion module; also used alone by the
+visual-only baseline.
+\textbf{Testing.} Shape tests (\cref{sec:visual}); a visual-only model must
+overfit a batch of 8 utterances to near-zero CTC loss.
+
+\subsection{Audio encoder}
+\textbf{Purpose.} Convert acoustic features into one vector per video frame
+describing the sounds being produced.
+\textbf{Input.} \shape{B,T_a,80} standardised log-Mel features and lengths.
+\textbf{Operations.} Two strided 1-D convolutions reduce 100\,fps features to
+25\,fps (\cref{sec:audio-encoder}); a two-layer BiLSTM adds utterance-level
+context.
+\textbf{Output.} $\mathbf{H}_a \in \mathbb{R}^{B\times T\times 512}$.
+\textbf{Integration.} Passed to fusion; used alone by the audio-only baseline.
+\textbf{Testing.} Shape and length tests (\cref{sec:audio}); overfitting test as
+for the visual encoder.
+
+\subsection{Feature alignment and fusion}
+\label{sec:fusion}
+
+\paragraph{Temporal alignment.} The two streams have different native rates:
+25\,fps for video and 100\,fps for audio features. Rather than resampling
+inside the fusion module, the audio encoder subsamples by exactly four, so both
+encoders emit sequences of the same length $T$ on the same 40\,ms time grid.
+Frame $t$ of $\mathbf{H}_a$ and frame $t$ of $\mathbf{H}_v$ therefore describe the
+same instant. If the two lengths differ by one or two frames (rounding at clip
+boundaries), the longer sequence is truncated to the shorter. Cross-attention
+itself does not require equal lengths, but the per-frame gate below does.
+
+\paragraph{Projection.} Each stream is projected to a shared width $d=256$:
+\begin{equation}
+\mathbf{A} = \operatorname{LN}(\mathbf{H}_a\mathbf{W}_a), \qquad
+\mathbf{V} = \operatorname{LN}(\mathbf{H}_v\mathbf{W}_v),
+\qquad \mathbf{A},\mathbf{V}\in\mathbb{R}^{T\times d},
+\end{equation}
+where LN is layer normalisation (batch index omitted).
+
+\paragraph{Cross-modal attention.} Each stream queries the other. For audio
+attending to video, the \emph{queries} come from the audio sequence and the
+\emph{keys} and \emph{values} from the video sequence:
+\begin{gather}
+\mathbf{Q} = \mathbf{A}\mathbf{W}_Q,\quad \mathbf{K} = \mathbf{V}\mathbf{W}_K,\quad \mathbf{U} = \mathbf{V}\mathbf{W}_U, \\
+\boldsymbol{\alpha} = \operatorname{softmax}\!\Big(\frac{\mathbf{Q}\mathbf{K}^{\top}}{\sqrt{d_k}} + \mathbf{M}\Big),
+\qquad
+\operatorname{Attn}(\mathbf{A},\mathbf{V}) = \boldsymbol{\alpha}\,\mathbf{U}, \\
+\tilde{\mathbf{A}} = \operatorname{LN}\big(\mathbf{A} + \operatorname{MHA}(\mathbf{A},\mathbf{V})\big),
+\qquad
+\tilde{\mathbf{V}} = \operatorname{LN}\big(\mathbf{V} + \operatorname{MHA}(\mathbf{V},\mathbf{A})\big).
+\end{gather}
+Row $t$ of the attention weights $\boldsymbol{\alpha}\in\mathbb{R}^{T\times T}$
+says how strongly audio frame $t$ draws on each video frame; $\mathbf{M}$ sets
+padded positions to $-\infty$. MHA denotes the multi-head version with four heads
+of width $d_k=64$, implemented with \texttt{nn.MultiheadAttention}. The audio
+stream can thereby borrow visual evidence for an ambiguous sound, and the
+visual stream can borrow acoustic evidence for an ambiguous lip shape---the
+mechanism proposed for disambiguating homophenes~\cite{li2023}.
+
+\paragraph{Gated fusion.} A learned gate decides, frame by frame, how much each
+enriched stream contributes:
+\begin{equation}
+g_t = \sigma\big(\mathbf{w}_g^{\top}[\tilde{\mathbf{a}}_t ; \tilde{\mathbf{v}}_t] + b_g\big) \in (0,1),
+\qquad
+\mathbf{f}_t = g_t\,\tilde{\mathbf{a}}_t + (1-g_t)\,\tilde{\mathbf{v}}_t ,
+\label{eq:gate}
+\end{equation}
+where $[\cdot\,;\cdot]$ denotes concatenation and $\sigma$ the logistic function.
+A small $g_t$ means that the fused representation relies mainly on the
+video-anchored stream. The fused sequence $\mathbf{F}=(\mathbf{f}_1,\dots,\mathbf{f}_T)$
+passes through a one-layer BiLSTM and the CTC output layer.
+
+\paragraph{How noise adaptation is encouraged.} The proposal states that fusion
+should give more weight to the lips when the audio is noisy \spec. An attention
+module does not detect noise by itself; it learns whatever weighting reduces
+the training loss on the data it sees. Three mechanisms are possible:
+\begin{enumerate}[label=(\alph*)]
+  \item \emph{explicit SNR conditioning}, feeding the true SNR to the gate;
+  \item \emph{a learned noise-estimation signal}, an auxiliary head trained to
+        predict the SNR from the audio encoder's output;
+  \item \emph{implicit learning}, training the attention and gate on a mixture
+        of clean and noisy examples so that they learn to down-weight
+        unreliable audio.
+\end{enumerate}
+This plan adopts \textbf{(c)} as the primary mechanism \rec. Option~(a) is not
+usable in deployment, because the true SNR of live audio is unknown. Training on
+all five SNR conditions (\cref{sec:noise}) exposes the gate to examples in which
+the audio is uninformative, and modality dropout (\cref{sec:modality-dropout})
+adds examples in which it is absent. Option~(b) is kept as an experiment
+\tbd: an auxiliary linear head on the time-averaged audio encoding regresses the
+known training SNR (with ``clean'' mapped to 30\,dB), its prediction is appended
+to the gate input in \cref{eq:gate}, and its loss is added to the CTC loss with a
+small weight such as 0.1.
+
+\paragraph{How noise adaptation is evaluated.} Whether the gate really behaves
+as intended is an empirical question. During testing the evaluation script
+records the mean gate value $\bar{g}$ for every utterance and reports its
+distribution at each SNR. If the mechanism works, $\bar{g}$ should decrease as
+SNR falls, and the fused model's advantage over the audio-only baseline should
+grow at 0\,dB and $-5$\,dB. Because $\tilde{\mathbf{a}}_t$ already contains some visual
+information through cross-attention, $g_t$ is only an approximate measure of
+reliance on audio; the modality ablations of \cref{sec:evaluation}
+(removing one stream at test time) provide the more direct evidence.
+
+\subsection{Modality dropout}
+\label{sec:modality-dropout}
+\textbf{Purpose.} Audio is usually far more informative than video, so a fused
+model can learn to ignore the visual stream entirely. Modality dropout forces it
+to make use of both streams by occasionally removing one during
+training~\cite{afouras2022}.
+
+\textbf{Implementation.} For each training utterance a value $u \sim
+\mathcal{U}(0,1)$ is drawn:
+\begin{equation}
+\text{stream used} =
+\begin{cases}
+\text{video only (audio dropped)} & u < p_a,\\
+\text{audio only (video dropped)} & p_a \le u < p_a + p_v,\\
+\text{both} & \text{otherwise}.
+\end{cases}
+\end{equation}
+Both streams are never dropped together. A dropped stream's encoder output is
+replaced by a learned ``missing modality'' vector $\mathbf{e}_{\text{miss}}\in\mathbb{R}^{256}$
+repeated over all frames, rather than by an attention mask. Masking every key of
+a sequence would make the softmax in the cross-attention undefined (all logits
+$-\infty$) and produce NaN values; a learned vector avoids this and lets the gate
+learn to recognise the missing stream.
+
+\textbf{Rate selection.} Starting values are $p_a=0.25$ and $p_v=0.15$ \rec;
+audio is dropped more often because the risk being addressed is under-use of
+video. The rates are tuned on validation WER averaged over all five SNR
+conditions, using the grid $p_a,p_v \in \{0, 0.1, 0.25, 0.4\}$ with $p_a+p_v\le0.5$
+if compute permits. The setting $p_a=p_v=0$ is the ``no modality dropout''
+ablation.
+
+\textbf{Inference behaviour.} Modality dropout is disabled at inference. Both
+streams are used whenever available. If the face is not found in more than half
+of a window's frames, the visual encoding is replaced by $\mathbf{e}_{\text{miss}}$---
+the same representation the model saw during training---so the system degrades
+to audio-only recognition instead of being fed meaningless crops.
+
+\subsection{Sequence prediction and decoding}
+\label{sec:ctc}
+
+\paragraph{Why CTC.} The training data provide a transcript for each utterance
+but not the frame at which each character is spoken. Connectionist Temporal
+Classification~\cite{graves2006} removes the need for such frame-level labels
+by summing over every possible alignment between the $T$ output frames and the
+$L$ target characters, as used in the CTC-based lipreading and AVSR systems
+cited in the proposal~\cite{kanavnet2026,afouras2022}.
+
+\paragraph{Vocabulary, blank and collapsing.} The output layer predicts a
+distribution over the 28 symbols of \cref{eq:vocab} at every frame. CTC
+introduces the \emph{blank} symbol (index~0) to mean ``no new character''. A
+frame-level path $\boldsymbol{\pi}=(\pi_1,\dots,\pi_T)$ is mapped to text by a
+function $\mathcal{B}$ that first merges consecutive repeated symbols and then
+removes blanks, for example
+$\mathcal{B}(\texttt{bb\_ii\_nn\_\_}) = \texttt{bin}$ and
+$\mathcal{B}(\texttt{gr\_e\_e\_n}) = \texttt{green}$.
+A doubled letter therefore requires a blank between its two copies.
+
+\paragraph{Loss.} With $y_k^t$ the predicted probability of symbol $k$ at frame
+$t$, the probability of transcript $\mathbf{z}$ given input $\mathbf{x}$ and the
+CTC loss are
+\begin{equation}
+p(\mathbf{z}\mid\mathbf{x}) = \sum_{\boldsymbol{\pi}\in\mathcal{B}^{-1}(\mathbf{z})}\;\prod_{t=1}^{T} y^{t}_{\pi_t},
+\qquad
+\mathcal{L}_{\text{CTC}} = -\log p(\mathbf{z}\mid\mathbf{x}).
+\label{eq:ctc}
+\end{equation}
+The sum is computed efficiently by the forward--backward algorithm. The
+implementation uses PyTorch's built-in loss,
+\texttt{nn.CTCLoss(blank=0, zero\_infinity=True)}, called with
+log-probabilities of shape \shape{T,B,28}, the concatenated target indices, the
+per-utterance encoder lengths $T^{(b)}$ and target lengths $L^{(b)}$. The
+\texttt{zero\_infinity} flag prevents an occasional impossible alignment from
+producing an infinite loss that would corrupt training.
+
+\paragraph{Conditions for CTC to work.} An alignment exists only if
+\begin{equation}
+T^{(b)} \;\ge\; L^{(b)} + R^{(b)},
+\label{eq:ctc-cond}
+\end{equation}
+where $R^{(b)}$ is the number of adjacent repeated characters in the target (each
+needing an extra blank). GRID transcripts contain at most about 35 characters
+including spaces, while a 3\,s clip gives $T=75$ encoder frames, so the condition
+holds with a wide margin. It would fail if the audio encoder subsampled more
+aggressively or if live windows were made very short; the data loader therefore
+asserts \cref{eq:ctc-cond} for every item, and the window length of the live
+demo is chosen with it in mind. Encoder lengths must also be computed from the
+true (unpadded) input lengths using the convolution length formula of
+\cref{sec:audio-encoder}; passing padded lengths is a common silent error.
+
+\paragraph{Greedy decoding.} Taking the most probable symbol at each frame and
+applying $\mathcal{B}$ is fast and is used for validation during training.
+
+\paragraph{Beam-search decoding.} The proposal specifies beam search for final
+decoding \spec. CTC prefix beam search keeps the $W$ most probable \emph{text
+prefixes}, tracking for each prefix separately the probability of paths ending
+in a blank and in a non-blank symbol, so that paths that collapse to the same
+text are merged. A beam width of $W=10$ is the starting value \rec. With only
+28 symbols the algorithm is implemented directly in about 60 lines of Python,
+which keeps it transparent and testable.
+
+\paragraph{Language-model integration.} An external language model could be added
+by rescoring beam prefixes. On GRID this needs care: the fixed six-slot grammar
+means that a grammar-aware language model would correct many errors by
+construction, inflating accuracy in a way that would not carry over to real
+captioning. Headline results will therefore be reported \emph{without} a
+language model \rec. A grammar-constrained decoder may be reported separately,
+clearly labelled, as an upper reference \tbd.
+
+\subsection{Forward pass and decoding algorithms}
+
+\begin{algorithm}[H]
+\caption{LipScribe forward pass (training and inference).}
+\label{alg:forward}
+\begin{algorithmic}[1]
+\Require mouth crops $X_v$ \shape{B,1,T,96,96}, log-Mel features $X_a$ \shape{B,T_a,80}, lengths $T_a^{(b)}$, flag \textit{training}
+\Ensure log-probabilities $\mathbf{P}$ \shape{T,B,28}, encoder lengths $T^{(b)}$, gate values $g$
+\State $\mathbf{H}_v \gets \textsc{VisualEncoder}(X_v)$ \Comment{\shape{B,T,512}}
+\State $\mathbf{H}_a \gets \textsc{AudioEncoder}(X_a, T_a^{(b)})$; \quad $T^{(b)} \gets \lceil T_a^{(b)}/4\rceil$ \Comment{\shape{B,T,512}}
+\State $\mathbf{A} \gets \operatorname{LN}(\mathbf{H}_a\mathbf{W}_a)$; \quad $\mathbf{V} \gets \operatorname{LN}(\mathbf{H}_v\mathbf{W}_v)$
+\If{\textit{training}} apply modality dropout: replace $\mathbf{A}$ or $\mathbf{V}$ by $\mathbf{e}_{\text{miss}}$ per sample
+\ElsIf{face missing in window} $\mathbf{V} \gets \mathbf{e}_{\text{miss}}$
+\EndIf
+\State $\tilde{\mathbf{A}} \gets \operatorname{LN}(\mathbf{A} + \operatorname{MHA}(\mathbf{A},\mathbf{V},\text{mask}))$; \quad
+       $\tilde{\mathbf{V}} \gets \operatorname{LN}(\mathbf{V} + \operatorname{MHA}(\mathbf{V},\mathbf{A},\text{mask}))$
+\State $g \gets \sigma(\mathbf{w}_g^\top[\tilde{\mathbf{A}};\tilde{\mathbf{V}}] + b_g)$; \quad $\mathbf{F} \gets g\odot\tilde{\mathbf{A}} + (1-g)\odot\tilde{\mathbf{V}}$
+\State $\mathbf{Z} \gets \textsc{BiLSTM}(\mathbf{F}, T^{(b)})$; \quad $\mathbf{P} \gets \operatorname{log\_softmax}(\mathbf{Z}\mathbf{W}_o + \mathbf{b}_o)$, transposed to time-first
+\State \Return $\mathbf{P}, T^{(b)}, g$
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[H]
+\caption{CTC prefix beam search for one utterance (probabilities in log space in practice).}
+\label{alg:beam}
+\begin{algorithmic}[1]
+\Require frame posteriors $y^t_k$ for $t=1..T$, beam width $W$, blank index $0$
+\Ensure most probable transcript
+\State $\mathcal{P} \gets \{\varepsilon\}$; \quad $p_b(\varepsilon) \gets 1$, $p_{nb}(\varepsilon) \gets 0$
+\For{$t = 1$ \textbf{to} $T$}
+  \State initialise $p'_b, p'_{nb}$ to 0 for all prefixes
+  \For{each prefix $\ell \in \mathcal{P}$}
+    \State $p'_b(\ell) \mathrel{+}= y^t_0\,(p_b(\ell)+p_{nb}(\ell))$ \Comment{emit blank}
+    \For{each symbol $k \ne 0$}
+      \State $\ell^{+} \gets \ell \Vert k$
+      \If{$k$ = last symbol of $\ell$}
+        \State $p'_{nb}(\ell^{+}) \mathrel{+}= y^t_k\,p_b(\ell)$ \Comment{repeat needs a blank in between}
+        \State $p'_{nb}(\ell) \mathrel{+}= y^t_k\,p_{nb}(\ell)$ \Comment{repeat collapses}
+      \Else
+        \State $p'_{nb}(\ell^{+}) \mathrel{+}= y^t_k\,(p_b(\ell)+p_{nb}(\ell))$
+      \EndIf
+    \EndFor
+  \EndFor
+  \State $\mathcal{P} \gets$ the $W$ prefixes with largest $p'_b + p'_{nb}$; \quad $p_b, p_{nb} \gets p'_b, p'_{nb}$
+\EndFor
+\State \Return $\arg\max_{\ell\in\mathcal{P}} \big(p_b(\ell)+p_{nb}(\ell)\big)$ mapped to characters
+\end{algorithmic}
+\end{algorithm}

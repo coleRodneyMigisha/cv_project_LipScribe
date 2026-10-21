@@ -1,0 +1,156 @@
+% =====================================================================
+\section{Evaluation and Testing}
+\label{sec:evaluation}
+% =====================================================================
+
+\subsection{Metrics}
+The proposal specifies Word Error Rate and Character Error Rate as the
+evaluation metrics \spec. Both are based on the minimum edit distance between
+the recognised text (hypothesis) and the reference transcript. For a reference of
+$N$ words, let $S$, $D$ and $I$ be the numbers of word substitutions, deletions
+and insertions in the minimum-cost alignment. Then
+\begin{equation}
+\mathrm{WER} = \frac{S + D + I}{N}\times 100\%,
+\qquad
+\mathrm{CER} = \frac{S_c + D_c + I_c}{N_c}\times 100\%,
+\label{eq:wer}
+\end{equation}
+where the subscript $c$ denotes the same quantities counted over characters
+(including spaces). Corpus-level values are computed by summing errors and
+reference lengths over the whole test set before dividing, not by averaging
+per-utterance rates; this is the convention of the \texttt{jiwer} library used
+for the computation. WER can exceed 100\% when there are many insertions.
+CER is the more sensitive metric for GRID's single-letter slot, where a single
+wrong character makes a whole word wrong.
+
+\subsection{Evaluation protocol}
+\begin{enumerate}
+  \item Load the best checkpoint of each model (selected on validation data
+        only).
+  \item For each condition $\rho \in \{\text{clean}, 10, 5, 0, -5\}$\,dB, decode
+        every test utterance of the four held-out speakers with beam search,
+        using the fixed pre-mixed noisy audio.
+  \item Compute corpus-level WER and CER per condition, per speaker and in
+        total, and record the mean fusion gate per utterance.
+  \item Repeat for every model in \cref{tab:experiments} on identical inputs.
+  \item Where three seeds were trained, report mean and standard deviation.
+\end{enumerate}
+
+Performance is reported separately for each SNR, because averaging across noise
+levels would hide the effect the project is designed to measure: how quickly
+accuracy degrades as noise increases and where the visual stream begins to
+help. The main result will be a WER-versus-SNR plot with one line per model and a
+matching table, as sketched in \cref{tab:results-template}.
+
+\begin{table}[H]
+\centering
+\caption{Template for reporting test WER (\%). Cells are intentionally empty: no
+results have been obtained yet.}
+\label{tab:results-template}
+\small
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+\textbf{Model} & \textbf{Clean} & \textbf{10\,dB} & \textbf{5\,dB} & \textbf{0\,dB} & \textbf{$-5$\,dB} \\
+\midrule
+B1 Audio-only        & -- & -- & -- & -- & -- \\
+B2 Visual-only       & -- & -- & -- & -- & -- \\
+B3 Concatenation     & -- & -- & -- & -- & -- \\
+P  Proposed          & -- & -- & -- & -- & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Comparisons and their interpretation}
+\begin{itemize}
+  \item \textbf{Overall quality.} The proposal sets an expected target of WER below
+        10\% for the fused model under clean conditions \spec. This is a project
+        target, not a guaranteed outcome; the evaluation will report whether it
+        is met.
+  \item \textbf{Degradation with noise.} The slope of WER against SNR for each model
+        shows how robust it is. The proposal expects a clear advantage over the
+        audio-only baseline at 0 and $-5$\,dB \spec.
+  \item \textbf{Versus audio-only (P vs.\ B1).} The primary test of the project's
+        hypothesis.
+  \item \textbf{Versus visual-only (P vs.\ B2).} At $-5$\,dB the fused model should be
+        no worse than the visual-only model, since in the limit it can ignore the
+        audio; if it is worse, fusion is being misled by noisy audio.
+  \item \textbf{Versus simple fusion (P vs.\ B3).} Isolates the benefit of attention
+        and modality dropout over naive combination.
+  \item \textbf{Speaker independence.} All numbers are on unseen speakers.
+        Per-speaker WER is also reported, because a mean can hide one speaker
+        on whom the system fails.
+  \item \textbf{Statistical caution.} With four test speakers, differences of a
+        fraction of a percentage point may not be meaningful. Where seeds allow,
+        differences are reported with their seed-to-seed spread, and a paired
+        bootstrap over test utterances is used to give a confidence interval
+        for the most important comparison (P vs.\ B1 at each SNR) \rec.
+\end{itemize}
+
+\paragraph{If the fused model is worse than audio-only.} This can happen,
+particularly on clean audio, where video adds little information but adds
+parameters and noise. The team will check, in order: (1) whether the visual-only
+model learned anything (if B2 is near chance, the visual pipeline is broken);
+(2) whether the gate values vary with SNR or are constant; (3) whether training
+loss is lower but validation loss higher than B1, indicating overfitting to
+training speakers' faces; (4) whether modality dropout rates are too high,
+starving the audio stream; and (5) whether the visual stream is misaligned in
+time (\cref{sec:testing}). A fused model that is slightly worse when clean but
+better at low SNR is still consistent with the project's goal and will be
+reported as such.
+
+\subsection{Ablation studies}
+Ablations X1--X3 (\cref{tab:experiments}) each remove one advanced component
+while keeping everything else fixed: modality dropout, attention fusion and the
+3D convolutional front-end. They are evaluated with the same per-SNR protocol.
+Two additional test-time ablations use the proposed model without retraining:
+replacing the visual encoding by $\mathbf{e}_{\text{miss}}$ (audio-only operation)
+and replacing the audio encoding by $\mathbf{e}_{\text{miss}}$ (visual-only
+operation). They show how much each stream contributes inside the fused model.
+
+\subsection{Latency and real-time feasibility}
+For the demonstration, the team will measure on the demonstration machine:
+\begin{itemize}
+  \item per-frame Face Mesh and crop time;
+  \item model forward time and beam-search time for one window;
+  \item end-to-end caption latency, from the end of a spoken phrase to the
+        appearance of its caption;
+  \item the real-time factor $\mathrm{RTF} = t_{\text{processing}} / t_{\text{audio}}$.
+\end{itemize}
+An RTF below 1 is necessary for live operation; the target for the
+demonstration is an RTF of at most 0.5 and caption latency of about 3--4\,s
+\rec\ (\cref{sec:application}). Timings are reported as the median and 95th
+percentile over at least 100 windows, after a warm-up period.
+
+\subsection{Software testing}
+\label{sec:testing}
+Tests are written with \texttt{pytest} and run before every merge to the main
+branch. Small fixture files (two GRID utterances and one MUSAN noise file) are kept
+in the repository so that tests run without the full dataset.
+
+\begin{table}[H]
+\centering
+\caption{Representative automated tests and acceptance criteria.}
+\label{tab:tests}
+\small
+\begin{tabularx}{\textwidth}{@{}p{1.8cm}p{3.6cm}X@{}}
+\toprule
+\textbf{Level} & \textbf{Test} & \textbf{Assertion / acceptance criterion} \\
+\midrule
+Unit & Tokeniser round trip & \texttt{decode(encode(s)) == s} for all GRID word strings; blank never produced by \texttt{encode} \\
+Unit & CTC collapse & \texttt{collapse([b,b,0,i,0,n,n]) == "bin"}; \texttt{collapse([e,0,e]) == "ee"} \\
+Unit & Noise mixing & measured SNR within 0.01\,dB of target for all five conditions; output length equals input length; peak $\le 1$ \\
+Unit & Mouth crop & output shape $(96,96)$, dtype \texttt{uint8}; failed detection yields interpolated box and invalid flag \\
+Unit & Feature extraction & 3\,s waveform gives \shape{300,80}; matches librosa within tolerance \\
+Unit & Encoder shapes & visual and audio encoders map example inputs to \shape{B,75,512} \\
+Unit & Metrics & WER(\texttt{"bin blue at f two now"}, \texttt{"bin blue at s two now"}) $= 1/6$ \\
+Unit & Beam search & with $W=1$, beam search equals greedy decoding on random posteriors \\
+Unit & Splits & train, validation and test speaker sets are pairwise disjoint \\
+Integration & Data loader & one batch has consistent lengths; every item satisfies \cref{eq:ctc-cond} \\
+Integration & Overfit check & each model reaches CTC loss $< 0.05$ and CER $=0$ on 8 utterances within 300 steps \\
+Integration & Train/infer parity & live preprocessing of a GRID file equals cached features (max error $<10^{-5}$) \\
+Integration & Synchronisation & shifting video by 5 frames relative to audio increases validation loss of the trained model (sanity check of alignment) \\
+End-to-end & Inference script & \texttt{transcribe.py} on a test clip returns a non-empty lower-case string within the latency budget \\
+End-to-end & Demo smoke test & demo starts, processes a recorded clip and displays a caption without error \\
+\bottomrule
+\end{tabularx}
+\end{table}

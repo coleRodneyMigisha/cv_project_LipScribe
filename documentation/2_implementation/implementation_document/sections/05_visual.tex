@@ -1,0 +1,164 @@
+% =====================================================================
+\section{Visual Processing Pipeline}
+\label{sec:visual}
+% =====================================================================
+
+The visual pipeline converts a video clip into a temporally ordered sequence of
+fixed-size mouth images and then into a sequence of visual feature vectors.
+Preprocessing (\cref{sec:mouth-crop}) runs once per utterance and is cached;
+the encoder (\cref{sec:visual-encoder}) is part of the trained model.
+
+\subsection{Mouth extraction}
+\label{sec:mouth-crop}
+
+\paragraph{1. Reading frames.} Frames are decoded in order with
+\texttt{cv2.VideoCapture} and converted from BGR to RGB, the format MediaPipe
+expects. Each frame keeps its index $t$, which is the only time reference used
+for GRID; at 25\,fps, frame $t$ starts at $40t$\,ms.
+
+\paragraph{2. Detecting landmarks.} MediaPipe Face Mesh returns 468
+three-dimensional landmarks per detected face~\cite{kartynnik2019,aripin2024}.
+It is run in video mode with \texttt{max\_num\_faces=1}, so that landmarks are
+tracked from frame to frame instead of being re-detected independently, which
+is both faster and more temporally stable.
+
+\paragraph{3. Selecting lip landmarks.} The Face Mesh topology defines a fixed
+subset of landmarks on the outer and inner lip contours. The implementation
+takes these indices from MediaPipe's own lip-connection definition
+(\texttt{FACEMESH\_LIPS}) rather than hard-coding them, which avoids errors if
+the index list is mistyped.
+
+\paragraph{4. Computing the mouth box.} Let $(x_i, y_i)$ be the pixel
+coordinates of the lip landmarks in frame $t$. The mouth centre and size are
+\begin{equation}
+c_t = \Big(\tfrac{\min_i x_i + \max_i x_i}{2},\; \tfrac{\min_i y_i + \max_i y_i}{2}\Big),
+\qquad
+S_t = \max\!\big(\max_i x_i - \min_i x_i,\; \max_i y_i - \min_i y_i\big).
+\end{equation}
+A square box is used so that resizing does not distort the mouth's aspect
+ratio.
+
+\paragraph{5. Adding a margin and stabilising.} The box side is enlarged to
+$L_t = (1+2m)\,S_t$ with a margin $m = 0.25$ \rec, so that the chin, the corners
+of the mouth and jaw movement remain visible when the mouth opens. Raw
+per-frame boxes jitter by a few pixels, and this jitter would appear to the
+network as spurious motion. The centre and side length are therefore smoothed
+over time with a centred moving average of five frames \rec. For offline
+preprocessing a centred window is possible because the whole clip is
+available; the live pipeline uses an exponential moving average over past
+frames instead.
+
+\paragraph{6. Cropping and resizing.} The square region of side $L_t$ centred
+on $c_t$ is cropped (with edge padding if it extends beyond the frame) and
+resized to $96 \times 96$ pixels using area interpolation. The proposal allows
+$96\times96$ or $112\times112$ \spec; $96\times96$ is chosen \rec\ because it
+reduces input size by about 27\% and is comparable to the mouth-crop sizes used
+in earlier sentence-level lipreading work on GRID~\cite{assael2016}. $112\times112$ remains an
+option if the EfficientNet-B0 experiment benefits from it.
+
+\paragraph{7. Normalising.} Crops are converted to grey-scale and stored as
+8-bit integers. At load time they are scaled to $[0,1]$ and standardised with
+the mean and standard deviation of all training crops. Grey-scale input
+removes colour differences between speakers and cameras, which carry little
+information about speech.
+
+\paragraph{8. Forming sequences.} The crops of one utterance are stacked in
+frame order into an array of shape \shape{T,96,96}. Temporal order is never
+changed: data augmentation applies the same random crop offset and the same
+horizontal flip to every frame of a clip, so the motion pattern is preserved.
+
+\paragraph{9. Handling failures.} Three cases are handled explicitly.
+\begin{itemize}
+  \item \textbf{Occasional failed detections.} If Face Mesh fails on a frame,
+        its box is linearly interpolated from the nearest successful frames on
+        either side, and the frame is marked invalid in a per-frame mask.
+  \item \textbf{Long runs of failures.} If more than 10\% of frames fail
+        \rec, the utterance is excluded from training and listed in the
+        integrity report. In the live demo, the visual stream for that window
+        is treated as missing (\cref{sec:modality-dropout}).
+  \item \textbf{Inconsistent lengths.} Clips are padded or truncated to the
+        audio-derived frame count so that both streams describe the same time
+        span; padding repeats the last valid frame and is marked in the mask.
+\end{itemize}
+
+\paragraph{Alignment with audio.} Because every crop retains its original frame
+index and audio sample $n$ maps to frame $\lfloor 25n/16000\rfloor$, visual
+frame $t$ is aligned with audio feature frames $4t$ to $4t+3$. This alignment
+is preserved by never dropping frames: failed frames are interpolated, not
+removed.
+
+\subsection{Visual encoder architecture}
+\label{sec:visual-encoder}
+The proposal specifies a 3D convolutional front-end followed by a
+bidirectional LSTM \spec, and its literature discussion also names
+EfficientNetB0 as an efficient 2D backbone~\cite{kanavnet2026,ameer2025}. These
+are two different ways of extracting per-frame spatial features, so this plan
+defines them as two clearly separate configurations rather than stacking both
+in one network.
+
+\paragraph{Primary configuration V1: 3D-CNN + BiLSTM \rec.}
+Three 3D convolution blocks process the clip. Each kernel spans several
+consecutive frames, so every output feature responds both to the mouth's shape
+and to how it changes over a short time window~\cite{lipsyncnet2024,assael2016}.
+All temporal strides are 1, which keeps one feature vector per video frame;
+only the spatial dimensions are downsampled. The spatial map of each frame is
+then flattened, projected to 512 dimensions, and passed to a two-layer BiLSTM
+that models longer-range context in both directions~\cite{kanavnet2026}. This
+configuration is the proposal's ``3D convolutional visual encoder'' advanced
+technique and is used in all main experiments.
+
+\paragraph{Alternative configuration V2: 3D stem + EfficientNet-B0 trunk \tbd.}
+A single 3D convolution captures short-term motion and outputs a 3-channel map
+per frame. Each frame's map is then passed independently through an
+ImageNet-pretrained EfficientNet-B0~\cite{tan2019} (by folding time into the
+batch dimension), globally average-pooled to a 1280-dimensional vector,
+projected to 512 dimensions and fed to the same BiLSTM. This mirrors the
+common ``3D front-end plus 2D trunk'' design~\cite{afouras2022} and tests whether
+transfer learning from a pretrained 2D backbone helps on GRID. Because
+EfficientNet-B0 is applied to all 75 frames of every clip, V2 is several times
+more expensive than V1; it is run as an ablation only if time and compute
+allow (\cref{sec:schedule}).
+
+\subsection{Tensor-shape walkthrough}
+\Cref{tab:visual-shapes} traces one batch through configuration V1. The example
+assumes a batch of $B=16$ clips, $T=75$ frames and $96 \times 96$ grey-scale
+crops; the channel counts are recommended starting values \rec. Shapes follow
+PyTorch's \shape{B,C,T,H,W} convention for 3D convolutions.
+
+\begin{table}[H]
+\centering
+\caption{Visual encoder (configuration V1) tensor shapes for an example batch.}
+\label{tab:visual-shapes}
+\small
+\begin{tabularx}{\textwidth}{@{}lXl@{}}
+\toprule
+\textbf{Stage} & \textbf{Operation} & \textbf{Output shape} \\
+\midrule
+Input & Normalised grey mouth crops & \shape{16,1,75,96,96} \\
+Block 1 & Conv3d($1{\to}32$, kernel $3{\times}5{\times}5$, stride $1{\times}2{\times}2$), BN, ReLU & \shape{16,32,75,48,48} \\
+        & MaxPool3d(kernel and stride $1{\times}2{\times}2$) & \shape{16,32,75,24,24} \\
+Block 2 & Conv3d($32{\to}64$, kernel $3{\times}5{\times}5$, stride 1), BN, ReLU, MaxPool $1{\times}2{\times}2$ & \shape{16,64,75,12,12} \\
+Block 3 & Conv3d($64{\to}96$, kernel $3{\times}3{\times}3$, stride 1), BN, ReLU, MaxPool $1{\times}2{\times}2$ & \shape{16,96,75,6,6} \\
+Reshape & Move time forward and flatten each frame: $96\cdot6\cdot6 = 3456$ & \shape{16,75,3456} \\
+Projection & Linear($3456{\to}512$), ReLU, Dropout(0.3) & \shape{16,75,512} \\
+Temporal & 2-layer BiLSTM, 256 units per direction & \shape{16,75,512} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Temporal padding of 1 frame on each side of every convolution keeps the time
+dimension at exactly 75, so the visual encoder emits one 512-dimensional vector
+per video frame. The last dimension of the output, 512, is the concatenation of
+the forward and backward LSTM states.
+
+\subsection{Testing the visual pipeline}
+\begin{itemize}
+  \item A unit test runs the crop function on a stored GRID frame and asserts an
+        output of shape $(96,96)$, type \texttt{uint8}, and a box centre inside the
+        lower half of the face bounding box.
+  \item A visual check script writes a contact sheet of crops for a random
+        sample of utterances from every speaker; a team member inspects it for
+        mis-centred or blurred crops before training starts.
+  \item A unit test passes a random tensor of shape \shape{2,1,75,96,96} through
+        the encoder and asserts an output of \shape{2,75,512} with finite values.
+\end{itemize}

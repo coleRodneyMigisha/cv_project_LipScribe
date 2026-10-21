@@ -1,0 +1,167 @@
+% =====================================================================
+\section{Audio Processing Pipeline}
+\label{sec:audio}
+% =====================================================================
+
+The audio pipeline turns a waveform into a sequence of acoustic feature
+vectors at the video frame rate. Unlike the visual crops, audio features are
+computed on the fly during training, because noise is mixed into each
+utterance afresh every time it is loaded (\cref{sec:noise}).
+
+\subsection{From waveform to features}
+\paragraph{Loading and resampling.} Waveforms are read with \texttt{soundfile}
+as 32-bit floating-point arrays in $[-1,1]$. Stereo input is averaged to mono,
+and any input that is not at 16\,kHz is resampled with
+\texttt{torchaudio.functional.resample}. GRID audio is resampled once during
+preprocessing; microphone audio is captured at 16\,kHz directly where the
+device allows it.
+
+\paragraph{Amplitude normalisation.} The waveform presented to the model---the
+noisy mixture during training, the raw microphone signal at inference---is
+scaled to a fixed RMS level of $-25$\,dBFS \rec, with the gain limited to
+$+20$\,dB so that near-silence is not amplified into loud noise. This removes
+differences in recording level between GRID speakers and the demonstration
+microphone. Normalisation is applied \emph{after} noise mixing so that it
+does not alter the SNR.
+
+\paragraph{Framing and windowing.} The signal is split into 25\,ms frames
+(400 samples) with a 10\,ms hop (160 samples), and each frame is multiplied by a
+Hann window to reduce spectral leakage \rec. These values are the conventional
+choice for speech, because speech is approximately stationary over 20--30\,ms.
+The 10\,ms hop yields 100 feature frames per second, exactly four per video
+frame.
+
+\paragraph{Log-Mel spectrogram.} A 512-point short-time Fourier transform
+(STFT) gives the power spectrum $|X_k(\tau)|^2$ of each frame $\tau$. A bank of
+$M=80$ triangular Mel filters $H_m(k)$ spanning 20\,Hz--8\,kHz \rec\ is applied,
+and the result is log-compressed:
+\begin{equation}
+\mathrm{LM}_m(\tau) = \log\!\Big(\epsilon + \sum_{k} H_m(k)\,|X_k(\tau)|^2\Big),
+\qquad m = 1,\dots,80,\quad \epsilon = 10^{-6}.
+\label{eq:logmel}
+\end{equation}
+The Mel scale spaces filters more densely at low frequencies, mirroring human
+pitch perception, and the logarithm compresses the large dynamic range of
+speech energy.
+
+\paragraph{MFCCs.} Mel-frequency cepstral coefficients are obtained by applying a
+discrete cosine transform (DCT) to the log-Mel vector and keeping the first 13
+coefficients, optionally with their first and second temporal derivatives
+($\Delta$, $\Delta\Delta$) to give 39 values per frame:
+\begin{equation}
+c_j(\tau) = \sum_{m=1}^{M} \mathrm{LM}_m(\tau)\cos\!\Big[\frac{\pi j}{M}\Big(m-\tfrac12\Big)\Big],
+\qquad j = 0,\dots,12.
+\end{equation}
+
+\paragraph{Feature normalisation.} Each feature dimension is standardised with a
+mean and standard deviation estimated on the training partition, under the same
+SNR distribution used in training. The statistics are computed once by
+\texttt{compute\_stats.py}, stored in \texttt{stats/feature\_norm.npz} and
+loaded unchanged at validation, test and inference time. Statistics are never
+computed from validation or test data.
+
+\subsection{Choice of audio features}
+The proposal lists both log-Mel spectrograms and MFCCs \spec\ but does not
+state whether they are used together. Because MFCCs are a linear transform
+(the DCT) of the log-Mel features, a neural encoder given log-Mel input can in
+principle learn any information that MFCCs contain. The plan therefore uses a
+manageable initial configuration and treats the others as experiments:
+
+\begin{table}[H]
+\centering
+\caption{Audio feature configurations.}
+\label{tab:audio-configs}
+\small
+\begin{tabularx}{\textwidth}{@{}llX@{}}
+\toprule
+\textbf{ID} & \textbf{Features (dimension)} & \textbf{Role} \\
+\midrule
+A1 & 80 log-Mel & Primary configuration for all models \rec \\
+A2 & 13 MFCC + $\Delta$ + $\Delta\Delta$ (39) & Experiment: compact, decorrelated input \\
+A3 & log-Mel $\oplus$ MFCC (119) & Experiment: the combined input named in the proposal \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+All three configurations are computed by the same \texttt{torchaudio} transform
+objects, so switching between them is a one-line configuration change. A2 and
+A3 are run on the audio-only baseline first, because it trains fastest; the
+best configuration is then adopted for the fused model if it improves
+validation WER.
+
+\subsection{Audio encoder}
+\label{sec:audio-encoder}
+The audio encoder maps the 100\,fps features to a 25\,fps sequence of acoustic
+representations aligned with the visual sequence. Two 1-D convolutions with
+stride~2 reduce the frame rate by a factor of four while mixing information
+across neighbouring frames. A two-layer BiLSTM, the encoder specified in the
+proposal \spec, then models context across the whole utterance. Strided
+convolutions are preferred to simply discarding frames, because they learn
+which local acoustic detail to retain.
+
+For a convolution with kernel $k=3$, padding $p=1$ and stride $s=2$, an input of
+length $L$ produces an output of length $\lfloor (L + 2p - k)/s \rfloor + 1 =
+\lceil L/2 \rceil$. Two such layers turn $T_a$ audio frames into $\lceil
+T_a/4\rceil$ encoder frames. The same formula is used in the data loader to
+compute per-utterance output lengths for CTC (\cref{sec:ctc}).
+
+\subsection{Tensor-shape walkthrough}
+\Cref{tab:audio-shapes} assumes a batch of $B=16$ clips of 3\,s at 16\,kHz
+($N=48{,}000$ samples) and configuration A1. The STFT with centred frames
+produces $N/160+1=301$ frames; the last frame is dropped so that $T_a = 300 =
+4T$ \rec.
+
+\begin{table}[H]
+\centering
+\caption{Audio encoder tensor shapes for an example batch.}
+\label{tab:audio-shapes}
+\small
+\begin{tabularx}{\textwidth}{@{}lXl@{}}
+\toprule
+\textbf{Stage} & \textbf{Operation} & \textbf{Output shape} \\
+\midrule
+Waveform & Normalised 16\,kHz mono audio & \shape{16,48000} \\
+Features & Log-Mel (\cref{eq:logmel}), trim to $4T$, standardise & \shape{16,300,80} \\
+Transpose & Channels-first layout for Conv1d & \shape{16,80,300} \\
+Subsample 1 & Conv1d($80{\to}256$, $k{=}3$, $s{=}2$), BN, ReLU & \shape{16,256,150} \\
+Subsample 2 & Conv1d($256{\to}256$, $k{=}3$, $s{=}2$), BN, ReLU & \shape{16,256,75} \\
+Transpose & Time-first layout for LSTM & \shape{16,75,256} \\
+Temporal & 2-layer BiLSTM, 256 units per direction, dropout 0.3 & \shape{16,75,512} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The dimensions are: batch ($B$), time (audio frames at 100\,fps before
+subsampling, encoder frames at 25\,fps after), and features (Mel bands, then
+convolution channels, then concatenated forward and backward LSTM states). The
+output has the same shape as the visual encoder output, which simplifies
+fusion.
+
+\subsection{Variable-length sequences and batching}
+Most GRID utterances have the same 3\,s duration, but some are shorter, and
+windows in the live demo may vary. The collate function therefore
+\begin{enumerate}
+  \item pads every waveform in a batch with zeros to the longest one,
+  \item records the true number of feature frames $T_a^{(b)}$ for each item $b$,
+  \item computes encoder lengths $T^{(b)} = \lceil T_a^{(b)}/4 \rceil$, and
+  \item builds a Boolean padding mask of shape \shape{B,T}.
+\end{enumerate}
+The BiLSTM receives the lengths through \texttt{pack\_padded\_sequence}, so padded
+frames do not contaminate the backward direction; the fusion attention ignores
+padded keys through the mask; and CTC receives the true lengths. Utterances are
+grouped into batches of similar length (bucketing) when lengths vary widely, to
+reduce wasted computation on padding.
+
+\subsection{Testing the audio pipeline}
+\begin{itemize}
+  \item The log-Mel output of \texttt{torchaudio} is compared with
+        \texttt{librosa.feature.melspectrogram} on a test file using identical
+        parameters; the maximum absolute difference in log-energy must be below a
+        small tolerance (for example $10^{-3}$).
+  \item A 3\,s waveform must produce exactly 300 feature frames and 75 encoder
+        frames.
+  \item Normalised training features must have per-band mean within 0.05 of 0
+        and standard deviation within 0.05 of 1.
+  \item The audio encoder on a random input of \shape{2,300,80} returns
+        \shape{2,75,512}.
+\end{itemize}

@@ -1,0 +1,49 @@
+% =====================================================================
+\section{Expected Deliverables}
+\label{sec:deliverables}
+% =====================================================================
+
+The proposal commits to a clean inference script and a simple web
+demonstration \spec. \Cref{tab:deliverables} lists the full set of software
+artefacts the implementation will produce and the evidence that will show each
+one works.
+
+{\small
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{@{}p{3.5cm}p{5.4cm}p{6.2cm}@{}}
+\caption{Software deliverables and evidence of completion.}\label{tab:deliverables}\\
+\toprule
+\textbf{Deliverable} & \textbf{Content} & \textbf{Evidence that it works} \\
+\midrule
+\endfirsthead
+\multicolumn{3}{@{}l}{\small\itshape \Cref{tab:deliverables} continued}\\
+\toprule
+\textbf{Deliverable} & \textbf{Content} & \textbf{Evidence that it works} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+Modular source code & Python package \texttt{lipscribe/} with \texttt{data}, \texttt{preprocessing}, \texttt{models}, \texttt{decoding}, \texttt{evaluation} and \texttt{app} sub-packages &
+Package installs with \texttt{pip install -e .}; modules imported by scripts and tests \\
+Data-preparation scripts & \texttt{verify\_dataset.py}, \texttt{extract\_mouths.py}, \texttt{prepare\_audio.py}, \texttt{make\_noisy\_test.py}, \texttt{compute\_stats.py} &
+Integrity report, manifest and contact sheets generated from raw data by one documented command sequence \\
+Configuration files & One YAML file per experiment in \texttt{configs/} &
+Every reported run has a committed configuration \\
+Training and evaluation scripts & \texttt{train.py}, \texttt{evaluate.py}, \texttt{transcribe.py} &
+Re-running \texttt{evaluate.py} on a released checkpoint reproduces its reported WER \\
+Model checkpoints & Best checkpoints of B1, B2, B3 and P (and ablations) &
+Load without error and match logged validation scores \\
+Baseline implementations & Audio-only, visual-only and concatenation models &
+Evaluated at all five SNRs with the same protocol as P \\
+Experiment logs and outputs & TensorBoard logs, \texttt{results.csv}, per-SNR tables, WER-vs-SNR and gate plots &
+Each table entry traceable to a run directory \\
+Automated tests & \texttt{pytest} suite (\cref{tab:tests}) &
+All tests pass on a fresh environment; test report included \\
+Captioning demonstration & Gradio Mode A and live Mode B &
+Live demonstration plus a recorded fallback video; Mode A matches \texttt{evaluate.py} on test clips \\
+Setup and execution instructions & \texttt{README.md}, \texttt{requirements.txt}, data download guide &
+A team member not involved in setup reproduces one evaluation from a fresh clone \\
+Final technical report & Methods, results, ablations, limitations &
+Submitted; all results come from logged runs \\
+\end{longtable}
+}

@@ -1,0 +1,147 @@
+% =====================================================================
+%  LipScribe: Technical Implementation and System Development Document
+%  Computer Vision and Deep Learning -- Group 4
+%  Uganda Christian University
+%
+%  Compiles with pdfLaTeX, XeLaTeX, LuaLaTeX or Tectonic (see README.md).
+% =====================================================================
+\documentclass[11pt,a4paper]{article}
+
+% ---------------------------------------------------------------- engine
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+\fi
+\usepackage{lmodern}
+\usepackage{microtype}
+\setlength{\emergencystretch}{3em}
+
+% ---------------------------------------------------------------- layout
+\usepackage[a4paper,margin=2.5cm,headheight=14pt]{geometry}
+\usepackage{setspace}
+\setstretch{1.12}
+\usepackage[parfill]{parskip}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\setlist{itemsep=2pt,topsep=4pt}
+
+% ---------------------------------------------------------------- maths
+\usepackage{amsmath,amssymb,bm}
+
+% ---------------------------------------------------------------- tables, figures
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\renewcommand{\tabularxcolumn}[1]{>{\raggedright\arraybackslash}p{#1}}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage{float}
+\usepackage[font=small,labelfont={bf,sf},skip=6pt]{caption}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,fit,backgrounds,calc,shapes.geometric}
+
+% ---------------------------------------------------------------- code & algorithms
+\usepackage{listings}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+% ---------------------------------------------------------------- colours
+\definecolor{lsblue}{RGB}{31,73,125}
+\definecolor{lsgrey}{RGB}{110,110,110}
+\definecolor{lsaudio}{RGB}{214,234,248}
+\definecolor{lsvisual}{RGB}{252,228,214}
+\definecolor{lsfuse}{RGB}{226,239,218}
+\definecolor{lsout}{RGB}{237,231,246}
+\definecolor{codebg}{RGB}{247,247,247}
+
+% ---------------------------------------------------------------- headings
+\titleformat{\section}{\Large\sffamily\bfseries\color{lsblue}}{\thesection}{0.8em}{}
+\titleformat{\subsection}{\large\sffamily\bfseries\color{lsblue}}{\thesubsection}{0.8em}{}
+\titleformat{\subsubsection}{\normalsize\sffamily\bfseries}{\thesubsubsection}{0.8em}{}
+\titlespacing*{\section}{0pt}{18pt}{8pt}
+\titlespacing*{\subsection}{0pt}{12pt}{5pt}
+\titlespacing*{\subsubsection}{0pt}{9pt}{3pt}
+
+% ---------------------------------------------------------------- headers / footers
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\sffamily\color{lsgrey}LipScribe -- Technical Implementation Document}
+\fancyhead[R]{\small\sffamily\color{lsgrey}CVDL Group 4}
+\fancyfoot[C]{\small\sffamily\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancypagestyle{plain}{\fancyhf{}\fancyfoot[C]{\small\sffamily\thepage}\renewcommand{\headrulewidth}{0pt}}
+
+% ---------------------------------------------------------------- listings style
+\lstdefinestyle{lipscribe}{
+  basicstyle=\ttfamily\footnotesize,
+  backgroundcolor=\color{codebg},
+  keywordstyle=\color{lsblue}\bfseries,
+  commentstyle=\color{lsgrey}\itshape,
+  stringstyle=\color{red!50!black},
+  frame=single, rulecolor=\color{black!15},
+  breaklines=true, columns=fullflexible,
+  showstringspaces=false, tabsize=2,
+  xleftmargin=4pt, xrightmargin=4pt
+}
+\lstset{style=lipscribe}
+
+% ---------------------------------------------------------------- custom boxes
+% Labels used throughout to separate the source of each statement.
+\newcommand{\spec}{\textsf{\textbf{\color{lsblue}[Proposal]}}}
+\newcommand{\rec}{\textsf{\textbf{\color{green!40!black}[Recommended]}}}
+\newcommand{\tbd}{\textsf{\textbf{\color{red!60!black}[To be decided]}}}
+\newcommand{\shape}[1]{$\langle #1 \rangle$}
+
+% ---------------------------------------------------------------- hyperlinks (load last)
+\usepackage[hidelinks]{hyperref}
+\hypersetup{
+  pdftitle={LipScribe: Technical Implementation and System Development Document},
+  pdfauthor={Migisha, Opol, Ainomugisha, Namugenyi, Naamaye, Isabelle},
+  pdfsubject={Audio-visual speech recognition implementation plan},
+  hypertexnames=false
+}
+\usepackage[nameinlink,capitalise]{cleveref}
+
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
+
+% =====================================================================
+\begin{document}
+
+\input{sections/titlepage}
+
+\pagenumbering{roman}
+\tableofcontents
+\clearpage
+\listoffigures
+\listoftables
+\listofalgorithms
+\clearpage
+\input{sections/abbreviations}
+\clearpage
+
+\pagenumbering{arabic}
+\input{sections/01_introduction}
+\input{sections/02_architecture}
+\input{sections/03_stack}
+\input{sections/04_dataset}
+\input{sections/05_visual}
+\input{sections/06_audio}
+\input{sections/07_model}
+\input{sections/08_training}
+\input{sections/09_evaluation}
+\input{sections/10_application}
+\input{sections/11_extensions}
+\input{sections/12_schedule}
+\input{sections/13_risks}
+\input{sections/14_deliverables}
+\input{sections/15_conclusion}
+
+\clearpage
+\input{sections/references}
+
+\end{document}
