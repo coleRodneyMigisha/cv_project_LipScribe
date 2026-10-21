@@ -13,3 +13,23 @@ documentation/2_implementation/implementation_document/main.pdf
 
 # Office lock files created while a document is open
 ~$*
+
+# LipScribe: data and artifacts (anchored to repo root)
+/data/
+/runs/
+/recordings/
+*.npy
+*.pt
+*.wav
+*.mp4
+*.avi
+checkpoints/
+
+# Allow tiny test fixtures
+!tests/fixtures/*.npy
+!tests/fixtures/*.wav
+
+# Environments and editor files
+.venv/
+.idea/
+.DS_Store
