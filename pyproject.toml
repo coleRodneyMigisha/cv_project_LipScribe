@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lipscribe"
+version = "0.1.0"
+description = "Lip-reading to text pipeline"
+requires-python = ">=3.9"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[tool.setuptools.packages.find]
+include = ["lipscribe*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
