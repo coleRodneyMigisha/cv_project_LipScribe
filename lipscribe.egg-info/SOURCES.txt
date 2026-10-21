@@ -1,0 +1,15 @@
+README.md
+pyproject.toml
+lipscribe/__init__.py
+lipscribe.egg-info/PKG-INFO
+lipscribe.egg-info/SOURCES.txt
+lipscribe.egg-info/dependency_links.txt
+lipscribe.egg-info/requires.txt
+lipscribe.egg-info/top_level.txt
+lipscribe/app/__init__.py
+lipscribe/data/__init__.py
+lipscribe/decoding/__init__.py
+lipscribe/evaluation/__init__.py
+lipscribe/models/__init__.py
+lipscribe/preprocessing/__init__.py
+tests/test_import.py

@@ -161,7 +161,7 @@ Use this file to create one Trello board.
   - [ ] List team members' own GPUs (model, memory)
   - [ ] Check a cloud notebook option as a fallback (session limits, storage)
   - [ ] Confirm at least 100 GB of free disk where the data will live
-  - [ ] Write `docs/compute.md`: machine, GPU, memory, how to log in, booking rules
+  - [ ] Write `documentation/6_compute/compute.md`: machine, GPU, memory, how to log in, booking rules
   - [ ] Set up a shared GPU booking schedule (who trains when)
 - **Done when:** A named GPU machine is confirmed and documented. If none is available, escalate to the lecturer by Wednesday.
 

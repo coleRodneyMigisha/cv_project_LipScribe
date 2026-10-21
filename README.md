@@ -47,7 +47,9 @@ cv_project_LipScribe/
     │   ├── implementation_document/   LaTeX source + compiled PDF of the implementation plan
     │   └── presentation/              implementation slides (full and 5-min) + presenter notes
     ├── 3_project_management/      work breakdown structure for the Trello board
-    └── 4_templates/               course PowerPoint template
+    ├── 4_templates/               course PowerPoint template
+    ├── 5_submissions/             submitted milestone materials
+    └── 6_compute/                 compute access and GPU/runtime guidance
 ```
 
 ## Key documents
@@ -57,6 +59,7 @@ cv_project_LipScribe/
 | [Project proposal](documentation/1_proposal/cv_lip_reading_project_proposal.pdf) | Problem, objectives, research questions, literature review, methodology |
 | [Implementation document](<documentation/2_implementation/implementation_document/Implementation plan 1.pdf>) | Architecture, technology stack, data pipeline, model, training, evaluation, live captioning, schedule, risks |
 | [Work breakdown structure](documentation/3_project_management/LipScribe_WBS_Trello.md) | Week-by-week tasks with owners, reviewers, checklists and due dates, written for building the Trello board |
+| [Compute access and usage](documentation/6_compute/compute.md) | SSH access, available notebook runtime limits, hardware requirements and GPU booking guidance |
 | [Implementation presentation](documentation/2_implementation/presentation/) | Slides and presenter notes for presenting the implementation plan |
 | [Reference papers](lipScribe_proposal/sources/) | The papers cited in the proposal |
 
