@@ -33,3 +33,9 @@ checkpoints/
 .venv/
 .idea/
 .DS_Store
+
+# Python build artifacts
+__pycache__/
+*.egg-info/
+*.pyc
+.pytest_cache/
