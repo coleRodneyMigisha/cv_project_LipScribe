@@ -4,7 +4,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from lipscribe.crop import (
+from lipscribe.preprocessing.crop import (
     OUTPUT_SIZE,
     centred_moving_average,
     crop_with_edge_padding,
@@ -56,9 +56,9 @@ def test_edge_padded_crop_shape_and_dtype():
 
 
 def test_crop_output_for_all_five_clips():
-    clips_dir = Path("/content/drive/MyDrive/LipScribe/data/clips")
+    clips_dir = Path("../data/mouth_crop_clips")
     model_path = Path(
-        "/content/drive/MyDrive/LipScribe/models/face_landmarker.task"
+        "../models/face_landmarker.task"
     )
 
     clips = sorted(clips_dir.glob("*.mp4"))
@@ -69,7 +69,7 @@ def test_crop_output_for_all_five_clips():
 
     # Import here so the simple unit tests above do not need to initialize
     # Face Landmarker unless this integration test is being run.
-    from lipscribe.crop import crop_video
+    from lipscribe.preprocessing.crop import crop_video
 
     for clip_path in clips:
         result = crop_video(
