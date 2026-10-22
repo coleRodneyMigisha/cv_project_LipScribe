@@ -1,7 +1,11 @@
 # LipScribe module interfaces
 
 **Card:** W1-11 · Module interface specification
-**Owner:** Wakisa Isabelle · **Reviewers:** Cole Rodney Migisha, Charis Opol
+
+**Owner:** Wakisa Isabelle 
+
+**Reviewers:** Cole Rodney Migisha, Charis Opol
+
 **Source:** Implementation document, Table 3 (*Module responsibilities and interfaces*), plus the shape tables in Sections 5–7.
 
 This file fixes the name, inputs, outputs and tensor shapes of every module, so that the data, model and application pairs can build in parallel and plug their parts together later. If you need to change an interface, change this file in the same pull request and tell the owners of the modules on either side.
