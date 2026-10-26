@@ -15,7 +15,7 @@ documentation/2_implementation/implementation_document/main.pdf
 ~$*
 
 # LipScribe: data and artifacts (anchored to repo root)
-/data/
+/Data/
 /runs/
 /recordings/
 *.npy
@@ -23,7 +23,11 @@ documentation/2_implementation/implementation_document/main.pdf
 *.wav
 *.mp4
 *.avi
+*.mpg
+*.zip
 checkpoints/
+Data
+/gridcorpus
 
 # Allow tiny test fixtures
 !tests/fixtures/*.npy
