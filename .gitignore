@@ -15,6 +15,51 @@ documentation/2_implementation/implementation_document/main.pdf
 ~$*
 
 # LipScribe: data and artifacts (anchored to repo root)
+/Data/
+/runs/
+/recordings/
+*.npy
+*.pt
+*.wav
+*.mp4
+*.avi
+*.mpg
+*.zip
+checkpoints/
+Data
+/gridcorpus
+
+# Allow tiny test fixtures
+!tests/fixtures/*.npy
+!tests/fixtures/*.wav
+
+# Environments and editor files
+.venv/
+.idea/
+.DS_Store
+
+# Python build artifacts
+__pycache__/
+*.egg-info/
+*.pyc
+.pytest_cache/
+# LaTeX build outputs (implementation document)
+documentation/**/*.aux
+documentation/**/*.log
+documentation/**/*.toc
+documentation/**/*.lof
+documentation/**/*.lot
+documentation/**/*.loa
+documentation/**/*.out
+documentation/**/*.fls
+documentation/**/*.fdb_latexmk
+documentation/**/*.synctex.gz
+documentation/2_implementation/implementation_document/main.pdf
+
+# Office lock files created while a document is open
+~$*
+
+# LipScribe: data and artifacts (anchored to repo root)
 /data/
 /runs/
 /recordings/
