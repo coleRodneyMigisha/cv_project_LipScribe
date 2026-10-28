@@ -25,9 +25,10 @@ import numpy as np
 import soundfile as sf
 
 
-SPEAKER_RE = re.compile(r"s\d+", re.IGNORECASE)
+SPEAKER_RE = re.compile(r"(s\d+)(?:_processed)?", re.IGNORECASE)
 VIDEO_SUFFIXES = {".avi", ".mkv", ".mov", ".mp4", ".mpeg", ".mpg"}
 SILENCE_WORDS = {"sil", "sp"}
+ALIGNMENT_SAMPLE_RATE = 25_000
 GRID_WORDS_BY_SLOT = (
     {"bin", "lay", "place", "set"},
     {"blue", "green", "red", "white"},
@@ -41,7 +42,7 @@ CHECK_COLUMNS = {
     "files_present": "files_present",
     "video_decodes": "video_decodes",
     "frame_count": "frame_count_ok",
-    "audio_video_sync": "audio_video_duration_ok",
+    "audio_video_sync": "audio_video_sync_ok",
     "transcript": "transcript_words_valid",
     "audio_level": "audio_ok",
 }
@@ -58,13 +59,14 @@ class FileRef:
 
 def _speaker_in(parts: tuple[str, ...] | list[str]) -> str | None:
     for part in reversed(parts):
-        if SPEAKER_RE.fullmatch(part):
-            return part.lower()
+        match = SPEAKER_RE.fullmatch(part)
+        if match:
+            return match.group(1).lower()
     return None
 
 
 def _key_for(path_parts: tuple[str, ...] | list[str], stem: str, root: Path) -> tuple[str, str] | None:
-    speaker = _speaker_in(path_parts) or (root.name.lower() if SPEAKER_RE.fullmatch(root.name) else None)
+    speaker = _speaker_in(path_parts) or _speaker_in((root.name,))
     return (speaker, stem.lower()) if speaker else None
 
 
@@ -194,25 +196,38 @@ def _video_metrics(path: Path) -> dict[str, object]:
     }
 
 
-def _alignment_transcript(text: str) -> tuple[str, bool]:
+def _alignment_details(
+    text: str,
+) -> tuple[str, bool, float | None, float | None, float | None]:
     words: list[str] = []
+    speech_intervals: list[tuple[float, float]] = []
+    alignment_end: float | None = None
     try:
         for line in text.splitlines():
             fields = line.split()
             if not fields:
                 continue
             if len(fields) < 3:
-                return " ".join(words), False
+                return " ".join(words), False, None, None, None
             start, end = float(fields[0]), float(fields[1])
             word = fields[2].lower()
             if not math.isfinite(start) or not math.isfinite(end) or end < start:
-                return " ".join(words), False
+                return " ".join(words), False, None, None, None
+            alignment_end = max(alignment_end or end, end)
             if word not in SILENCE_WORDS:
                 words.append(word)
+                speech_intervals.append((start, end))
     except ValueError:
-        return " ".join(words), False
+        return " ".join(words), False, None, None, None
     transcript = " ".join(words)
     valid = len(words) == 6 and all(word in slot for word, slot in zip(words, GRID_WORDS_BY_SLOT))
+    speech_start = speech_intervals[0][0] if speech_intervals else None
+    speech_end = speech_intervals[-1][1] if speech_intervals else None
+    return transcript, valid, speech_start, speech_end, alignment_end
+
+
+def _alignment_transcript(text: str) -> tuple[str, bool]:
+    transcript, valid, _, _, _ = _alignment_details(text)
     return transcript, valid
 
 
@@ -313,8 +328,14 @@ def verify_dataset(
                 "audio_peak": "",
                 "audio_clipped_fraction": "",
                 "audio_ok": False,
-                "audio_video_delta_seconds": "",
-                "audio_video_duration_ok": False,
+                "aligned_speech_start_seconds": "",
+                "aligned_speech_end_seconds": "",
+                "aligned_speech_duration_seconds": "",
+                "alignment_end_seconds": "",
+                "audio_speech_delta_seconds": "",
+                "audio_speech_duration_ok": False,
+                "alignment_video_ok": False,
+                "audio_video_sync_ok": False,
                 "transcript": "",
                 "transcript_word_count": 0,
                 "transcript_words_valid": False,
@@ -343,9 +364,18 @@ def verify_dataset(
                 except (OSError, RuntimeError, ValueError, tarfile.TarError) as exc:
                     row["errors"].append(f"audio: {exc}")
 
+            speech_start_samples = None
+            speech_end_samples = None
+            alignment_end_samples = None
             if alignment is not None:
                 try:
-                    transcript, valid = _alignment_transcript(index.read_alignment(alignment))
+                    (
+                        transcript,
+                        valid,
+                        speech_start_samples,
+                        speech_end_samples,
+                        alignment_end_samples,
+                    ) = _alignment_details(index.read_alignment(alignment))
                     row["transcript"] = transcript
                     row["transcript_word_count"] = len(transcript.split())
                     row["transcript_words_valid"] = valid
@@ -354,10 +384,27 @@ def verify_dataset(
                 except (OSError, UnicodeError, zipfile.BadZipFile, KeyError) as exc:
                     row["errors"].append(f"alignment: {exc}")
 
-            if row["video_duration_seconds"] != "" and row["audio_duration_seconds"] != "":
-                delta = abs(float(row["video_duration_seconds"]) - float(row["audio_duration_seconds"]))
-                row["audio_video_delta_seconds"] = delta
-                row["audio_video_duration_ok"] = delta <= duration_tolerance
+            if speech_start_samples is not None and speech_end_samples is not None:
+                speech_start = speech_start_samples / ALIGNMENT_SAMPLE_RATE
+                speech_end = speech_end_samples / ALIGNMENT_SAMPLE_RATE
+                speech_duration = speech_end - speech_start
+                row["aligned_speech_start_seconds"] = speech_start
+                row["aligned_speech_end_seconds"] = speech_end
+                row["aligned_speech_duration_seconds"] = speech_duration
+                if row["audio_duration_seconds"] != "":
+                    delta = abs(float(row["audio_duration_seconds"]) - speech_duration)
+                    row["audio_speech_delta_seconds"] = delta
+                    row["audio_speech_duration_ok"] = delta <= duration_tolerance
+            if alignment_end_samples is not None:
+                alignment_end = alignment_end_samples / ALIGNMENT_SAMPLE_RATE
+                row["alignment_end_seconds"] = alignment_end
+                if row["video_duration_seconds"] != "":
+                    row["alignment_video_ok"] = (
+                        alignment_end <= float(row["video_duration_seconds"]) + duration_tolerance
+                    )
+            row["audio_video_sync_ok"] = bool(
+                row["audio_speech_duration_ok"] and row["alignment_video_ok"]
+            )
 
             if key in face_rates:
                 rate = face_rates[key]
@@ -378,7 +425,7 @@ def verify_dataset(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     summary_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", newline="", encoding="utf-8") as stream:
-        writer = csv.DictWriter(stream, fieldnames=list(rows[0]))
+        writer = csv.DictWriter(stream, fieldnames=list(rows[0]), lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
 
@@ -413,7 +460,8 @@ def _format_summary(
         "GRID dataset integrity summary",
         f"Dataset root: {data_root}",
         f"Utterances discovered: {len(rows)}",
-        f"Thresholds: video frames 73-77; duration delta <= {duration_tolerance:.3f} s; "
+        f"Thresholds: video frames 73-77; WAV vs aligned speech delta <= {duration_tolerance:.3f} s; "
+        f"alignment ends within video duration + {duration_tolerance:.3f} s; "
         f"audio RMS >= {min_rms_dbfs:.1f} dBFS; clipped fraction <= {max_clipped_fraction:.4%}; "
         f"Face Mesh >= {min_face_mesh_rate:.0%}",
         "",
@@ -443,7 +491,12 @@ def _format_summary(
 
 
 def _default_data_root() -> Path:
-    for candidate in (Path("data/raw/grid"), Path("Data/gridcorpus/raw"), Path("gridcorpus")):
+    for candidate in (
+        Path("data/raw/grid"),
+        Path("Data/grip_corpus/grid-corpus-dataset-for-training-lipnet/data"),
+        Path("Data/gridcorpus/raw"),
+        Path("gridcorpus"),
+    ):
         if candidate.is_dir():
             return candidate
     return Path("data/raw/grid")

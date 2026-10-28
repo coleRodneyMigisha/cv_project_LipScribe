@@ -1,50 +1,50 @@
 GRID dataset integrity summary
-Dataset root: /home/Lipscribe-team/Desktop/cv_project_LipScribe/Data/gridcorpus/raw
-Utterances discovered: 54000
-Thresholds: video frames 73-77; duration delta <= 0.040 s; audio RMS >= -60.0 dBFS; clipped fraction <= 0.1000%; Face Mesh >= 90%
+Dataset root: /home/Lipscribe-team/Desktop/cv_project_LipScribe/Data/grip_corpus/grid-corpus-dataset-for-training-lipnet/data
+Utterances discovered: 34000
+Thresholds: video frames 73-77; WAV vs aligned speech delta <= 0.040 s; alignment ends within video duration + 0.040 s; audio RMS >= -60.0 dBFS; clipped fraction <= 0.1000%; Face Mesh >= 90%
 
 Pass counts by check:
-  files_present: 14000/54000
-  video_decodes: 32891/54000
-  frame_count: 32891/54000
-  audio_video_sync: 0/54000
-  transcript: 34000/54000
-  audio_level: 33999/54000
+  files_present: 33000/34000
+  video_decodes: 32891/34000
+  frame_count: 32891/34000
+  audio_video_sync: 32891/34000
+  transcript: 33000/34000
+  audio_level: 33999/34000
   face_mesh: not checked (supply --face-mesh-report in a later pipeline stage)
-  overall: 0/54000
+  overall: 32890/34000
 
 Pass counts by speaker:
-  s1 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=0/1000, transcript=1000/1000, audio_level=1000/1000
-  s2 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=0/1000, transcript=1000/1000, audio_level=1000/1000
-  s3 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=0/1000, transcript=1000/1000, audio_level=1000/1000
-  s4 (1000 utterances): files_present=1000/1000, video_decodes=999/1000, frame_count=999/1000, audio_video_sync=0/1000, transcript=1000/1000, audio_level=1000/1000
-  s5 (2000 utterances): files_present=0/2000, video_decodes=1000/2000, frame_count=1000/2000, audio_video_sync=0/2000, transcript=1000/2000, audio_level=1000/2000
-  s6 (2000 utterances): files_present=0/2000, video_decodes=1000/2000, frame_count=1000/2000, audio_video_sync=0/2000, transcript=1000/2000, audio_level=1000/2000
-  s7 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=0/1000, transcript=1000/1000, audio_level=1000/1000
-  s8 (1000 utterances): files_present=1000/1000, video_decodes=892/1000, frame_count=892/1000, audio_video_sync=0/1000, transcript=1000/1000, audio_level=1000/1000
-  s9 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=0/1000, transcript=1000/1000, audio_level=1000/1000
-  s10 (2000 utterances): files_present=0/2000, video_decodes=1000/2000, frame_count=1000/2000, audio_video_sync=0/2000, transcript=1000/2000, audio_level=1000/2000
-  s11 (2000 utterances): files_present=0/2000, video_decodes=1000/2000, frame_count=1000/2000, audio_video_sync=0/2000, transcript=1000/2000, audio_level=1000/2000
-  s12 (2000 utterances): files_present=0/2000, video_decodes=1000/2000, frame_count=1000/2000, audio_video_sync=0/2000, transcript=1000/2000, audio_level=1000/2000
-  s13 (2000 utterances): files_present=0/2000, video_decodes=1000/2000, frame_count=1000/2000, audio_video_sync=0/2000, transcript=1000/2000, audio_level=1000/2000
-  s14 (2000 utterances): files_present=0/2000, video_decodes=1000/2000, frame_count=1000/2000, audio_video_sync=0/2000, transcript=1000/2000, audio_level=1000/2000
-  s15 (2000 utterances): files_present=0/2000, video_decodes=1000/2000, frame_count=1000/2000, audio_video_sync=0/2000, transcript=1000/2000, audio_level=1000/2000
-  s16 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=0/1000, transcript=1000/1000, audio_level=1000/1000
-  s17 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=0/1000, transcript=1000/1000, audio_level=1000/1000
-  s18 (2000 utterances): files_present=0/2000, video_decodes=1000/2000, frame_count=1000/2000, audio_video_sync=0/2000, transcript=1000/2000, audio_level=1000/2000
-  s19 (2000 utterances): files_present=0/2000, video_decodes=1000/2000, frame_count=1000/2000, audio_video_sync=0/2000, transcript=1000/2000, audio_level=1000/2000
-  s20 (2000 utterances): files_present=0/2000, video_decodes=1000/2000, frame_count=1000/2000, audio_video_sync=0/2000, transcript=1000/2000, audio_level=1000/2000
-  s21 (2000 utterances): files_present=0/2000, video_decodes=0/2000, frame_count=0/2000, audio_video_sync=0/2000, transcript=1000/2000, audio_level=1000/2000
-  s22 (2000 utterances): files_present=0/2000, video_decodes=1000/2000, frame_count=1000/2000, audio_video_sync=0/2000, transcript=1000/2000, audio_level=1000/2000
-  s23 (2000 utterances): files_present=0/2000, video_decodes=1000/2000, frame_count=1000/2000, audio_video_sync=0/2000, transcript=1000/2000, audio_level=1000/2000
-  s24 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=0/1000, transcript=1000/1000, audio_level=1000/1000
-  s25 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=0/1000, transcript=1000/1000, audio_level=1000/1000
-  s26 (2000 utterances): files_present=0/2000, video_decodes=1000/2000, frame_count=1000/2000, audio_video_sync=0/2000, transcript=1000/2000, audio_level=1000/2000
-  s27 (2000 utterances): files_present=0/2000, video_decodes=1000/2000, frame_count=1000/2000, audio_video_sync=0/2000, transcript=1000/2000, audio_level=1000/2000
-  s28 (2000 utterances): files_present=0/2000, video_decodes=1000/2000, frame_count=1000/2000, audio_video_sync=0/2000, transcript=1000/2000, audio_level=999/2000
-  s29 (2000 utterances): files_present=0/2000, video_decodes=1000/2000, frame_count=1000/2000, audio_video_sync=0/2000, transcript=1000/2000, audio_level=1000/2000
-  s30 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=0/1000, transcript=1000/1000, audio_level=1000/1000
-  s31 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=0/1000, transcript=1000/1000, audio_level=1000/1000
-  s32 (2000 utterances): files_present=0/2000, video_decodes=1000/2000, frame_count=1000/2000, audio_video_sync=0/2000, transcript=1000/2000, audio_level=1000/2000
-  s33 (2000 utterances): files_present=0/2000, video_decodes=1000/2000, frame_count=1000/2000, audio_video_sync=0/2000, transcript=1000/2000, audio_level=1000/2000
-  s34 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=0/1000, transcript=1000/1000, audio_level=1000/1000
+  s1 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=1000/1000, transcript=1000/1000, audio_level=1000/1000
+  s2 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=1000/1000, transcript=1000/1000, audio_level=1000/1000
+  s3 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=1000/1000, transcript=1000/1000, audio_level=1000/1000
+  s4 (1000 utterances): files_present=1000/1000, video_decodes=999/1000, frame_count=999/1000, audio_video_sync=999/1000, transcript=1000/1000, audio_level=1000/1000
+  s5 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=1000/1000, transcript=1000/1000, audio_level=1000/1000
+  s6 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=1000/1000, transcript=1000/1000, audio_level=1000/1000
+  s7 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=1000/1000, transcript=1000/1000, audio_level=1000/1000
+  s8 (1000 utterances): files_present=1000/1000, video_decodes=892/1000, frame_count=892/1000, audio_video_sync=892/1000, transcript=1000/1000, audio_level=1000/1000
+  s9 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=1000/1000, transcript=1000/1000, audio_level=1000/1000
+  s10 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=1000/1000, transcript=1000/1000, audio_level=1000/1000
+  s11 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=1000/1000, transcript=1000/1000, audio_level=1000/1000
+  s12 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=1000/1000, transcript=1000/1000, audio_level=1000/1000
+  s13 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=1000/1000, transcript=1000/1000, audio_level=1000/1000
+  s14 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=1000/1000, transcript=1000/1000, audio_level=1000/1000
+  s15 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=1000/1000, transcript=1000/1000, audio_level=1000/1000
+  s16 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=1000/1000, transcript=1000/1000, audio_level=1000/1000
+  s17 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=1000/1000, transcript=1000/1000, audio_level=1000/1000
+  s18 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=1000/1000, transcript=1000/1000, audio_level=1000/1000
+  s19 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=1000/1000, transcript=1000/1000, audio_level=1000/1000
+  s20 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=1000/1000, transcript=1000/1000, audio_level=1000/1000
+  s21 (1000 utterances): files_present=0/1000, video_decodes=0/1000, frame_count=0/1000, audio_video_sync=0/1000, transcript=0/1000, audio_level=1000/1000
+  s22 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=1000/1000, transcript=1000/1000, audio_level=1000/1000
+  s23 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=1000/1000, transcript=1000/1000, audio_level=1000/1000
+  s24 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=1000/1000, transcript=1000/1000, audio_level=1000/1000
+  s25 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=1000/1000, transcript=1000/1000, audio_level=1000/1000
+  s26 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=1000/1000, transcript=1000/1000, audio_level=1000/1000
+  s27 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=1000/1000, transcript=1000/1000, audio_level=1000/1000
+  s28 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=1000/1000, transcript=1000/1000, audio_level=999/1000
+  s29 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=1000/1000, transcript=1000/1000, audio_level=1000/1000
+  s30 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=1000/1000, transcript=1000/1000, audio_level=1000/1000
+  s31 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=1000/1000, transcript=1000/1000, audio_level=1000/1000
+  s32 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=1000/1000, transcript=1000/1000, audio_level=1000/1000
+  s33 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=1000/1000, transcript=1000/1000, audio_level=1000/1000
+  s34 (1000 utterances): files_present=1000/1000, video_decodes=1000/1000, frame_count=1000/1000, audio_video_sync=1000/1000, transcript=1000/1000, audio_level=1000/1000
