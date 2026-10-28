@@ -10,14 +10,14 @@ import soundfile as sf
 from scripts.verify_dataset import verify_dataset
 
 
-ALIGNMENT = """0 1000 sil
-1000 2000 bin
-2000 3000 blue
-3000 4000 at
-4000 5000 f
-5000 6000 two
-6000 7000 now
-7000 8000 sil
+ALIGNMENT = """0 23750 sil
+23750 29500 bin
+29500 34000 blue
+34000 35500 at
+35500 41000 f
+41000 47250 two
+47250 53000 now
+53000 74500 sil
 """
 
 
@@ -33,7 +33,7 @@ def _write_video(path, frame_count=75):
     writer.release()
 
 
-def _audio_samples(duration=3.0):
+def _audio_samples(duration=1.19):
     time = np.arange(int(16_000 * duration), dtype=np.float32) / 16_000
     return 0.1 * np.sin(2 * np.pi * 440 * time)
 
@@ -66,12 +66,15 @@ def test_verifies_extracted_utterance_and_writes_reports(tmp_path):
     with (tmp_path / "reports/integrity_report.csv").open(newline="") as stream:
         report = next(csv.DictReader(stream))
     assert report["video_frames"] == "75"
-    assert report["audio_video_duration_ok"] == "True"
+    assert report["audio_video_sync_ok"] == "True"
+    assert abs(float(report["audio_speech_delta_seconds"]) - 0.02) < 1e-6
+    assert float(report["aligned_speech_start_seconds"]) == 0.95
+    assert float(report["alignment_end_seconds"]) == 2.98
 
 
 def test_flags_bad_frame_count_and_invalid_grid_sentence(tmp_path):
     data_root = tmp_path / "grid"
-    invalid_alignment = ALIGNMENT.replace("1000 2000 bin", "1000 2000 jump")
+    invalid_alignment = ALIGNMENT.replace("23750 29500 bin", "23750 29500 jump")
     _write_extracted_utterance(data_root, frame_count=72, transcript=invalid_alignment)
 
     rows, _ = verify_dataset(data_root, tmp_path / "report.csv", tmp_path / "summary.txt")
@@ -80,6 +83,21 @@ def test_flags_bad_frame_count_and_invalid_grid_sentence(tmp_path):
     assert rows[0]["frame_count_ok"] is False
     assert rows[0]["transcript_words_valid"] is False
     assert rows[0]["overall_pass"] is False
+
+
+def test_sync_rejects_full_video_audio_for_trimmed_alignment(tmp_path):
+    data_root = tmp_path / "grid"
+    _write_extracted_utterance(data_root)
+    sf.write(
+        data_root / "s1/audio/bbaf2n.wav",
+        _audio_samples(duration=3.0),
+        16_000,
+    )
+
+    rows, _ = verify_dataset(data_root, tmp_path / "report.csv", tmp_path / "summary.txt")
+
+    assert rows[0]["audio_speech_delta_seconds"] > 1.0
+    assert rows[0]["audio_video_sync_ok"] is False
 
 
 def test_reads_audio_tar_and_alignment_zip_and_applies_face_mesh_threshold(tmp_path):
@@ -154,3 +172,22 @@ def test_flags_a_single_clipped_peak(tmp_path):
     assert rows[0]["audio_peak"] >= 0.999
     assert rows[0]["audio_clipped_fraction"] < 0.001
     assert rows[0]["audio_ok"] is False
+
+
+def test_indexes_lipnet_processed_speaker_folder_and_reports_missing_audio(tmp_path):
+    data_root = tmp_path / "data"
+    speaker = data_root / "s1_processed"
+    speaker.mkdir(parents=True)
+    _write_video(speaker / "bbaf2n.mpg")
+    (speaker / "bbaf2n.align").write_text(ALIGNMENT, encoding="utf-8")
+
+    rows, _ = verify_dataset(data_root, tmp_path / "report.csv", tmp_path / "summary.txt")
+
+    assert len(rows) == 1
+    assert rows[0]["speaker"] == "s1"
+    assert rows[0]["video_present"] is True
+    assert rows[0]["alignment_present"] is True
+    assert rows[0]["audio_present"] is False
+    assert rows[0]["files_present"] is False
+    assert rows[0]["video_decodes"] is True
+    assert rows[0]["transcript_words_valid"] is True
