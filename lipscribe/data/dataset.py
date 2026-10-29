@@ -135,7 +135,7 @@ def mix_at_snr(clean: np.ndarray, noise: np.ndarray, snr_db: float,
 def _default_mixer() -> Callable:
     try:
         from lipscribe.preprocessing.noise import mix_noise  # type: ignore
-        return lambda clean, noise, snr, rng: mix_noise(clean, noise, snr)
+        return lambda clean, noise, snr, rng: mix_noise(clean, noise, snr, rng=rng)
     except Exception:
         return mix_at_snr
 
