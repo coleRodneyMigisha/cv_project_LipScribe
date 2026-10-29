@@ -6,6 +6,8 @@ data:
   manifest: data/manifest.csv
   splits: data/splits.csv
   feature_stats: data/stats/feature_norm.npz
+  noise_splits: Data/Noise_splits/splits.csv   # MUSAN pools (make_noise_splits.py)
+  noisy_dir: data/processed/noisy_test         # fixed noisy val/test files (W2-06)
   train_snrs: [clean, 10, 5, 0, -5]
   eval_snrs:  [clean, 10, 5, 0, -5]
 model:
