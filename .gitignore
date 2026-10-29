@@ -86,4 +86,4 @@ __pycache__/
 .pytest_cache/
 
 # Models
-models/
+/models/
