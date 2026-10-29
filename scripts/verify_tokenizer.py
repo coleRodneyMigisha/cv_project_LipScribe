@@ -8,7 +8,11 @@ sys.path.insert(0, ".")
 from lipscribe.data.transcripts import parse_align
 from lipscribe.data.tokenizer import encode, decode, BLANK_ID
 
+<<<<<<< Updated upstream
 ALIGN_DIR = Path("data/raw/grid")
+=======
+ALIGN_DIR = Path("/Users/apple/Desktop/cv_project_LipScribe/aligns")
+>>>>>>> Stashed changes
 EXPECTED_SLOTS = {"command": 4, "colour": 4, "preposition": 2,
                   "letter": 19, "digit": 10, "adverb": 3}  # GRID grammar
 DIGITS = {"zero","one","two","three","four","five","six","seven","eight","nine"}
