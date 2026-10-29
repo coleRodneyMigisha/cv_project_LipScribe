@@ -24,7 +24,6 @@ documentation/2_implementation/implementation_document/main.pdf
 *.mp4
 *.avi
 *.mpg
-*.zip
 checkpoints/
 Data
 /gridcorpus
