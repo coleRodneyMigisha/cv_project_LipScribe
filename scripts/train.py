@@ -444,9 +444,11 @@ def build_loaders(cfg: dict, limit: int | None = None):
     from lipscribe.data.dataset import GridDataset, collate
 
     d, tc = cfg["data"], cfg["train"]
-    train_ds = GridDataset(d["manifest"], d["splits"], "train",
-                           snrs=[snr_value(s) for s in d["train_snrs"]])
-    val_sets = {str(s): GridDataset(d["manifest"], d["splits"], "val", snr_db=snr_value(s))
+    # Optional data.noise_splits / data.noisy_dir; otherwise the dataset's default locations.
+    extra = {k: d[k] for k in ("noise_splits", "noisy_dir") if d.get(k)}
+    train_ds = GridDataset(d["manifest"], d["splits"], "train", seed=int(cfg.get("seed", 1)),
+                           snrs=[snr_value(s) for s in d["train_snrs"]], **extra)
+    val_sets = {str(s): GridDataset(d["manifest"], d["splits"], "val", snr_db=snr_value(s), **extra)
                 for s in d["eval_snrs"]}
     if limit:
         train_ds = Subset(train_ds, range(min(limit, len(train_ds))))
