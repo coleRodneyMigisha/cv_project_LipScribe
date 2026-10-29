@@ -15,7 +15,7 @@ documentation/2_implementation/implementation_document/main.pdf
 ~$*
 
 # LipScribe: data and artifacts (anchored to repo root)
-/Data/
+/Data/*
 /runs/
 /recordings/
 *.npy
@@ -25,7 +25,6 @@ documentation/2_implementation/implementation_document/main.pdf
 *.avi
 *.mpg
 checkpoints/
-Data
 /gridcorpus
 
 # Allow tiny test fixtures
@@ -59,7 +58,7 @@ documentation/2_implementation/implementation_document/main.pdf
 ~$*
 
 # LipScribe: data and artifacts (anchored to repo root)
-/data/
+/data/*
 /runs/
 /recordings/
 *.npy
@@ -85,4 +84,8 @@ __pycache__/
 .pytest_cache/
 
 # Models
-models/
+/models/
+
+# Committed data files (small, fixed once): speaker split and noise pools
+!/data/splits.csv
+!/data/noise_splits.csv
