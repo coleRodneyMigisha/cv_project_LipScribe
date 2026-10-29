@@ -18,7 +18,7 @@ This file fixes the name, inputs, outputs and tensor shapes of every module, so 
 | `T` | video frames = encoder frames (25 fps, 40 ms each) | 75 |
 | `T_a` | audio feature frames (100 fps, 10 ms hop), `T_a = 4T` | 300 |
 | `N` | audio samples at 16 kHz | 48 000 |
-| `L` | transcript length in characters | about 35 at most |
+| `L` | transcript length in characters | 31 at most ("place green with e eight please") |
 | `V` | vocabulary size: blank (0), space, a–z | 28 |
 
 - Shapes are written `[dim, dim, ...]`. Video tensors use PyTorch's `[B, C, T, H, W]` order.
@@ -39,7 +39,9 @@ This file fixes the name, inputs, outputs and tensor shapes of every module, so 
 
 Rules
 - `crop_mouths` never drops frames (that would break audio sync). Missing detections are interpolated for short gaps; a clip with more than 10 % invalid frames is dropped from the dataset by the data pipeline, not by the crop function.
-- Cached crops are stored as `data/processed/mouths/<speaker>/<utt_id>.npy`, `uint8[T, 96, 96]`.
+- Cached crops are stored as `data/processed/mouths/<speaker>/<utt_id>.npy`, `uint8[T, 96, 96]`, and the per-frame Face Mesh mask as `data/processed/mouth_valid/<speaker>/<utt_id>.npy`, `bool[T]`. Both are written by `python -m scripts.extract_mouths`, which also writes `reports/face_mesh_report.csv` for `verify_dataset.py --face-mesh-report`.
+- Features live in `lipscribe/preprocessing/features.py`: `get_feature_fn("logmel80" | "mfcc39" | "logmel_mfcc")` gives `[.., T_a, 80 | 39 | 119]`. `feature_norm.npz` holds keys `audio_mean` and `audio_std` (shape `[D]`).
+- The speaker split is `data/splits.csv` (`speaker, partition, gender, usable_utterances`; partition is `train`, `val`, `test` or `excluded`). It is committed and never regenerated.
 
 ## 2. Data (`lipscribe/data`)
 
