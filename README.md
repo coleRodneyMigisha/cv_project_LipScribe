@@ -1,5 +1,7 @@
 # LipScribe: Lip-Assisted Speech Recognition for Robust Live Captioning
 
+![tests](https://github.com/coleRodneyMigisha/cv_project_LipScribe/actions/workflows/tests.yml/badge.svg)
+
 LipScribe is an audio-visual speech recognition system. It produces live captions by combining what a speaker says with how their lips move. Speech recognition that relies only on audio degrades sharply in noisy rooms, while lip movements are unaffected by acoustic noise. LipScribe uses the visual signal to keep captions usable when the audio is degraded. The intended users are deaf and hard-of-hearing people who rely on captions in lectures, meetings and public spaces.
 
 This is the capstone project of **Group 4** in the Computer Vision and Deep Learning course, Department of Computer Science, Uganda Christian University.
