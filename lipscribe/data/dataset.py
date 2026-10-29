@@ -157,7 +157,7 @@ def mix_at_snr(clean: np.ndarray, noise: np.ndarray, snr_db: float,
 
 def _team_mixer(clean, noise, snr_db, rng):
     from lipscribe.preprocessing.noise import mix_noise  # type: ignore
-    return mix_noise(clean, noise, snr_db)
+    return mix_noise(clean, noise, snr_db, rng=rng)  # seeded offset: reproducible mixtures
 
 
 def _default_mixer() -> Callable:
