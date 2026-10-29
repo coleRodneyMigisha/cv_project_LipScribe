@@ -15,7 +15,7 @@ import soundfile as sf
 sys.path.insert(0, ".")
 from lipscribe.preprocessing.audio import load_audio, TARGET_SR
 
-RAW_DIR = Path("data/raw/grid")
+RAW_DIR = Path("/Users/apple/Desktop/cv_project_LipScribe/aligns")
 OUT_DIR = Path("data/processed/audio16k")
 LOG = Path("data/processed/audio16k/conversion_log.csv")
 MAX_DUR_DIFF = 0.04  # 40 ms tolerance (one video frame), per plan
