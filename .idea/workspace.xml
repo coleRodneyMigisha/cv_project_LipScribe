@@ -4,15 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="576b1add-eb07-4453-990c-5b5dd73cbcef" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lipscribe/preprocessing/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/lipscribe/preprocessing/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mouth_crop/crop.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/mouth_crop/lip_crops_all_clips_v001.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/mouth_crop/mouthCropDev.ipynb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/mouth_crop/test_crop.py" beforeDir="false" />
-    </list>
+    <list default="true" id="576b1add-eb07-4453-990c-5b5dd73cbcef" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
