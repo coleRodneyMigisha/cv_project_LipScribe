@@ -1,0 +1,87 @@
+{
+  "clip_1": {
+    "video": "../data/mouth_crop_clips/clip_1.mp4",
+    "num_frames": 107,
+    "valid_frames": 107,
+    "invalid_frames": 0,
+    "invalid_fraction": 0.0,
+    "exclude_utterance": false,
+    "crop_shape": [
+      107,
+      96,
+      96
+    ],
+    "crop_dtype": "uint8",
+    "crops_file": "mouth_crops/clip_1_crops.npy",
+    "valid_file": "mouth_crops/clip_1_valid.npy",
+    "frame_indices_file": "mouth_crops/clip_1_frame_indices.npy"
+  },
+  "clip_2": {
+    "video": "../data/mouth_crop_clips/clip_2.mp4",
+    "num_frames": 75,
+    "valid_frames": 75,
+    "invalid_frames": 0,
+    "invalid_fraction": 0.0,
+    "exclude_utterance": false,
+    "crop_shape": [
+      75,
+      96,
+      96
+    ],
+    "crop_dtype": "uint8",
+    "crops_file": "mouth_crops/clip_2_crops.npy",
+    "valid_file": "mouth_crops/clip_2_valid.npy",
+    "frame_indices_file": "mouth_crops/clip_2_frame_indices.npy"
+  },
+  "clip_3": {
+    "video": "../data/mouth_crop_clips/clip_3.mp4",
+    "num_frames": 207,
+    "valid_frames": 207,
+    "invalid_frames": 0,
+    "invalid_fraction": 0.0,
+    "exclude_utterance": false,
+    "crop_shape": [
+      207,
+      96,
+      96
+    ],
+    "crop_dtype": "uint8",
+    "crops_file": "mouth_crops/clip_3_crops.npy",
+    "valid_file": "mouth_crops/clip_3_valid.npy",
+    "frame_indices_file": "mouth_crops/clip_3_frame_indices.npy"
+  },
+  "clip_4": {
+    "video": "../data/mouth_crop_clips/clip_4.mp4",
+    "num_frames": 97,
+    "valid_frames": 97,
+    "invalid_frames": 0,
+    "invalid_fraction": 0.0,
+    "exclude_utterance": false,
+    "crop_shape": [
+      97,
+      96,
+      96
+    ],
+    "crop_dtype": "uint8",
+    "crops_file": "mouth_crops/clip_4_crops.npy",
+    "valid_file": "mouth_crops/clip_4_valid.npy",
+    "frame_indices_file": "mouth_crops/clip_4_frame_indices.npy"
+  },
+  "clip_5": {
+    "video": "../data/mouth_crop_clips/clip_5.mp4",
+    "num_frames": 53,
+    "valid_frames": 53,
+    "invalid_frames": 0,
+    "invalid_fraction": 0.0,
+    "exclude_utterance": false,
+    "crop_shape": [
+      53,
+      96,
+      96
+    ],
+    "crop_dtype": "uint8",
+    "crops_file": "mouth_crops/clip_5_crops.npy",
+    "valid_file": "mouth_crops/clip_5_valid.npy",
+    "frame_indices_file": "mouth_crops/clip_5_frame_indices.npy"
+  }
+}
