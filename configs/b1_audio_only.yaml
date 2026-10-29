@@ -1,0 +1,28 @@
+# B1 audio-only baseline: audio encoder -> sequence BiLSTM -> CTC.
+# Trained with the same multi-condition noise as the fused models (Section 8.4).
+experiment: b1_audio_only
+seed: 1
+data:
+  manifest: data/manifest.csv
+  splits: data/splits.csv
+  feature_stats: data/stats/feature_norm.npz
+  train_snrs: [clean, 10, 5, 0, -5]
+  eval_snrs:  [clean, 10, 5, 0, -5]
+model:
+  name: b1_audio_only
+  streams: [audio]
+  audio_features: logmel80
+  fusion: none
+train:
+  optimiser: adamw
+  lr: 3.0e-4
+  weight_decay: 1.0e-2
+  batch_size: 16
+  grad_accum: 1
+  max_epochs: 60
+  warmup_epochs: 1
+  patience: 8
+  grad_clip: 5.0
+  amp: true
+  num_workers: 4
+decode: {method: greedy}
