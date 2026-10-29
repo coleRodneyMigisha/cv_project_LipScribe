@@ -8,8 +8,7 @@ sys.path.insert(0, ".")
 from lipscribe.data.transcripts import parse_align
 from lipscribe.data.tokenizer import encode, decode, BLANK_ID
 
-<<<<<<< Updated upstream
-ALIGN_DIR = Path("data/raw/grid")
+<<<<<<< Updated upstr
 =======
 ALIGN_DIR = Path("/Users/apple/Desktop/cv_project_LipScribe/aligns")
 >>>>>>> Stashed changes
