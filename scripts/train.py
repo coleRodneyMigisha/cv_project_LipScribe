@@ -460,17 +460,20 @@ def build_loaders(cfg: dict, limit: int | None = None):
 
 
 def build_feature_step(cfg: dict, device: torch.device) -> Callable[[dict], dict]:
-    """Log-Mel + normalisation on the GPU, added to the batch as ``features`` (W2-07, W2-08)."""
+    """Audio features + normalisation on the GPU, added to the batch as ``features`` (W2-07, W2-08)."""
     if "audio" not in cfg["model"].get("streams", []):
         return lambda batch: batch
 
-    from lipscribe.preprocessing.features import logmel, normalise
+    from lipscribe.preprocessing.features import get_feature_fn, normalise
 
+    feature_fn = get_feature_fn(cfg["model"].get("audio_features", "logmel80"))
     stats = dict(np.load(cfg["data"].get("feature_stats", "data/stats/feature_norm.npz")))
     stats = {k: torch.as_tensor(v, device=device) for k, v in stats.items()}
 
     def prepare(batch: dict) -> dict:
-        batch["features"] = normalise(logmel(batch["audio"]), stats)
+        # Trim to 4 x the longest video in the batch; collate pads audio to match.
+        n_frames = batch["video"].shape[2] if "video" in batch else None
+        batch["features"] = normalise(feature_fn(batch["audio"], n_frames=n_frames), stats)
         return batch
     return prepare
 
