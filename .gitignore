@@ -89,3 +89,6 @@ __pycache__/
 # Committed data files (small, fixed once): speaker split and noise pools
 !/data/splits.csv
 !/data/noise_splits.csv
+
+#processed audio wav
+audio_processing/processed/audio16k/s*/
