@@ -24,7 +24,6 @@ documentation/2_implementation/implementation_document/main.pdf
 *.mp4
 *.avi
 *.mpg
-*.zip
 checkpoints/
 /gridcorpus
 
@@ -90,3 +89,6 @@ __pycache__/
 # Committed data files (small, fixed once): speaker split and noise pools
 !/data/splits.csv
 !/data/noise_splits.csv
+
+#processed audio wav
+audio_processing/processed/audio16k/s*/
