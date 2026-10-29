@@ -5,7 +5,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="576b1add-eb07-4453-990c-5b5dd73cbcef" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lipscribe/preprocessing/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/lipscribe/preprocessing/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mouth_crop/crop.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mouth_crop/lip_crops_all_clips_v001.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mouth_crop/mouthCropDev.ipynb" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mouth_crop/test_crop.py" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -31,7 +37,7 @@
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
     &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;cole&quot;,
     &quot;last_opened_file_path&quot;: &quot;/home/kingcole/Documents/uniAssignments/year_3_sem_1/cv_group_4&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
@@ -44,7 +50,7 @@
 }</component>
   <component name="RunManager">
     <configuration name="main" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
-      <module name="cv_group_4" />
+      <module name="lipscribe" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
