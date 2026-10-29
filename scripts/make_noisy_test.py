@@ -29,7 +29,8 @@ import numpy as np
 import soundfile as sf
 
 from lipscribe.data.dataset import (
-    SAMPLES_PER_FRAME, fit_length, load_wav, read_manifest, read_noise_pool, read_splits, snr_label,
+    SAMPLES_PER_FRAME, load_wav, place_on_video_grid, read_manifest, read_noise_pool, read_splits,
+    snr_label,
 )
 from lipscribe.preprocessing.noise import NoisePool
 
@@ -54,7 +55,9 @@ def process_one(task: dict) -> list[dict]:
     """Mix one utterance at every SNR still missing. Returns log rows."""
     pool = _POOLS[task["partition"]]
     n = int(task["n_frames"]) * SAMPLES_PER_FRAME
-    clean = fit_length(load_wav(task["audio_path"]), n)
+    # Same placement as GridDataset: end-pointed GRID audio is shifted under the lips first,
+    # so the noise covers the whole 3 s clip and the file is already on the video grid.
+    clean = place_on_video_grid(load_wav(task["audio_path"]), n, task["speech_start_s"])
     rows = []
     for snr in task["snrs"]:
         out = Path(task["out"]) / snr_label(snr) / f"{task['utt_id']}.wav"
@@ -81,7 +84,8 @@ def plan(rows, speaker_part, partitions, snrs, out: Path, seed: int, limit: int 
         already += len(snrs) - len(todo)
         if todo:
             tasks.append({"utt_id": r["utt_id"], "partition": part, "audio_path": r["audio_path"],
-                          "n_frames": r["n_frames"], "snrs": todo, "out": str(out), "seed": seed})
+                          "n_frames": r["n_frames"], "speech_start_s": r.get("speech_start_s", ""),
+                          "snrs": todo, "out": str(out), "seed": seed})
         if limit and len(tasks) >= limit:
             break
     return tasks, already

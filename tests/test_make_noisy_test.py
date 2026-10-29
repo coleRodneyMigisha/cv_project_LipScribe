@@ -86,11 +86,31 @@ def test_fixed_seed_and_resumable(tmp_path):
     assert np.array_equal(sf.read(a / "0" / "s4_u1.wav")[0], sf.read(b / "0" / "s4_u1.wav")[0])
 
 
+def test_end_pointed_audio_is_placed_under_the_lips(tmp_path):
+    manifest, splits, noise_splits = _corpus(tmp_path)
+    rows = list(csv.DictReader(open(manifest)))
+    short = tmp_path / "audio" / "short.wav"
+    sf.write(short, np.full(16000, 0.3, np.float32), 16000)        # 1 s of "speech"
+    rows[3].update(audio_path=str(short), speech_start_s="1.0")     # s3_u0, speech starts at 1 s
+    fields = list(rows[0]) + (["speech_start_s"] if "speech_start_s" not in rows[0] else [])
+    with open(manifest, "w", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=fields)
+        w.writeheader()
+        w.writerows(rows)
+    out = tmp_path / "noisy_test"
+    _run(tmp_path, manifest, splits, noise_splits, out)
+    y = sf.read(out / "10" / "s3_u0.wav", dtype="float32")[0]
+    assert len(y) == 48000
+    # speech (+ noise at 10 dB) sits at 1-2 s; outside it only the quieter noise
+    assert np.mean(y[16000:32000] ** 2) > 5 * np.mean(y[:16000] ** 2)
+
+
 def test_dataset_reads_the_fixed_files(tmp_path):
     manifest, splits, noise_splits = _corpus(tmp_path)
     out = tmp_path / "noisy_test"
     _run(tmp_path, manifest, splits, noise_splits, out)
     item = GridDataset(manifest, splits, "val", snr_db=5.0, noisy_dir=out)[0]
-    expected = sf.read(out / "5" / f"{item['utt_id']}.wav", dtype="float32")[0]
+    from lipscribe.preprocessing.features import rms_normalise
+    expected = rms_normalise(sf.read(out / "5" / f"{item['utt_id']}.wav", dtype="float32")[0])
     assert item["snr_db"] == 5.0
-    assert np.array_equal(item["audio"], expected)
+    assert np.allclose(item["audio"], expected, atol=1e-6)
