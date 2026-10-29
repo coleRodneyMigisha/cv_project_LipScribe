@@ -13,13 +13,12 @@ and, if given, data/splits.csv (W1-08) to add each utterance's partition.
 Safe to re-run at any time (13:30 rebuild after extraction): it only reads,
 and it overwrites the manifest. Missing crops or audio are recorded, not fatal.
 
-Example (on the Alienware, from the repo root):
-    python scripts/build_manifest.py \
-        --integrity reports/integrity_report.csv \
-        --mouths-dir data/processed/mouths \
-        --audio-dir data/processed/audio16k \
-        --splits data/splits.csv \
-        --out data/manifest.csv
+On the Alienware, from the repo root (the defaults are the team's folders):
+    python -m scripts.build_manifest
+which is the same as
+    python -m scripts.build_manifest --integrity reports/integrity_report.csv \
+        --mouths-dir data/processed/mouths --valid-dir data/processed/mouth_valid \
+        --audio-dir data/processed/audio16k --splits data/splits.csv --out data/manifest.csv
 """
 from __future__ import annotations
 
@@ -46,6 +45,7 @@ MANIFEST_COLUMNS = [
 # {spk} = speaker (s1), {utt} = utterance (bbaf2n), {uid} = s1_bbaf2n
 MOUTH_PATTERNS = ["{spk}/{utt}.npy", "{spk}/{utt}_crops.npy", "{uid}.npy", "{uid}_crops.npy"]
 VALID_PATTERNS = ["{spk}/{utt}_valid.npy", "{uid}_valid.npy"]
+VALID_DIR_PATTERNS = ["{spk}/{utt}.npy", "{uid}.npy"]  # extract_mouths.py: data/processed/mouth_valid/
 NPZ_PATTERNS = ["{spk}/{utt}.npz", "{uid}.npz"]
 AUDIO_PATTERNS = ["{spk}/{utt}.wav", "{uid}.wav"]
 
@@ -111,7 +111,7 @@ def face_rate_for(mouths: Path | None, valid: Path | None) -> tuple[float, int |
 
 
 def build_rows(integrity: Path, mouths_dir: Path | None, audio_dir: Path | None,
-               splits: dict[str, str]) -> list[dict]:
+               splits: dict[str, str], valid_dir: Path | None = None) -> list[dict]:
     rows = []
     with open(integrity, newline="") as fh:
         for rec in csv.DictReader(fh):
@@ -121,7 +121,8 @@ def build_rows(integrity: Path, mouths_dir: Path | None, audio_dir: Path | None,
             names = {"spk": spk, "utt": utt, "uid": uid}
 
             mouths = _first_existing(mouths_dir, MOUTH_PATTERNS, **names)
-            valid = _first_existing(mouths_dir, VALID_PATTERNS, **names)
+            valid = (_first_existing(valid_dir, VALID_DIR_PATTERNS, **names)
+                     or _first_existing(mouths_dir, VALID_PATTERNS, **names))
             if mouths is None:
                 mouths = _first_existing(mouths_dir, NPZ_PATTERNS, **names)
                 valid = None
@@ -148,6 +149,8 @@ def build_rows(integrity: Path, mouths_dir: Path | None, audio_dir: Path | None,
             part = splits.get(spk, "")
             if splits and not part:
                 reasons.append("speaker_not_in_splits")
+            elif part == "excluded":
+                reasons.append("speaker_excluded")
 
             rows.append({
                 "utt_id": uid, "speaker": spk, "utterance": utt, "partition": part,
@@ -172,23 +175,32 @@ def build_rows(integrity: Path, mouths_dir: Path | None, audio_dir: Path | None,
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--integrity", type=Path, default=Path("reports/integrity_report.csv"))
-    p.add_argument("--mouths-dir", type=Path, default=None, help="extract_mouths.py output folder")
-    p.add_argument("--audio-dir", type=Path, default=None, help="16 kHz audio folder (W2-04 output)")
-    p.add_argument("--splits", type=Path, default=None, help="data/splits.csv (speaker -> partition)")
+    p.add_argument("--mouths-dir", type=Path, default=Path("data/processed/mouths"),
+                   help="crop .npy root written by extract_mouths.py")
+    p.add_argument("--valid-dir", type=Path, default=Path("data/processed/mouth_valid"),
+                   help="per-frame Face Mesh mask root written by extract_mouths.py")
+    p.add_argument("--audio-dir", type=Path, default=Path("data/processed/audio16k"),
+                   help="16 kHz audio folder (W2-04 output)")
+    p.add_argument("--splits", type=Path, default=Path("data/splits.csv"),
+                   help="speaker -> partition (W1-08)")
     p.add_argument("--out", type=Path, default=Path("data/manifest.csv"))
     args = p.parse_args(argv)
 
     if not args.integrity.exists():
         print(f"ERROR: integrity report not found: {args.integrity}", file=sys.stderr)
         return 1
-    for name in ("mouths_dir", "audio_dir"):
+    for name in ("mouths_dir", "valid_dir", "audio_dir"):
         folder = getattr(args, name)
         if folder is not None and not folder.is_dir():
-            print(f"ERROR: --{name.replace('_', '-')} folder not found: {folder}", file=sys.stderr)
-            return 1
+            # Not fatal: the rows are written and marked unusable with the reason,
+            # so a dry run before extraction or audio prep still shows what is missing.
+            print(f"WARNING: --{name.replace('_', '-')} folder not found: {folder}", file=sys.stderr)
+    if args.splits is not None and not args.splits.exists():
+        print(f"ERROR: splits file not found: {args.splits}", file=sys.stderr)
+        return 1
 
     splits = read_splits(args.splits)
-    rows = build_rows(args.integrity, args.mouths_dir, args.audio_dir, splits)
+    rows = build_rows(args.integrity, args.mouths_dir, args.audio_dir, splits, args.valid_dir)
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     tmp = args.out.with_suffix(".csv.tmp")
