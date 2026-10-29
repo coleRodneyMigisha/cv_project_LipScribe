@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Convert all GRID audio to 16 kHz, 16-bit, mono WAV (W2-04).
-
+this is the final version
 Resumable: skips utterances already converted. Parallel across CPU cores.
 
     python scripts/prepare_audio.py --workers 8 [--raw-dir <path>]
