@@ -12,7 +12,8 @@ import torch
 from torch.utils.data import ConcatDataset, DataLoader
 
 from lipscribe.data.dataset import (
-    CLEAN, GridDataset, check_speaker_disjoint, collate, ctc_min_frames, mix_at_snr, read_splits,
+    CLEAN, GridDataset, check_speaker_disjoint, collate, ctc_min_frames, mix_at_snr,
+    place_on_video_grid, read_splits,
 )
 from lipscribe.data.tokenizer import encode
 from scripts.build_manifest import main as build_manifest
@@ -142,7 +143,8 @@ def test_val_uses_fixed_noisy_files_when_present(corpus):
         sf.write(noisy / "5" / f"s4_u{k}.wav", np.full((75 if k else 70) * 640, 0.5, np.float32), 16000)
     item = GridDataset(corpus["manifest"], corpus["splits"], "test", snr_db=5.0, noisy_dir=noisy)[1]
     assert item["snr_db"] == 5.0
-    assert np.allclose(item["audio"], 0.5)
+    # the constant 0.5 file, levelled to -25 dBFS
+    assert np.allclose(item["audio"], 10 ** (-25 / 20), atol=1e-5)
 
 
 def test_val_falls_back_to_deterministic_mix(corpus):
@@ -177,6 +179,50 @@ def test_ctc_condition():
             "target": np.array(encode("green")), "snr_db": CLEAN}
     with pytest.raises(ValueError, match="CTC condition"):
         collate([item])
+
+
+def _dbfs(wave):
+    return 20 * np.log10(np.sqrt(np.mean(np.square(wave))))
+
+
+def test_audio_is_levelled_to_minus_25_dbfs(corpus):
+    train = GridDataset(corpus["manifest"], corpus["splits"], "train",
+                        noise_splits=corpus["noise_splits"])
+    val = GridDataset(corpus["manifest"], corpus["splits"], "val")
+    for item in [train[i] for i in range(len(train))] + [val[0]]:
+        assert _dbfs(item["audio"]) == pytest.approx(-25.0, abs=0.01)
+
+
+def test_place_on_video_grid():
+    n = 75 * 640
+    trimmed = np.ones(int(1.2 * 16000), np.float32)          # end-pointed GRID file
+    out = place_on_video_grid(trimmed, n, "0.95")
+    assert len(out) == n and np.flatnonzero(out)[0] == round(0.95 * 16000)
+    full = np.ones(n - 100, np.float32)                       # already on the video grid
+    assert np.flatnonzero(place_on_video_grid(full, n, 0.95))[0] == 0
+    assert np.flatnonzero(place_on_video_grid(trimmed, n, ""))[0] == 0   # unknown start
+
+
+def test_trimmed_audio_sits_under_the_lips(corpus):
+    """An end-pointed file starts at the first word; the dataset shifts it by speech_start_s."""
+    rows = list(csv.DictReader(open(corpus["manifest"])))
+    row = next(r for r in rows if r["utt_id"] == "s3_u1")
+    sf.write(row["audio_path"], np.full(int(1.2 * 16000), 0.1, np.float32), 16000)
+    item = GridDataset(corpus["manifest"], corpus["splits"], "val")[1]
+    assert item["utt_id"] == "s3_u1" and len(item["audio"]) == 75 * 640
+    assert np.flatnonzero(item["audio"])[0] == round(float(row["speech_start_s"]) * 16000)
+
+
+def test_workers_draw_fresh_snrs_each_epoch(corpus):
+    ds = GridDataset(corpus["manifest"], corpus["splits"], "train", noise_splits=corpus["noise_splits"])
+    torch.manual_seed(0)
+    dl = DataLoader(ConcatDataset([ds] * 4), batch_size=1, num_workers=2, collate_fn=collate)
+    epochs = [[float(b["snr_db"][0]) for b in dl] for _ in range(2)]
+    assert epochs[0] != epochs[1]                             # fresh draws per epoch
+    w0, w1 = epochs[0][0::2], epochs[0][1::2]                 # alternating workers
+    assert w0 != w1                                           # workers differ
+    torch.manual_seed(0)
+    assert [float(b["snr_db"][0]) for b in dl] == epochs[0]   # reproducible from the seed
 
 
 def test_mix_at_snr_hits_target():

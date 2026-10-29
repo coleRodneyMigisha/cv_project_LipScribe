@@ -16,6 +16,11 @@ with a seed fixed per (utterance, SNR), so every model still hears identical aud
 Video and audio share one 40 ms grid: 1 video frame = 640 samples at 16 kHz =
 4 log-Mel frames (10 ms hop). Audio is cut or zero-padded to exactly 640 * T
 samples, so T_a = 4T and the encoder length is T.
+
+Our GRID audio is end-pointed (trimmed to the speech, ~1.2 s of a 3 s clip), so
+a trimmed file is first shifted right by the manifest's ``speech_start_s`` to
+sit under the lips (see ``place_on_video_grid``). After noise mixing every
+waveform is RMS-normalised to -25 dBFS (gain capped at +20 dB), as the app does.
 """
 from __future__ import annotations
 
@@ -29,9 +34,10 @@ from typing import Callable, Sequence
 import numpy as np
 import soundfile as sf
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, get_worker_info
 
 from lipscribe.data.tokenizer import encode
+from lipscribe.preprocessing.features import rms_normalise
 
 SAMPLE_RATE = 16_000
 HOP = 160                       # 10 ms at 16 kHz
@@ -112,6 +118,23 @@ def fit_length(wave: np.ndarray, n_samples: int) -> np.ndarray:
     return np.pad(wave, (0, n_samples - len(wave)))
 
 
+def place_on_video_grid(wave: np.ndarray, n_samples: int, speech_start_s) -> np.ndarray:
+    """Put a waveform on the video's time grid: exactly n_samples, speech under the lips.
+
+    A file clearly shorter than the video (more than 2 frames, 80 ms) is an
+    end-pointed GRID file that starts at the first word, so it is shifted right
+    by ``speech_start_s`` (alignment times are relative to the full video). A
+    full-length file is only cut or padded at the end, so nothing is shifted twice.
+    """
+    try:
+        start = float(speech_start_s)
+    except (TypeError, ValueError):
+        start = math.nan
+    if len(wave) < n_samples - 2 * SAMPLES_PER_FRAME and math.isfinite(start) and start > 0:
+        wave = np.pad(wave, (int(round(start * SAMPLE_RATE)), 0))
+    return fit_length(wave, n_samples)
+
+
 def mix_at_snr(clean: np.ndarray, noise: np.ndarray, snr_db: float,
                rng: random.Random | None = None) -> np.ndarray:
     """y = s + alpha * w with alpha = sqrt(Ps / (Pw * 10^(snr/10))) (Section 4.4).
@@ -132,10 +155,17 @@ def mix_at_snr(clean: np.ndarray, noise: np.ndarray, snr_db: float,
     return (clean + alpha * w).astype(np.float32)
 
 
+def _team_mixer(clean, noise, snr_db, rng):
+    from lipscribe.preprocessing.noise import mix_noise  # type: ignore
+    return mix_noise(clean, noise, snr_db, rng=rng)  # seeded offset: reproducible mixtures
+
+
 def _default_mixer() -> Callable:
+    # Module-level functions, not a lambda, so the dataset pickles into
+    # DataLoader workers on Windows (spawn).
     try:
-        from lipscribe.preprocessing.noise import mix_noise  # type: ignore
-        return lambda clean, noise, snr, rng: mix_noise(clean, noise, snr, rng=rng)
+        from lipscribe.preprocessing.noise import mix_noise  # type: ignore  # noqa: F401
+        return _team_mixer
     except Exception:
         return mix_at_snr
 
@@ -216,6 +246,7 @@ class GridDataset(Dataset):
         self.mixer = mixer or _default_mixer()
         self.seed = seed
         self.rng = random.Random(seed)
+        self._rng_seed: int | None = None
         self._noise_cache: dict[Path, np.ndarray] = {}
 
         needs_noise = any(math.isfinite(s) for s in self.snrs) if self.train else math.isfinite(self.snr_db)
@@ -229,6 +260,22 @@ class GridDataset(Dataset):
     def __len__(self) -> int:
         return len(self.rows)
 
+    def _train_rng(self) -> random.Random:
+        """RNG for SNR and noise draws, distinct per DataLoader worker and per epoch.
+
+        Every worker receives a copy of this dataset with the same ``self.rng``
+        state, which would make all workers draw the same SNRs, and the same
+        ones again every epoch. Inside a worker, ``torch.initial_seed()`` is
+        base_seed + worker_id with a fresh base_seed each epoch (drawn from the
+        main process's seeded torch RNG), so reseeding from it is both varied
+        and reproducible.
+        """
+        if get_worker_info() is not None:
+            seed = torch.initial_seed()
+            if seed != self._rng_seed:
+                self.rng, self._rng_seed = random.Random(seed), seed
+        return self.rng
+
     def _noise(self, rng: random.Random) -> np.ndarray:
         path = rng.choice(self.noise_files)
         if path not in self._noise_cache:
@@ -236,12 +283,13 @@ class GridDataset(Dataset):
         return self._noise_cache[path]
 
     def _eval_audio(self, r: dict, n_samples: int) -> np.ndarray:
-        clean = fit_length(load_wav(r["audio_path"]), n_samples)
+        start = r.get("speech_start_s")
+        clean = place_on_video_grid(load_wav(r["audio_path"]), n_samples, start)
         if not math.isfinite(self.snr_db):
             return clean
         fixed = self.noisy_dir / snr_label(self.snr_db) / f"{r['utt_id']}.wav"
         if fixed.exists():
-            return fit_length(load_wav(fixed), n_samples)
+            return place_on_video_grid(load_wav(fixed), n_samples, start)
         if not self.noise_files:
             raise FileNotFoundError(
                 f"No fixed noisy file {fixed} and no {self.partition} noise pool to mix one")
@@ -256,13 +304,15 @@ class GridDataset(Dataset):
         n_samples = T * SAMPLES_PER_FRAME
 
         if self.train:
-            snr = self.rng.choice(self.snrs)
-            wave = fit_length(load_wav(r["audio_path"]), n_samples)
+            rng = self._train_rng()
+            snr = rng.choice(self.snrs)
+            wave = place_on_video_grid(load_wav(r["audio_path"]), n_samples, r.get("speech_start_s"))
             if math.isfinite(snr):
-                wave = self.mixer(wave, self._noise(self.rng), snr, self.rng)
+                wave = self.mixer(wave, self._noise(rng), snr, rng)
         else:
             snr = self.snr_db
             wave = self._eval_audio(r, n_samples)
+        wave = rms_normalise(np.asarray(wave, dtype=np.float32))
 
         text = r["transcript"]
         return {
