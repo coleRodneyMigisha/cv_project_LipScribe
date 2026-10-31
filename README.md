@@ -42,12 +42,6 @@ cv_project_LipScribe/
 ├── configs/                       experiment configurations
 ├── tests/                         automated tests
 ├── docs/                          interfaces, testing guide and crop review sheets
-├── lipScribe_proposal/            original proposal bundle as first submitted
-│   ├── cv_lip_reading_project_proposal.pdf   (earlier version of the proposal)
-│   ├── Capstone_Project_Proposal_Requirements.docx
-│   ├── IEEE_Access_LaTeX_template.pdf
-│   ├── lipScribe.zip
-│   └── sources/                   papers cited in the proposal
 └── documentation/
     ├── 1_proposal/                final proposal PDF, proposal slides, presenter guide, talking points
     ├── 2_implementation/
@@ -66,7 +60,6 @@ cv_project_LipScribe/
 | [Implementation document](<documentation/2_implementation/implementation_document/Implementation plan 1.pdf>) | Architecture, technology stack, data pipeline, model, training, evaluation, live captioning, schedule, risks |
 | [Work breakdown structure](documentation/3_project_management/LipScribe_WBS_Trello.md) | Week-by-week tasks with owners, reviewers, checklists and due dates, written for building the Trello board |
 | [Implementation presentation](documentation/2_implementation/presentation/) | Slides and presenter notes for presenting the implementation plan |
-| [Reference papers](lipScribe_proposal/sources/) | The papers cited in the proposal |
 | [Testing guide](docs/testing.md) | How to set up and run the test suite |
 
 ## Rebuilding the implementation document
