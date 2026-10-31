@@ -6,7 +6,7 @@ LipScribe is an audio-visual speech recognition system. It produces live caption
 
 This is the capstone project of **Group 4** in the Computer Vision and Deep Learning course, Department of Computer Science, Uganda Christian University.
 
-> **Status:** planning and documentation. The proposal and the implementation plan are complete. No code has been written yet, and no results exist. Implementation follows the six-week schedule in the implementation document.
+> **Status:** in development (as of 29 October 2026). Week 1 is complete and Week 2 is nearly complete. The GRID corpus is downloaded, verified and split by speaker, and the preprocessing pipeline, audio encoder, CTC decoder and evaluation metrics are in the repository with tests. Training has not started, so there are no results yet. See the [Weeks 1 and 2 progress report](<documentation/5_submissions/week1 and 2 report/LipScribe_Progress_Report_Weeks1-2.pdf>).
 
 ## How it will work
 
@@ -30,13 +30,18 @@ The model will be trained on the GRID audio-visual corpus, with MUSAN noise mixe
 | Wakisa Isabelle | Application lead |
 | Ansasire Nehum Naamaye | QA & live-systems lead |
 
-These roles are proposed in the work breakdown structure and are confirmed at the project kick-off.
+These roles come from the work breakdown structure and were confirmed at the project kick-off.
 
 ## Repository structure
 
 ```
 cv_project_LipScribe/
 ├── README.md
+├── lipscribe/                     Python package: preprocessing, data, models, decoding, evaluation
+├── scripts/                       data preparation, verification and training entry points
+├── configs/                       experiment configurations
+├── tests/                         automated tests
+├── docs/                          interfaces, testing guide and crop review sheets
 ├── lipScribe_proposal/            original proposal bundle as first submitted
 │   ├── cv_lip_reading_project_proposal.pdf   (earlier version of the proposal)
 │   ├── Capstone_Project_Proposal_Requirements.docx
@@ -49,7 +54,8 @@ cv_project_LipScribe/
     │   ├── implementation_document/   LaTeX source + compiled PDF of the implementation plan
     │   └── presentation/              implementation slides (full and 5-min) + presenter notes
     ├── 3_project_management/      work breakdown structure for the Trello board
-    └── 4_templates/               course PowerPoint template
+    ├── 4_templates/               course PowerPoint template
+    └── 5_submissions/             weekly milestone submissions and progress reports
 ```
 
 ## Key documents
@@ -61,6 +67,7 @@ cv_project_LipScribe/
 | [Work breakdown structure](documentation/3_project_management/LipScribe_WBS_Trello.md) | Week-by-week tasks with owners, reviewers, checklists and due dates, written for building the Trello board |
 | [Implementation presentation](documentation/2_implementation/presentation/) | Slides and presenter notes for presenting the implementation plan |
 | [Reference papers](lipScribe_proposal/sources/) | The papers cited in the proposal |
+| [Testing guide](docs/testing.md) | How to set up and run the test suite |
 
 ## Rebuilding the implementation document
 
