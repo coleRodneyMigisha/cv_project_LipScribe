@@ -609,13 +609,13 @@ Use this file to create one Trello board.
 - **Estimate:** 6 h
 - **Description:** Implement Table 6 of the implementation document.
 - **Checklist:**
-  - [ ] Conv3d 1→32 (3×5×5, stride 1×2×2) + BN + ReLU + MaxPool 1×2×2
-  - [ ] Conv3d 32→64 (3×5×5) + BN + ReLU + MaxPool 1×2×2
-  - [ ] Conv3d 64→96 (3×3×3) + BN + ReLU + MaxPool 1×2×2
-  - [ ] Temporal padding 1, temporal stride 1 (T stays 75)
-  - [ ] Flatten 96·6·6 = 3456 → Linear 512 + ReLU + Dropout 0.3 → 2-layer BiLSTM (256 per direction)
-  - [ ] Shape test: [2,1,75,96,96] → [2,75,512], finite values
-  - [ ] Report the parameter count on the card
+  - [x] Conv3d 1→32 (3×5×5, stride 1×2×2) + BN + ReLU + MaxPool 1×2×2
+  - [x] Conv3d 32→64 (3×5×5) + BN + ReLU + MaxPool 1×2×2
+  - [x] Conv3d 64→96 (3×3×3) + BN + ReLU + MaxPool 1×2×2
+  - [x] Temporal padding 1, temporal stride 1 (T stays 75)
+  - [x] Flatten 96·6·6 = 3456 → Linear 512 + ReLU + Dropout 0.3 → 2-layer BiLSTM (256 per direction)
+  - [x] Shape test: [2,1,75,96,96] → [2,75,512], finite values
+  - [x] Report the parameter count on the card: 5,246,368 trainable parameters
 - **Done when:** Tests pass and the reviewer approves.
 
 ### W3-04 · Visual data augmentation
