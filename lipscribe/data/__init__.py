@@ -1,3 +1,11 @@
-from lipscribe.data.augmentation import random_crop_jitter
+from lipscribe.data.augmentation import (
+    apply_visual_augmentation,
+    random_crop_jitter,
+    random_horizontal_flip,
+)
 
-__all__ = ["random_crop_jitter"]
+__all__ = [
+    "apply_visual_augmentation",
+    "random_crop_jitter",
+    "random_horizontal_flip",
+]

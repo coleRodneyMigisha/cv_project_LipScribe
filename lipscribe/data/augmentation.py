@@ -26,6 +26,17 @@ def _sample_int(low: int, high: int, rng: random.Random | np.random.Generator | 
     raise TypeError(f"Unsupported RNG type: {type(rng)}")
 
 
+def _sample_float(rng: random.Random | np.random.Generator | None = None) -> float:
+    """Sample a float in [0.0, 1.0)."""
+    if rng is None:
+        return random.random()
+    if isinstance(rng, np.random.Generator):
+        return float(rng.random())
+    if isinstance(rng, random.Random):
+        return rng.random()
+    raise TypeError(f"Unsupported RNG type: {type(rng)}")
+
+
 def random_crop_jitter(
     frames: np.ndarray | torch.Tensor,
     max_jitter: int = 4,
@@ -93,3 +104,58 @@ def random_crop_jitter(
     if is_torch:
         return torch.from_numpy(cropped).to(device=frames.device, dtype=frames.dtype)
     return cropped
+
+
+def random_horizontal_flip(
+    frames: np.ndarray | torch.Tensor,
+    p: float = 0.5,
+    rng: random.Random | np.random.Generator | None = None,
+) -> np.ndarray | torch.Tensor:
+    """Randomly horizontally flip all frames of a clip with probability p.
+
+    The flip decision is sampled once per clip so all frames receive the identical transform.
+
+    Args:
+        frames: Array or Tensor of shape [T, H, W] or [T, C, H, W] or [1, T, H, W].
+        p: Probability of applying horizontal flip (default: 0.5).
+        rng: Optional random.Random or np.random.Generator instance for reproducibility.
+
+    Returns:
+        Augmented clip (either all frames flipped horizontally, or none).
+    """
+    if p <= 0.0:
+        return frames
+
+    if _sample_float(rng) >= p:
+        return frames
+
+    is_torch = torch is not None and isinstance(frames, torch.Tensor)
+    if is_torch:
+        return torch.flip(frames, dims=[-1])
+
+    # Flip along horizontal axis (last dimension)
+    flipped = np.ascontiguousarray(frames[..., ::-1])
+    return flipped
+
+
+def apply_visual_augmentation(
+    frames: np.ndarray | torch.Tensor,
+    max_jitter: int = 4,
+    p_flip: float = 0.5,
+    rng: random.Random | np.random.Generator | None = None,
+) -> np.ndarray | torch.Tensor:
+    """Apply both random crop jitter and horizontal flip to a clip with consistent transforms.
+
+    Args:
+        frames: Clip array or Tensor [T, H, W] or [T, C, H, W].
+        max_jitter: Maximum crop displacement in pixels (default: 4).
+        p_flip: Probability of horizontal flip (default: 0.5).
+        rng: Optional random generator for deterministic/worker-seeded transforms.
+
+    Returns:
+        Augmented clip.
+    """
+    out = random_crop_jitter(frames, max_jitter=max_jitter, rng=rng)
+    out = random_horizontal_flip(out, p=p_flip, rng=rng)
+    return out
+
