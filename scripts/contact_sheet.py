@@ -13,15 +13,22 @@ FRAME_POSITIONS = (0, 25, 50, 74)
 
 def find_speaker_crop_dirs(
     experiments_dir: Path,
+    mouths_dir: Path | None = None,
 ) -> dict[str, Path]:
-    """Find full speaker outputs and preview speaker outputs."""
+    """Find extracted speaker outputs, full experiment outputs, and previews."""
     speaker_dirs: dict[str, Path] = {}
+
+    # Full-corpus output from scripts/extract_mouths.py.
+    if mouths_dir is not None:
+        for crops_dir in mouths_dir.glob("s*"):
+            if crops_dir.is_dir() and any(crops_dir.glob("*.npy")):
+                speaker_dirs[crops_dir.name] = crops_dir
 
     # Full speaker outputs, for example:
     # experiments/grid_crop_s1/crops
     for crops_dir in experiments_dir.glob("grid_crop_s*/crops"):
         speaker = crops_dir.parent.name.removeprefix("grid_crop_")
-        speaker_dirs[speaker] = crops_dir
+        speaker_dirs.setdefault(speaker, crops_dir)
 
     # Preview outputs, for example:
     # experiments/grid_crop_preview/s2/crops
@@ -64,17 +71,17 @@ def choose_utterances(
 def load_valid_mask(
     crops_dir: Path,
     utterance_id: str,
+    valid_dir: Path | None = None,
 ) -> np.ndarray:
-    valid_path = (
-        crops_dir.parent
-        / "valid"
-        / f"{utterance_id}.npy"
-    )
+    candidates = []
+    if valid_dir is not None:
+        candidates.append(valid_dir / crops_dir.name / f"{utterance_id}.npy")
+    candidates.append(crops_dir.parent / "valid" / f"{utterance_id}.npy")
 
-    if not valid_path.exists():
-        return np.ones(75, dtype=bool)
-
-    return np.load(valid_path, allow_pickle=False)
+    for valid_path in candidates:
+        if valid_path.exists():
+            return np.load(valid_path, allow_pickle=False)
+    return np.ones(75, dtype=bool)
 
 
 def make_speaker_sheet(
@@ -82,6 +89,7 @@ def make_speaker_sheet(
     crops_dir: Path,
     utterances: list[Path],
     output_path: Path,
+    valid_dir: Path | None = None,
 ) -> list[dict[str, str]]:
     rows = len(utterances)
     columns = len(FRAME_POSITIONS)
@@ -104,6 +112,7 @@ def make_speaker_sheet(
         valid = load_valid_mask(
             crops_dir,
             utterance_id,
+            valid_dir,
         )
 
         if crops.ndim != 3:
@@ -180,6 +189,18 @@ def main() -> None:
         default=Path("experiments"),
     )
     parser.add_argument(
+        "--mouths-dir",
+        type=Path,
+        default=Path("data/processed/mouths"),
+        help="speaker crop directories written by scripts/extract_mouths.py",
+    )
+    parser.add_argument(
+        "--valid-dir",
+        type=Path,
+        default=Path("data/processed/mouth_valid"),
+        help="per-frame validity masks written by scripts/extract_mouths.py",
+    )
+    parser.add_argument(
         "--output-dir",
         type=Path,
         default=Path("docs/contact_sheets"),
@@ -200,6 +221,7 @@ def main() -> None:
 
     speaker_dirs = find_speaker_crop_dirs(
         args.experiments_dir,
+        args.mouths_dir,
     )
 
     if not speaker_dirs:
@@ -240,6 +262,7 @@ def main() -> None:
             crops_dir=crops_dir,
             utterances=utterances,
             output_path=output_path,
+            valid_dir=args.valid_dir,
         )
         all_manifest_rows.extend(manifest_rows)
 

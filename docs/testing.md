@@ -31,6 +31,16 @@ def test_example(fixture_path):
 
 The fixtures are defined in `tests/conftest.py`.
 
+## Evaluate a trained checkpoint
+From the repository root, evaluate the best checkpoint at all configured SNRs:
+
+```sh
+python -m scripts.evaluate --checkpoint runs/<run>/best.pt
+```
+
+The evaluator records aggregate and per-speaker WER/CER in `experiments/results.csv`
+and writes the report, metrics CSV, and training/test curves under `reports/<run>/`.
+
 ## Continuous integration
 Every pull request runs `pytest` on GitHub Actions
 (`.github/workflows/tests.yml`). A pull request should only be merged
