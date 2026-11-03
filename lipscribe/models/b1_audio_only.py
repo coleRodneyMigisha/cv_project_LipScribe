@@ -20,6 +20,7 @@ class B1AudioOnly(nn.Module):
 
 def build_model(config: dict) -> nn.Module:
     name = config.get("name")
-    if name != "b1_audio_only":
-        raise ValueError(f"Unsupported model: {name!r}")
-    return B1AudioOnly()
+    if name == "b1_audio_only":
+        return B1AudioOnly()
+    from lipscribe.models import build_model as _global_build_model
+    return _global_build_model(config)
