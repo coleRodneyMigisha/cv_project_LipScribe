@@ -7,12 +7,13 @@ these tests drive :func:`fit` directly with the batch contract of INTERFACES.md.
 import csv
 import math
 
+import numpy as np
 import pytest
 import torch
 import torch.nn as nn
 
 from scripts.train import (
-    TRAIN_DEFAULTS, fit, init_lstm_forget_bias, load_checkpoint,
+    TRAIN_DEFAULTS, build_feature_step, fit, init_lstm_forget_bias, load_checkpoint,
     param_groups, warmup_cosine,
 )
 
@@ -68,6 +69,21 @@ def _fit(tmp_path, cfg, resume=None):
                tmp_path, device=torch.device("cpu"), decode_fn=_greedy,
                wer_fn=_error_rate, cer_fn=_error_rate, resume=resume,
                results_csv=tmp_path / "results.csv")
+
+
+def test_feature_step_ignores_stats_metadata(tmp_path):
+    stats_path = tmp_path / "feature_norm.npz"
+    np.savez(stats_path, audio_mean=np.zeros(80), audio_std=np.ones(80),
+             n_utts=3000, train_split_hash="example")
+    prepare = build_feature_step(
+        {"model": {"streams": ["audio"], "audio_features": "logmel80"},
+         "data": {"feature_stats": str(stats_path)}},
+        torch.device("cpu"),
+    )
+
+    batch = prepare({"audio": torch.zeros(1, 640), "video": torch.zeros(1, 1, 1, 96, 96)})
+
+    assert batch["features"].shape == (1, 4, 80)
 
 
 def test_two_epochs_save_resume_and_log(tmp_path):
