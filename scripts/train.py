@@ -469,8 +469,9 @@ def build_feature_step(cfg: dict, device: torch.device) -> Callable[[dict], dict
     from lipscribe.preprocessing.features import get_feature_fn, normalise
 
     feature_fn = get_feature_fn(cfg["model"].get("audio_features", "logmel80"))
-    stats = dict(np.load(cfg["data"].get("feature_stats", "data/stats/feature_norm.npz")))
-    stats = {k: torch.as_tensor(v, device=device) for k, v in stats.items()}
+    with np.load(cfg["data"].get("feature_stats", "data/stats/feature_norm.npz")) as saved_stats:
+        stats = {k: torch.as_tensor(saved_stats[k], device=device)
+                 for k in ("audio_mean", "audio_std")}
 
     def prepare(batch: dict) -> dict:
         # Trim to 4 x the longest video in the batch; collate pads audio to match.
