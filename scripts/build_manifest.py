@@ -132,7 +132,9 @@ def build_rows(integrity: Path, mouths_dir: Path | None, audio_dir: Path | None,
             rate, crop_frames = face_rate_for(mouths, valid)
             if math.isnan(rate) and rec.get("face_mesh_success_rate"):
                 rate = _float(rec["face_mesh_success_rate"])
-            n_frames = crop_frames if crop_frames is not None else int(_float(rec.get("video_frames")) or 0)
+            reported_frames = _float(rec.get("video_frames"))
+            n_frames = (crop_frames if crop_frames is not None else
+                        int(reported_frames) if math.isfinite(reported_frames) else 0)
             transcript = rec.get("transcript", "").strip().lower()
 
             reasons = []

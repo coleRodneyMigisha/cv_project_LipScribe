@@ -43,7 +43,8 @@ RESULTS_CSV = REPO_ROOT / "experiments" / "results.csv"
 RESULTS_FIELDS = (
     "finished_at", "experiment", "run_dir", "commit", "seed", "epochs_run",
     "best_epoch", "best_val_wer_mean", "best_val_cer_mean", "val_wer_by_snr",
-    "nonfinite_steps",
+    "nonfinite_steps", "config_path", "checkpoint_path", "test_wer_by_snr",
+    "test_cer_by_snr",
 )
 
 # Starting values from Table "Initial training hyperparameters"; a config overrides them.
@@ -420,6 +421,10 @@ def append_results(path: Path, cfg: dict, run_dir: Path, state: dict) -> None:
         "best_val_cer_mean": f"{state['best_cer']:.4f}",
         "val_wer_by_snr": ";".join(f"{s}={w:.4f}" for s, w in state["best_by_snr"].items()),
         "nonfinite_steps": state["nonfinite_steps"],
+        "config_path": str(run_dir / "config.yaml"),
+        "checkpoint_path": str(run_dir / "best.pt"),
+        "test_wer_by_snr": "",
+        "test_cer_by_snr": "",
     }
     with open(path, "a", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=RESULTS_FIELDS)
@@ -469,8 +474,9 @@ def build_feature_step(cfg: dict, device: torch.device) -> Callable[[dict], dict
     from lipscribe.preprocessing.features import get_feature_fn, normalise
 
     feature_fn = get_feature_fn(cfg["model"].get("audio_features", "logmel80"))
-    stats = dict(np.load(cfg["data"].get("feature_stats", "data/stats/feature_norm.npz")))
-    stats = {k: torch.as_tensor(v, device=device) for k, v in stats.items()}
+    with np.load(cfg["data"].get("feature_stats", "data/stats/feature_norm.npz")) as saved_stats:
+        stats = {k: torch.as_tensor(saved_stats[k], device=device)
+                 for k in ("audio_mean", "audio_std")}
 
     def prepare(batch: dict) -> dict:
         # Trim to 4 x the longest video in the batch; collate pads audio to match.
