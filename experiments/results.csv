@@ -1,0 +1,2 @@
+finished_at,experiment,run_dir,commit,seed,epochs_run,best_epoch,best_val_wer_mean,best_val_cer_mean,val_wer_by_snr,nonfinite_steps
+2026-11-03T20:44:22,b1_audio_only,/home/Lipscribe-team/Desktop/cv_project_LipScribe/runs/b1_audio_only_20261103-193743,5cd46beca1bc13424d3f23aaa7f3f8dca12d2fbc-dirty,1,52,43,0.0772,0.0436,clean=0.0416;10=0.0547;5=0.0649;0=0.0869;-5=0.1380,0
