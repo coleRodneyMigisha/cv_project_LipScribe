@@ -368,6 +368,9 @@ def fit(cfg: dict, model: nn.Module, train_loader: Iterable, val_loaders: dict,
                            prepare_batch=prepare_batch, decode_fn=decode_fn,
                            wer_fn=wer_fn, cer_fn=cer_fn, use_amp=use_amp)
             _log_epoch(writer, epoch, train_loss, val, val_loaders)
+            log_epoch_history(run_dir / "history.csv", epoch, train_loss, val, val_loaders,
+                              lr=scheduler.get_last_lr()[0], elapsed=time.time() - t0)
+            plot_history(run_dir / "history.csv", run_dir / "learning_curves.png")
 
             improved = val["mean_wer"] < state["best_wer"]
             if improved:
@@ -405,6 +408,82 @@ def _log_epoch(writer, epoch, train_loss, val, val_loaders) -> None:
     for snr in val_loaders:
         for key, value in val[snr].items():
             writer.add_scalar(f"val_{key}/{snr}", value, epoch)
+
+
+def log_epoch_history(history_path: Path, epoch: int, train_loss: float,
+                      val: dict, val_loaders: dict, lr: float, elapsed: float) -> None:
+    """Record an epoch's metrics to ``history.csv`` inside the run directory."""
+    history_path.parent.mkdir(parents=True, exist_ok=True)
+    snr_keys = [str(s) for s in val_loaders]
+    fieldnames = ["epoch", "train_loss", "val_loss", "val_wer", "val_cer", "lr", "elapsed_sec"] + [f"wer_{s}" for s in snr_keys]
+    new_file = not history_path.exists()
+    row = {
+        "epoch": epoch,
+        "train_loss": f"{train_loss:.4f}",
+        "val_loss": f"{val['mean_loss']:.4f}",
+        "val_wer": f"{val['mean_wer']:.4f}",
+        "val_cer": f"{val['mean_cer']:.4f}",
+        "lr": f"{lr:.6e}",
+        "elapsed_sec": f"{elapsed:.1f}",
+    }
+    for s in snr_keys:
+        row[f"wer_{s}"] = f"{val[s]['wer']:.4f}"
+    with open(history_path, "a", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        if new_file:
+            writer.writeheader()
+        writer.writerow(row)
+
+
+def plot_history(history_path: Path, out_path: Path) -> None:
+    """Plot training/validation loss and error rate curves from ``history.csv``."""
+    try:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+
+        if not history_path.exists():
+            return
+
+        with open(history_path, newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            rows = list(reader)
+        if not rows:
+            return
+
+        epochs = [int(r["epoch"]) for r in rows]
+        train_loss = [float(r["train_loss"]) for r in rows]
+        val_loss = [float(r["val_loss"]) for r in rows]
+        val_wer = [float(r["val_wer"]) for r in rows]
+        val_cer = [float(r["val_cer"]) for r in rows]
+
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 4.5), constrained_layout=True)
+
+        ax1.plot(epochs, train_loss, "o-", label="Train Loss", color="#1f77b4", linewidth=1.5, markersize=4)
+        ax1.plot(epochs, val_loss, "s-", label="Val Loss", color="#ff7f0e", linewidth=1.5, markersize=4)
+        ax1.set_xlabel("Epoch")
+        ax1.set_ylabel("CTC Loss")
+        ax1.set_title("Training & Validation Loss")
+        ax1.grid(True, linestyle="--", alpha=0.5)
+        ax1.legend()
+
+        ax2.plot(epochs, [w * 100 for w in val_wer], "o-", label="Val WER (%)", color="#d62728", linewidth=1.5, markersize=4)
+        ax2.plot(epochs, [c * 100 for c in val_cer], "^-", label="Val CER (%)", color="#2ca02c", linewidth=1.5, markersize=4)
+        best_wer_idx = int(np.argmin(val_wer))
+        ax2.axvline(epochs[best_wer_idx], color="gray", linestyle=":", label=f"Best (Ep {epochs[best_wer_idx]})")
+        ax2.scatter([epochs[best_wer_idx]], [val_wer[best_wer_idx] * 100], color="#d62728", s=80, zorder=5)
+        ax2.set_xlabel("Epoch")
+        ax2.set_ylabel("Error Rate (%)")
+        ax2.set_title(f"Validation Error Rates (Best WER: {val_wer[best_wer_idx]*100:.2f}%)")
+        ax2.grid(True, linestyle="--", alpha=0.5)
+        ax2.legend()
+
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        fig.savefig(out_path, dpi=160)
+        plt.close(fig)
+    except Exception as exc:
+        # Never fail training because of a non-critical plotting error
+        pass
 
 
 def append_results(path: Path, cfg: dict, run_dir: Path, state: dict) -> None:
