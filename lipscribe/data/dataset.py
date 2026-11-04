@@ -36,6 +36,7 @@ import soundfile as sf
 import torch
 from torch.utils.data import Dataset, get_worker_info
 
+from lipscribe.data.augmentation import apply_visual_augmentation
 from lipscribe.data.tokenizer import encode
 from lipscribe.preprocessing.features import rms_normalise
 
@@ -229,6 +230,9 @@ class GridDataset(Dataset):
         noisy_dir: str | Path = DEFAULT_NOISY_DIR,
         seed: int = 1,
         mixer: Callable | None = None,
+        visual_augment: bool = False,
+        max_jitter: int = 4,
+        p_flip: float = 0.5,
     ) -> None:
         speaker_part = read_splits(splits)
         rows = read_manifest(manifest)
@@ -240,6 +244,9 @@ class GridDataset(Dataset):
                              f"({manifest} + {splits}). Has the manifest been rebuilt?")
         self.partition = partition
         self.train = partition == "train"
+        self.visual_augment = bool(visual_augment) and self.train
+        self.max_jitter = int(max_jitter)
+        self.p_flip = float(p_flip)
         self.snrs = tuple(float(s) for s in snrs)
         self.snr_db = float(snr_db)
         self.noisy_dir = Path(noisy_dir)
@@ -305,6 +312,10 @@ class GridDataset(Dataset):
 
         if self.train:
             rng = self._train_rng()
+            if self.visual_augment:
+                crops = apply_visual_augmentation(
+                    crops, max_jitter=self.max_jitter, p_flip=self.p_flip, rng=rng
+                )
             snr = rng.choice(self.snrs)
             wave = place_on_video_grid(load_wav(r["audio_path"]), n_samples, r.get("speech_start_s"))
             if math.isfinite(snr):
