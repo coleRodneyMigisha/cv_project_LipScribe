@@ -1,0 +1,44 @@
+# B2 v2 FALLBACK: same recipe as b2_visual_only_v2.yaml but keeps the original
+# 3-block Conv3d encoder (plus clip normalisation and spatial dropout). Only run
+# this if the ResNet-18 run is too slow or runs out of memory on the GPU.
+experiment: b2_visual_only_v2_conv3d
+seed: 1
+data:
+  manifest: data/manifest.csv
+  splits: data/splits.csv
+  feature_stats: data/stats/feature_norm.npz
+  noise_splits: Data/Noise_splits/splits.csv   # MUSAN pools (make_noise_splits.py)
+  noisy_dir: data/processed/noisy_test         # fixed noisy val/test files (W2-06)
+  visual_augment: true
+  visual_aug:
+    max_jitter: 4
+    p_flip: 0.5
+    max_scale: 0.1          # zoom +-10 %
+    p_erase: 0.5            # one cutout rectangle per clip
+    max_erase_area: 0.15
+    time_masks: 2           # two runs of up to 6 frames (0.24 s) replaced by the mean frame
+    max_mask_width: 6
+  train_snrs: [clean, 10, 5, 0, -5]
+  val_snrs:   [clean]
+  eval_snrs:  [clean, 10, 5, 0, -5]
+model:
+  name: b2_visual_only
+  streams: [visual]
+  visual_encoder: conv3d_bilstm
+  input_norm: clip
+  spatial_dropout: 0.2
+  fusion: none
+  dropout: 0.3
+train:
+  optimiser: adamw
+  lr: 1.0e-3
+  weight_decay: 1.0e-2
+  batch_size: 16
+  grad_accum: 1
+  max_epochs: 60
+  warmup_epochs: 3
+  patience: 20
+  grad_clip: 5.0
+  amp: true
+  num_workers: 8
+decode: {method: greedy}
