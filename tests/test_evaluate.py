@@ -1,6 +1,23 @@
 import csv
 
-from scripts.evaluate import update_results_csv
+from scripts.evaluate import save_hypotheses, update_results_csv
+
+
+def test_save_hypotheses_creates_valid_csv(tmp_path):
+    hyp_path = tmp_path / "hypotheses.csv"
+    sample_data = [
+        {"utt_id": "s1_bbaf2n", "snr": "clean", "speaker": "s1", "ref": "bin blue at f two now",
+         "hyp": "bin blue at f two now", "wer": "0.0000", "cer": "0.0000", "gate": "0.8500"},
+        {"utt_id": "s1_bgaa6n", "snr": "0", "speaker": "s1", "ref": "bin green at a six now",
+         "hyp": "bin green at a six now", "wer": "0.0000", "cer": "0.0000", "gate": ""},
+    ]
+    save_hypotheses(hyp_path, sample_data)
+    assert hyp_path.exists()
+    with hyp_path.open(newline="", encoding="utf-8") as stream:
+        rows = list(csv.DictReader(stream))
+    assert len(rows) == 2
+    assert rows[0]["utt_id"] == "s1_bbaf2n"
+    assert rows[0]["gate"] == "0.8500"
 
 
 def test_update_results_csv_adds_checkpoint_and_test_metrics(tmp_path):
