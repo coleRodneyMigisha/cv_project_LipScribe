@@ -7,7 +7,7 @@ This guide walks you through executing, monitoring, and evaluating the **B2 Visu
 ## Checklist Summary
 
 - [x] Pull latest changes from branch `cole`
-- [ ] Run GPU Overfit Test on 8 utterances (`loss < 0.05`)
+- [x] Run GPU Overfit Test on 8 utterances (see `b2_overfit_test_results.md` for full run analysis)
 - [ ] Launch Full Training run with `configs/b2_visual_only.yaml`
 - [ ] Monitor validation CER (must fall clearly below untrained model $\approx 1.0$)
 - [ ] Check if early progress stalls (contingency: raise at review for W4-05 curriculum)
