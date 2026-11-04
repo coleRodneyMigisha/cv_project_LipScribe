@@ -34,7 +34,10 @@ import numpy as np
 import torch
 import torch.nn as nn
 import yaml
-from torch.utils.tensorboard import SummaryWriter
+try:
+    from torch.utils.tensorboard import SummaryWriter
+except ImportError:
+    SummaryWriter = None
 
 from lipscribe.data import tokenizer
 
@@ -451,9 +454,12 @@ def build_loaders(cfg: dict, limit: int | None = None):
     d, tc = cfg["data"], cfg["train"]
     # Optional data.noise_splits / data.noisy_dir; otherwise the dataset's default locations.
     extra = {k: d[k] for k in ("noise_splits", "noisy_dir") if d.get(k)}
+    visual_aug = bool(d.get("visual_augment", False) or cfg.get("augmentation", {}).get("visual", False))
     train_ds = GridDataset(d["manifest"], d["splits"], "train", seed=int(cfg.get("seed", 1)),
-                           snrs=[snr_value(s) for s in d["train_snrs"]], **extra)
-    val_sets = {str(s): GridDataset(d["manifest"], d["splits"], "val", snr_db=snr_value(s), **extra)
+                           snrs=[snr_value(s) for s in d["train_snrs"]],
+                           visual_augment=visual_aug, **extra)
+    val_sets = {str(s): GridDataset(d["manifest"], d["splits"], "val", snr_db=snr_value(s),
+                                    visual_augment=False, **extra)
                 for s in d["eval_snrs"]}
     if limit:
         train_ds = Subset(train_ds, range(min(limit, len(train_ds))))
