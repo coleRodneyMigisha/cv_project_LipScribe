@@ -4,13 +4,14 @@ from lipscribe.models import B2VisualOnly, build_model
 
 
 def test_b2_model_factory_and_batch_contract():
-    model = build_model({"name": "b2_visual_only"}).eval()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = build_model({"name": "b2_visual_only"}).to(device).eval()
     assert isinstance(model, B2VisualOnly)
 
     # 2 items with length 75 and 60
     batch = {
-        "video": torch.randn(2, 1, 75, 96, 96),
-        "lengths": torch.tensor([75, 60]),
+        "video": torch.randn(2, 1, 75, 96, 96, device=device),
+        "lengths": torch.tensor([75, 60], device=device),
     }
 
     with torch.no_grad():
@@ -26,14 +27,15 @@ def test_b2_model_factory_and_batch_contract():
 
 def test_b2_loss_decreases_on_overfit_batch():
     """Verify gradients propagate end-to-end and loss decreases on an 8-utterance batch."""
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     torch.manual_seed(42)
-    model = B2VisualOnly(dropout=0.0)
+    model = B2VisualOnly(dropout=0.0).to(device)
     opt = torch.optim.AdamW(model.parameters(), lr=5e-3)
     batch = {
-        "video": torch.randn(8, 1, 15, 96, 96),
-        "lengths": torch.tensor([15] * 8, dtype=torch.long),
-        "targets": torch.tensor([1, 2, 3] * 8, dtype=torch.long),
-        "target_lengths": torch.tensor([3] * 8, dtype=torch.long),
+        "video": torch.randn(8, 1, 15, 96, 96, device=device),
+        "lengths": torch.tensor([15] * 8, dtype=torch.long, device=device),
+        "targets": torch.tensor([1, 2, 3] * 8, dtype=torch.long, device=device),
+        "target_lengths": torch.tensor([3] * 8, dtype=torch.long, device=device),
     }
     losses = []
     for _ in range(5):
