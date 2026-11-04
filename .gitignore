@@ -16,7 +16,9 @@ documentation/2_implementation/implementation_document/main.pdf
 
 # LipScribe: data and artifacts (anchored to repo root)
 /Data/*
-/runs/
+/runs/**/*.pt
+/runs/**/*.tmp
+/runs/**/tensorboard/
 /recordings/
 *.npy
 *.pt
