@@ -142,6 +142,45 @@ def init_lstm_forget_bias(model: nn.Module, value: float = 1.0) -> None:
                 param[h:2 * h].fill_(value if name.startswith("bias_ih") else 0.0)
 
 
+def load_pretrained(model: nn.Module, init_from: dict, map_location="cpu") -> dict:
+    """Copy sub-module weights from other runs' checkpoints into ``model``.
+
+    ``init_from`` maps a sub-module name to a checkpoint, e.g.
+    ``{"audio_encoder": "checkpoints/b1_audio_only_best.pt",
+       "visual_encoder": "checkpoints/b2_visual_only_v2_best.pt"}``.
+    Every parameter of that sub-module must be present with the same shape in
+    the source checkpoint (B1/B2/B3 all name their encoders the same way), so a
+    mismatched encoder type fails loudly instead of silently training from scratch.
+    Returns ``{module: number_of_tensors_loaded}``.
+    """
+    loaded = {}
+    for module_name, ckpt_path in (init_from or {}).items():
+        path = Path(ckpt_path)
+        if not path.is_absolute():
+            path = REPO_ROOT / path
+        if not path.exists():
+            raise FileNotFoundError(f"init_from.{module_name}: checkpoint {path} not found")
+        source = torch.load(path, map_location=map_location, weights_only=False)
+        source = source.get("model", source)
+        target = getattr(model, module_name, None)
+        if target is None:
+            raise ValueError(f"init_from: model has no sub-module {module_name!r}")
+        prefix = module_name + "."
+        sub = {k[len(prefix):]: v for k, v in source.items() if k.startswith(prefix)}
+        own = target.state_dict()
+        missing = [k for k in own if k not in sub]
+        bad_shape = [k for k in own if k in sub and sub[k].shape != own[k].shape]
+        if missing or bad_shape:
+            raise ValueError(
+                f"init_from.{module_name}: {path} does not match this model "
+                f"(missing {missing[:3]}, shape mismatch {bad_shape[:3]}). "
+                "Check that model.visual_encoder matches the run being loaded.")
+        target.load_state_dict({k: sub[k] for k in own})
+        loaded[module_name] = len(own)
+        print(f"Initialised {module_name} from {path} ({len(own)} tensors)")
+    return loaded
+
+
 def param_groups(model: nn.Module, weight_decay: float) -> list[dict]:
     """Weight decay on weight matrices only; none on biases or norm parameters."""
     decay, no_decay = [], []
@@ -332,6 +371,9 @@ def fit(cfg: dict, model: nn.Module, train_loader: Iterable, val_loaders: dict,
     model.to(device)
     if resume is None:
         init_lstm_forget_bias(model)
+        # After the forget-bias init, so pretrained LSTM biases are not overwritten.
+        if cfg.get("model", {}).get("init_from"):
+            load_pretrained(model, cfg["model"]["init_from"])
 
     optimiser = torch.optim.AdamW(param_groups(model, tc["weight_decay"]), lr=tc["lr"])
     steps_per_epoch = math.ceil(len(train_loader) / max(1, int(tc["grad_accum"])))
@@ -550,12 +592,18 @@ def build_loaders(cfg: dict, limit: int | None = None):
     # Optional data.noise_splits / data.noisy_dir; otherwise the dataset's default locations.
     extra = {k: d[k] for k in ("noise_splits", "noisy_dir") if d.get(k)}
     visual_aug = bool(d.get("visual_augment", False) or cfg.get("augmentation", {}).get("visual", False))
+    # Optional data.visual_aug: max_jitter, p_flip, max_scale, time_masks, max_mask_width,
+    # p_erase, max_erase_area (lipscribe.data.augmentation.apply_visual_augmentation).
+    aug = dict(d.get("visual_aug") or {})
+    aug_base = {k: aug.pop(k) for k in ("max_jitter", "p_flip") if k in aug}
     train_ds = GridDataset(d["manifest"], d["splits"], "train", seed=int(cfg.get("seed", 1)),
                            snrs=[snr_value(s) for s in d["train_snrs"]],
-                           visual_augment=visual_aug, **extra)
+                           visual_augment=visual_aug, visual_aug_params=aug, **aug_base, **extra)
+    # data.val_snrs (default eval_snrs): a visual-only model scores the same at
+    # every SNR, so validating it once on clean audio is enough.
     val_sets = {str(s): GridDataset(d["manifest"], d["splits"], "val", snr_db=snr_value(s),
                                     visual_augment=False, **extra)
-                for s in d["eval_snrs"]}
+                for s in d.get("val_snrs") or d["eval_snrs"]}
     if limit:
         train_ds = Subset(train_ds, range(min(limit, len(train_ds))))
         val_sets = {s: Subset(ds, range(min(limit, len(ds)))) for s, ds in val_sets.items()}
