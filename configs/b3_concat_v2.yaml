@@ -1,0 +1,54 @@
+# B3 v2 concatenation baseline (W4 improvements over configs/b3_concat.yaml).
+#   * encoders initialised from the trained B1 (audio) and B2 v2 (visual) checkpoints
+#   * modality dropout: audio zeroed for 30 % of training utterances, video for 10 %,
+#     so the fused model learns to use the lips instead of relying on audio alone
+#   * same ResNet-18 visual encoder and augmentation as B2 v2
+#   * fine-tuning schedule: lr 3e-4, 40 epochs, patience 12
+# Before training, the two checkpoints below must exist (see docs/W4_RETRAIN_GUIDE.md).
+# If B2 v2 was trained with the conv3d fallback, set visual_encoder to conv3d_bilstm and
+# point init_from.visual_encoder at checkpoints/b2_visual_only_v2_conv3d_best.pt.
+experiment: b3_concat_v2
+seed: 1
+data:
+  manifest: data/manifest.csv
+  splits: data/splits.csv
+  feature_stats: data/stats/feature_norm.npz
+  noise_splits: Data/Noise_splits/splits.csv   # MUSAN pools (make_noise_splits.py)
+  noisy_dir: data/processed/noisy_test         # fixed noisy val/test files (W2-06)
+  visual_augment: true
+  visual_aug:
+    max_jitter: 4
+    p_flip: 0.5
+    max_scale: 0.1
+    p_erase: 0.5
+    max_erase_area: 0.15
+    time_masks: 2
+    max_mask_width: 6
+  train_snrs: [clean, 10, 5, 0, -5]
+  eval_snrs:  [clean, 10, 5, 0, -5]
+model:
+  name: b3_concat
+  streams: [audio, visual]
+  audio_features: logmel80
+  visual_encoder: resnet18_bilstm
+  input_norm: clip
+  spatial_dropout: 0.2
+  fusion: concat
+  dropout: 0.3
+  modality_dropout: {audio: 0.3, visual: 0.1}
+  init_from:
+    audio_encoder: checkpoints/b1_audio_only_best.pt
+    visual_encoder: checkpoints/b2_visual_only_v2_best.pt
+train:
+  optimiser: adamw
+  lr: 3.0e-4
+  weight_decay: 1.0e-2
+  batch_size: 16
+  grad_accum: 1
+  max_epochs: 40
+  warmup_epochs: 1
+  patience: 12
+  grad_clip: 5.0
+  amp: true
+  num_workers: 8
+decode: {method: greedy}

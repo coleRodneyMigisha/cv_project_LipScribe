@@ -233,6 +233,7 @@ class GridDataset(Dataset):
         visual_augment: bool = False,
         max_jitter: int = 4,
         p_flip: float = 0.5,
+        visual_aug_params: dict | None = None,
     ) -> None:
         speaker_part = read_splits(splits)
         rows = read_manifest(manifest)
@@ -247,6 +248,8 @@ class GridDataset(Dataset):
         self.visual_augment = bool(visual_augment) and self.train
         self.max_jitter = int(max_jitter)
         self.p_flip = float(p_flip)
+        # Extra W4 augmentations (scale, cutout, time masking); see apply_visual_augmentation.
+        self.visual_aug_params = dict(visual_aug_params or {})
         self.snrs = tuple(float(s) for s in snrs)
         self.snr_db = float(snr_db)
         self.noisy_dir = Path(noisy_dir)
@@ -314,7 +317,8 @@ class GridDataset(Dataset):
             rng = self._train_rng()
             if self.visual_augment:
                 crops = apply_visual_augmentation(
-                    crops, max_jitter=self.max_jitter, p_flip=self.p_flip, rng=rng
+                    crops, max_jitter=self.max_jitter, p_flip=self.p_flip, rng=rng,
+                    **self.visual_aug_params,
                 )
             snr = rng.choice(self.snrs)
             wave = place_on_video_grid(load_wav(r["audio_path"]), n_samples, r.get("speech_start_s"))

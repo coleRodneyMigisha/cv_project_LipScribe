@@ -3,6 +3,13 @@
 Usage::
 
     python -m scripts.evaluate --checkpoint runs/<run>/best.pt
+    python -m scripts.evaluate --checkpoint runs/<run>/best.pt --decode grammar
+    python -m scripts.evaluate --checkpoint runs/<run>/best.pt --drop-modality audio
+
+Greedy results go to ``reports/<run>/`` and the ``test_*_by_snr`` columns of
+``experiments/results.csv``. Any other decoding method or a modality ablation
+gets its own folder ``reports/<run>_<tag>/`` and its own ``test_*_by_snr_<tag>``
+columns, so it never overwrites the greedy numbers.
 """
 from __future__ import annotations
 
@@ -12,6 +19,7 @@ from collections import defaultdict
 from pathlib import Path
 
 import matplotlib
+import numpy as np
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import torch
@@ -19,7 +27,7 @@ from torch.utils.data import DataLoader
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
 from lipscribe.data.dataset import GridDataset, collate
-from lipscribe.decoding import greedy_decode
+from lipscribe.decoding import get_decoder
 from lipscribe.evaluation import cer, wer
 from lipscribe.models import build_model
 from scripts.train import (
@@ -28,7 +36,8 @@ from scripts.train import (
 
 
 def score_checkpoint(checkpoint_path: Path, device: torch.device,
-                     drop_modality: str | None = None) -> tuple[dict, list[dict], list[dict]]:
+                     drop_modality: str | None = None,
+                     decode: str | None = None) -> tuple[dict, list[dict], list[dict]]:
     checkpoint = load_checkpoint(checkpoint_path, map_location="cpu")
     cfg = checkpoint["config"]
     data_cfg, train_cfg = cfg["data"], cfg["train"]
@@ -39,26 +48,27 @@ def score_checkpoint(checkpoint_path: Path, device: torch.device,
     use_amp = bool(train_cfg["amp"]) and device.type == "cuda"
     results, details, all_hypotheses = {}, [], []
 
-    # Decoding strategy: greedy or beam search if configured
-    decode_cfg = cfg.get("decode", {})
-    method = decode_cfg.get("method", "greedy")
-    if method == "beam":
-        try:
-            from lipscribe.decoding.beam_search import ctc_prefix_beam_search
-            beam_width = int(decode_cfg.get("beam_width", 10))
-            def decode_fn(log_probs, lengths):
-                batch_hyps = []
-                for b in range(log_probs.shape[1]):
-                    l = lengths[b].item() if lengths is not None and torch.is_tensor(lengths) else (lengths[b] if lengths is not None else None)
-                    batch_hyps.append(ctc_prefix_beam_search(log_probs[:, b, :], beam_width=beam_width, length=l))
-                return batch_hyps
-        except ImportError:
-            decode_fn = greedy_decode
-    else:
-        decode_fn = greedy_decode
+    # Decoding: --decode overrides the config's decode section.
+    decode_cfg = dict(cfg.get("decode") or {})
+    if decode:
+        decode_cfg["method"] = decode
+    decode_fn = get_decoder(decode_cfg)
+    print(f"Decoding with {decode_cfg.get('method', 'greedy')}", flush=True)
 
+    # Without audio the output cannot depend on SNR: score once, reuse for every label.
+    snr_independent = ("audio" not in cfg["model"].get("streams", ["audio"])
+                       or drop_modality == "audio")
+    first_label = None
     for label in data_cfg["eval_snrs"]:
         label = str(label)
+        if snr_independent and first_label is not None:
+            results[label] = dict(results[first_label])
+            details.extend({**d, "snr": label} for d in list(details) if d["snr"] == first_label)
+            all_hypotheses.extend({**h, "snr": label} for h in list(all_hypotheses)
+                                  if h["snr"] == first_label)
+            print(f"{label:>5} dB: same as {first_label} (no audio input)", flush=True)
+            continue
+        first_label = label
         dataset = GridDataset(
             data_cfg["manifest"], data_cfg["splits"], "test",
             snr_db=snr_value(label), noise_splits=data_cfg.get("noise_splits"),
@@ -191,7 +201,7 @@ def save_training_curves(run_dir: Path, path: Path) -> Path:
     return path
 
 
-def update_results_csv(results_path: Path, run_dir: Path, metrics: dict) -> None:
+def update_results_csv(results_path: Path, run_dir: Path, metrics: dict, tag: str = "") -> None:
     if not results_path.exists():
         raise FileNotFoundError(f"Training results not found: {results_path}")
     with results_path.open(newline="", encoding="utf-8") as stream:
@@ -199,7 +209,9 @@ def update_results_csv(results_path: Path, run_dir: Path, metrics: dict) -> None
         fieldnames = list(reader.fieldnames or [])
         rows = list(reader)
     added_fields = ["config_path", "checkpoint_path", "test_wer_by_snr", "test_cer_by_snr"]
-    for field in added_fields:
+    suffix = f"_{tag}" if tag else ""
+    wer_field, cer_field = f"test_wer_by_snr{suffix}", f"test_cer_by_snr{suffix}"
+    for field in added_fields + [wer_field, cer_field]:
         if field not in fieldnames:
             fieldnames.append(field)
 
@@ -218,8 +230,8 @@ def update_results_csv(results_path: Path, run_dir: Path, metrics: dict) -> None
     row.update({
         "config_path": str(run_dir / "config.yaml"),
         "checkpoint_path": str(run_dir / "best.pt"),
-        "test_wer_by_snr": ";".join(f"{snr}={metrics[snr]['wer']:.4f}" for snr in metrics),
-        "test_cer_by_snr": ";".join(f"{snr}={metrics[snr]['cer']:.4f}" for snr in metrics),
+        wer_field: ";".join(f"{snr}={metrics[snr]['wer']:.4f}" for snr in metrics),
+        cer_field: ";".join(f"{snr}={metrics[snr]['cer']:.4f}" for snr in metrics),
     })
     tmp = results_path.with_suffix(".csv.tmp")
     with tmp.open("w", newline="", encoding="utf-8") as stream:
@@ -229,12 +241,14 @@ def update_results_csv(results_path: Path, run_dir: Path, metrics: dict) -> None
     tmp.replace(results_path)
 
 
-def write_report(path: Path, checkpoint_path: Path, results: dict) -> None:
+def write_report(path: Path, checkpoint_path: Path, results: dict, tag: str = "") -> None:
     try:
         ckpt = load_checkpoint(checkpoint_path, map_location="cpu")
         title = ckpt.get("config", {}).get("experiment", "Model").replace("_", " ").title()
     except Exception:
         title = "Model"
+    if tag:
+        title += f" ({tag.replace('_', ' ')})"
     rows = ["| SNR | Test utterances | WER (%) | CER (%) |", "|---|---:|---:|---:|"]
     rows.extend(f"| {snr} | {values['n_utts']} | {100 * values['wer']:.2f} | "
                 f"{100 * values['cer']:.2f} |"
@@ -255,21 +269,32 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     parser.add_argument("--drop-modality", choices=["audio", "visual"], default=None,
                         help="Ablation: drop audio or visual modality at test time")
+    parser.add_argument("--decode", choices=["greedy", "beam", "grammar"], default=None,
+                        help="override the checkpoint config's decode method")
     args = parser.parse_args(argv)
     checkpoint_path = args.checkpoint.resolve()
     run_dir = checkpoint_path.parent
     device = torch.device(args.device)
     checkpoint = load_checkpoint(checkpoint_path, map_location="cpu")
-    results, details, hypotheses = score_checkpoint(checkpoint_path, device, drop_modality=args.drop_modality)
+    results, details, hypotheses = score_checkpoint(checkpoint_path, device,
+                                                    drop_modality=args.drop_modality,
+                                                    decode=args.decode)
     order = [str(snr) for snr in checkpoint["config"]["data"]["eval_snrs"]]
-    report_dir = Path(__file__).resolve().parents[1] / "reports" / run_dir.name
+    method = args.decode or (checkpoint["config"].get("decode") or {}).get("method", "greedy")
+    parts = [] if method == "greedy" else [method]
+    if args.drop_modality:
+        parts.append(f"no_{args.drop_modality}")
+    tag = "_".join(parts)
+    report_dir = Path(__file__).resolve().parents[1] / "reports" / (
+        run_dir.name + (f"_{tag}" if tag else ""))
     report_dir.mkdir(parents=True, exist_ok=True)
     save_metrics(report_dir / "test_metrics.csv", details)
     save_hypotheses(report_dir / "hypotheses.csv", hypotheses)
     save_test_curve(report_dir / "test_snr_curves.png", results, order)
     save_training_curves(run_dir, report_dir / "training_curves.png")
-    update_results_csv(run_dir.parent.parent / "experiments" / "results.csv", run_dir, results)
-    write_report(report_dir / "evaluation_report.md", checkpoint_path, results)
+    update_results_csv(Path(__file__).resolve().parents[1] / "experiments" / "results.csv",
+                       run_dir, results, tag=tag)
+    write_report(report_dir / "evaluation_report.md", checkpoint_path, results, tag=tag)
     print(f"Saved evaluation artifacts in {report_dir}")
 
 

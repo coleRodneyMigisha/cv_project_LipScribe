@@ -31,7 +31,7 @@ Task **W3-05** encompasses the end-to-end verification, training, and evaluation
 ---
 
 ## 3. Official Held-Out Test Speaker Evaluation
-The best checkpoint (`runs/b2_visual_only_20261104-162358/best.pt`) was evaluated on the 4 held-out test speakers (`s1`, `s2`, `s20`, `s22`) across 3,998 test utterances per condition:
+The best checkpoint (`runs/b2_visual_only_20261104-162358/best.pt`) was evaluated on the 4 held-out test speakers (`s4`, `s9`, `s14`, `s24`; see `data/splits.csv`) across 3,998 test utterances per condition:
 
 | SNR Condition | Test Utterances | Word Error Rate (WER) | Character Error Rate (CER) |
 | :--- | :---: | :---: | :---: |
@@ -42,6 +42,6 @@ The best checkpoint (`runs/b2_visual_only_20261104-162358/best.pt`) was evaluate
 | **-5 dB** | 3,998 | **23.04%** | **14.03%** |
 
 ### Key Observations:
-1. **Exceptional Generalization:** Test set error ($23.04\%$ WER, $14.03\%$ CER) significantly outperforms validation set error ($35.74\%$ WER, $22.28\%$ CER), demonstrating that the model generalized solidly across unseen test speakers without destructive overfitting.
+1. **Validation vs. test gap:** Test error ($23.04\%$ WER, $14.03\%$ CER) is lower than validation error ($35.74\%$ WER, $22.28\%$ CER). This reflects speaker difficulty, not better generalisation: validation and test are different unseen speakers (3 and 4 respectively), and per-speaker test WER already ranges from $13.4\%$ (`s24`) to $34.1\%$ (`s9`). Most errors are on the letter slot ($43.7\%$ word error), then digit and colour ($\approx 28\%$).
 2. **Noise Invariance:** Constant error across all SNRs confirms the visual baseline serves as an uncorrupted anchor in adverse audio environments.
 3. **Artifacts:** Checkpoints, training curves, test curves, and results are committed in `checkpoints/b2_visual_only_best.pt`, `experiments/results.csv`, and `reports/b2_visual_only_20261104-162358/`.
