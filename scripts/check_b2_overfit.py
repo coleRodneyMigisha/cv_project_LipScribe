@@ -146,7 +146,7 @@ def run_overfit(
     max_steps: int = 3500,
     target_loss: float = 0.05,
     target_cer: float = 0.10,
-    lr: float = 3e-3,
+    lr: float = 2e-3,
     device: torch.device | str = "cpu",
     verbose: bool = True,
 ) -> tuple[float, float, int]:
@@ -165,7 +165,7 @@ def run_overfit(
     criterion = nn.CTCLoss(blank=0, zero_infinity=True)
     optimiser = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=0.0)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-        optimiser, T_max=max_steps, eta_min=5e-4
+        optimiser, T_max=max_steps, eta_min=2e-4
     )
 
     start_time = time.time()
@@ -239,7 +239,7 @@ def main() -> None:
     parser.add_argument("--num-utterances", "-n", type=int, default=8, help="Number of utterances to overfit (default: 8)")
     parser.add_argument("--target-loss", type=float, default=0.05, help="Target loss threshold")
     parser.add_argument("--target-cer", type=float, default=0.10, help="Target CER threshold")
-    parser.add_argument("--lr", type=float, default=3e-3, help="Learning rate (default: 3e-3)")
+    parser.add_argument("--lr", type=float, default=2e-3, help="Learning rate (default: 2e-3)")
     parser.add_argument("--dropout", type=float, default=0.0, help="Dropout rate (0.0 recommended for overfit test)")
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     parser.add_argument("--frames", type=int, default=35, help="Video frames per clip")
