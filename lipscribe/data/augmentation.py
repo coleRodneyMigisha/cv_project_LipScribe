@@ -138,24 +138,125 @@ def random_horizontal_flip(
     return flipped
 
 
+def random_scale(
+    frames: np.ndarray,
+    max_scale: float = 0.1,
+    rng: random.Random | np.random.Generator | None = None,
+) -> np.ndarray:
+    """Zoom the whole clip in or out by up to ``max_scale`` (one factor per clip).
+
+    Zoom-in crops the centre and resizes back to the original size; zoom-out
+    shrinks the clip and edge-pads it. Simulates speakers sitting nearer or
+    further from the camera. Works on ``[T, H, W]`` uint8 or float arrays.
+    """
+    if max_scale <= 0:
+        return frames
+    arr = np.asarray(frames)
+    if arr.ndim != 3:
+        raise ValueError(f"random_scale expects [T, H, W], got {arr.shape}")
+    factor = 1.0 + (2.0 * _sample_float(rng) - 1.0) * max_scale
+    t, h, w = arr.shape
+    nh, nw = max(8, int(round(h * factor))), max(8, int(round(w * factor)))
+    if (nh, nw) == (h, w):
+        return frames
+    import torch.nn.functional as F
+    x = torch.from_numpy(np.ascontiguousarray(arr, dtype=np.float32)).unsqueeze(1)
+    x = F.interpolate(x, size=(nh, nw), mode="bilinear", align_corners=False)[:, 0].numpy()
+    if factor > 1.0:
+        top, left = (nh - h) // 2, (nw - w) // 2
+        out = x[:, top:top + h, left:left + w]
+    else:
+        ph, pw = h - nh, w - nw
+        out = np.pad(x, ((0, 0), (ph // 2, ph - ph // 2), (pw // 2, pw - pw // 2)), mode="edge")
+    if np.issubdtype(arr.dtype, np.integer):
+        out = np.clip(np.rint(out), 0, 255)
+    return np.ascontiguousarray(out, dtype=arr.dtype)
+
+
+def random_time_mask(
+    frames: np.ndarray,
+    n_masks: int = 2,
+    max_width: int = 6,
+    rng: random.Random | np.random.Generator | None = None,
+) -> np.ndarray:
+    """Replace ``n_masks`` random runs of up to ``max_width`` frames by the clip's mean frame.
+
+    The transcript is unchanged, so the model has to infer the hidden mouth
+    shapes from context (Ma et al., "Towards practical lipreading", 2022).
+    """
+    arr = np.asarray(frames)
+    t = arr.shape[0]
+    if n_masks <= 0 or max_width <= 0 or t < 2:
+        return frames
+    out = arr.copy()
+    mean_frame = arr.mean(axis=0).astype(arr.dtype)
+    for _ in range(n_masks):
+        width = _sample_int(0, min(max_width, t - 1), rng)
+        if width == 0:
+            continue
+        start = _sample_int(0, t - width, rng)
+        out[start:start + width] = mean_frame
+    return out
+
+
+def random_erase(
+    frames: np.ndarray,
+    p: float = 0.5,
+    max_area: float = 0.2,
+    rng: random.Random | np.random.Generator | None = None,
+) -> np.ndarray:
+    """Cutout: with probability ``p``, fill one rectangle (same for every frame) with the clip mean."""
+    if p <= 0 or _sample_float(rng) >= p:
+        return frames
+    arr = np.asarray(frames)
+    t, h, w = arr.shape[-3:]
+    area = (0.02 + _sample_float(rng) * (max_area - 0.02)) * h * w
+    aspect = 0.5 + _sample_float(rng) * 1.5
+    eh = int(min(h, max(1, round((area * aspect) ** 0.5))))
+    ew = int(min(w, max(1, round((area / aspect) ** 0.5))))
+    top, left = _sample_int(0, h - eh, rng), _sample_int(0, w - ew, rng)
+    out = arr.copy()
+    out[..., top:top + eh, left:left + ew] = arr.mean().astype(arr.dtype)
+    return out
+
+
 def apply_visual_augmentation(
     frames: np.ndarray | torch.Tensor,
     max_jitter: int = 4,
     p_flip: float = 0.5,
     rng: random.Random | np.random.Generator | None = None,
+    max_scale: float = 0.0,
+    time_masks: int = 0,
+    max_mask_width: int = 6,
+    p_erase: float = 0.0,
+    max_erase_area: float = 0.2,
 ) -> np.ndarray | torch.Tensor:
-    """Apply both random crop jitter and horizontal flip to a clip with consistent transforms.
+    """Apply the clip-level visual augmentations; every frame gets the same spatial transform.
+
+    Order: scale jitter -> crop jitter -> horizontal flip -> cutout -> time masking.
+    With the defaults only crop jitter and flip run (the original W3-04 behaviour).
 
     Args:
         frames: Clip array or Tensor [T, H, W] or [T, C, H, W].
         max_jitter: Maximum crop displacement in pixels (default: 4).
         p_flip: Probability of horizontal flip (default: 0.5).
         rng: Optional random generator for deterministic/worker-seeded transforms.
+        max_scale: Maximum zoom in/out as a fraction (0.1 = +-10 %); 0 disables.
+        time_masks: Number of time masks; 0 disables.
+        max_mask_width: Maximum frames per time mask.
+        p_erase: Probability of one cutout rectangle; 0 disables.
+        max_erase_area: Maximum cutout area as a fraction of the frame.
 
     Returns:
         Augmented clip.
     """
-    out = random_crop_jitter(frames, max_jitter=max_jitter, rng=rng)
+    out = frames
+    if max_scale > 0:
+        out = random_scale(out, max_scale=max_scale, rng=rng)
+    out = random_crop_jitter(out, max_jitter=max_jitter, rng=rng)
     out = random_horizontal_flip(out, p=p_flip, rng=rng)
+    if p_erase > 0:
+        out = random_erase(out, p=p_erase, max_area=max_erase_area, rng=rng)
+    if time_masks > 0:
+        out = random_time_mask(out, n_masks=time_masks, max_width=max_mask_width, rng=rng)
     return out
-

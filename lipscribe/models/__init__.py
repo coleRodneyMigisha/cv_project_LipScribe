@@ -7,7 +7,7 @@ from lipscribe.models.b1_audio_only import B1AudioOnly
 from lipscribe.models.b2_visual_only import B2VisualOnly
 from lipscribe.models.ctc_head import CTCHead
 from lipscribe.models.fusion_concat import B3Concat
-from lipscribe.models.visual_encoder import VisualEncoder
+from lipscribe.models.visual_encoder import ResNetVisualEncoder, VisualEncoder
 
 
 def build_model(config: dict) -> nn.Module:
@@ -17,10 +17,13 @@ def build_model(config: dict) -> nn.Module:
         return B1AudioOnly()
     elif name == "b2_visual_only":
         dropout = float(config.get("dropout", 0.3))
-        return B2VisualOnly(dropout=dropout)
+        return B2VisualOnly(dropout=dropout, model_cfg=config)
     elif name in ("b3_concat", "fusion_concat"):
         dropout = float(config.get("dropout", 0.3))
-        return B3Concat(dropout=dropout)
+        md = config.get("modality_dropout") or {}
+        return B3Concat(dropout=dropout, model_cfg=config,
+                        p_audio_drop=float(md.get("audio", 0.0)),
+                        p_visual_drop=float(md.get("visual", 0.0)))
     else:
         raise ValueError(f"Unsupported model: {name!r}")
 
@@ -31,6 +34,7 @@ __all__ = [
     "B2VisualOnly",
     "B3Concat",
     "CTCHead",
+    "ResNetVisualEncoder",
     "VisualEncoder",
     "build_model",
 ]
