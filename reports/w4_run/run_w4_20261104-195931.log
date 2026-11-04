@@ -1,0 +1,28 @@
+
+[19:59:31 | +0m] Stage 0: pull, GPU check, tests  (B2 budget 50 min, B3 budget 30 min)
+name, memory.used [MiB], memory.total [MiB]
+NVIDIA GeForce RTX 4080 SUPER, 3872 MiB, 16376 MiB
+........................................................................ [ 33%]
+........................................................................ [ 66%]
+.......................................................................  [100%]
+215 passed in 101.69s (0:01:41)
+
+[20:01:23 | +1m] Stage 1: B1 test evaluation
+
+[20:01:23 | +1m] Evaluate runs/b1_audio_only_20261103-193743 
+Decoding with greedy
+clean dB: 3998 utterances, WER 0.0196, CER 0.0075
+   10 dB: 3998 utterances, WER 0.0302, CER 0.0119
+    5 dB: 3998 utterances, WER 0.0379, CER 0.0150
+    0 dB: 3998 utterances, WER 0.0544, CER 0.0236
+   -5 dB: 3998 utterances, WER 0.0945, CER 0.0465
+Saved evaluation artifacts in /home/Lipscribe-team/Desktop/cv_project_LipScribe/reports/b1_audio_only_20261103-193743
+
+[20:02:09 | +2m] Evaluate runs/b1_audio_only_20261103-193743 --decode grammar
+Decoding with grammar
+clean dB: 3998 utterances, WER 0.0176, CER 0.0073
+   10 dB: 3998 utterances, WER 0.0279, CER 0.0118
+    5 dB: 3998 utterances, WER 0.0347, CER 0.0146
+    0 dB: 3998 utterances, WER 0.0493, CER 0.0230
+   -5 dB: 3998 utterances, WER 0.0835, CER 0.0456
+Saved evaluation artifacts in /home/Lipscribe-team/Desktop/cv_project_LipScribe/reports/b1_audio_only_20261103-193743_grammar
