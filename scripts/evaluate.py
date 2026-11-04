@@ -133,7 +133,18 @@ def update_results_csv(results_path: Path, run_dir: Path, metrics: dict) -> None
         fieldnames = list(reader.fieldnames or [])
         rows = list(reader)
     added_fields = ["config_path", "checkpoint_path", "test_wer_by_snr", "test_cer_by_snr"]
-    fieldnames.extend(field for field in added_fields if field not in fieldnames)
+    for field in added_fields:
+        if field not in fieldnames:
+            fieldnames.append(field)
+
+    # Clean up any None key if rows had more values than original header
+    for r in rows:
+        if None in r:
+            extra_vals = r.pop(None)
+            for f_idx, field in enumerate(added_fields):
+                if f_idx < len(extra_vals) and extra_vals[f_idx] and not r.get(field):
+                    r[field] = extra_vals[f_idx]
+
     matching = [row for row in rows if Path(row.get("run_dir", "")).resolve() == run_dir.resolve()]
     if not matching:
         raise ValueError(f"No results.csv row for run {run_dir}")
@@ -146,7 +157,7 @@ def update_results_csv(results_path: Path, run_dir: Path, metrics: dict) -> None
     })
     tmp = results_path.with_suffix(".csv.tmp")
     with tmp.open("w", newline="", encoding="utf-8") as stream:
-        writer = csv.DictWriter(stream, fieldnames=fieldnames)
+        writer = csv.DictWriter(stream, fieldnames=fieldnames, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(rows)
     tmp.replace(results_path)
