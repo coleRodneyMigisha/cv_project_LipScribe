@@ -58,8 +58,10 @@ evaluate() {    # evaluate <run_dir> [extra evaluate.py args...]
 }
 
 commit_push() { # commit_push <message>
-    git add experiments/results.csv reports/ configs/ 2>/dev/null
-    git add -f "$LOG" 2>/dev/null
+    # The live log is NOT committed here: it keeps changing, and a tracked-but-modified
+    # file blocks the checkout in the merge stage. It is committed once at the end.
+    git add experiments/results.csv configs/ 2>/dev/null
+    git add reports/ ':!reports/w4_run' 2>/dev/null
     for f in runs/*/history.csv runs/*/learning_curves.png runs/*/config.yaml runs/*/commit.txt; do
         [[ -f "$f" ]] && git add "$f"
     done
