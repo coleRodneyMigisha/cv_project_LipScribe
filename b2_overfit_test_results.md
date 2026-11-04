@@ -36,6 +36,7 @@ The primary objective of Card W3-05's overfit check is a pre-flight sanity test 
 | **6** | **2000** | Real GRID (`manifest.csv`) | $3 \times 10^{-3} \to 10^{-5}$ | **0.5940** | **0.2804** | CosineAnnealing converged cleanly in 89s; revealed sequential batch prefix mode collapse. |
 | **7** | **2000** | Real GRID (8 diverse) | $2 \times 10^{-3} \to 2 \times 10^{-4}$ | **0.8331** | **0.3750** | Balanced vocabulary broke prefix collapse; genuine visual distinction across all 8 clips. |
 | **8** | **1000** | Real GRID (4 diverse) | $2 \times 10^{-3} \to 2 \times 10^{-4}$ | **0.5048** | **0.2644** | Rapid descent in ~25s; cut off at step limit while actively descending toward target. |
+| **9** | **3099** | Real GRID (8 diverse) | $2 \times 10^{-3} \to 2 \times 10^{-4}$ | **0.0497** | **0.0000** | **PASSED! Loss < 0.05 and 100% character accuracy (CER = 0.0000) across all 8 utterances in 138s.** |
 
 ---
 
@@ -84,32 +85,55 @@ To break the modal centroid collapse, `load_overfit_batch()` was upgraded with *
   - The model is forced to use the 3D-CNN visual features from frame 1 (bilabial closure for `/b/` vs open tongue for `/l/` vs plosive `/p/` vs closed teeth `/s/`).
 - `eta_min` was raised to $2 \times 10^{-4}$ to prevent early optimizer freeze.
 
----
+### 4.5 Run 9: Complete Breakthrough (Loss = 0.0497 < 0.05, CER = 0.0000)
 
-## 5. Overfit Test Command for Alienware (Target: CER < 0.10)
+At Step 3099, the model broke through the remaining alignment barriers and achieved **zero errors across all 8 utterances**:
 
-Run the following command on the Alienware GPU rig (4 diverse utterances reach CER < 0.10 in ~50-60 seconds):
-```bash
-git pull origin cole
-python scripts/check_b2_overfit.py --device cuda -n 4 --steps 2500 --lr 2e-3 --target-cer 0.10
-```
-
-To run on all 8 diverse utterances:
-```bash
-python scripts/check_b2_overfit.py --device cuda -n 8 --steps 4000 --lr 2e-3 --target-cer 0.10
-```
-
-Upon reaching CER < 0.10, the script automatically triggers early stopping, prints the reference and decoded hypotheses, and exits with code 0:
 ```text
-SUCCESS: Target threshold reached at step ...!
-Loss = ... (target: < 0.05), CER = 0.0... (target: < 0.10)
+SUCCESS: Target threshold reached at step 3099!
+Loss = 0.0497 (target: < 0.05), CER = 0.0000 (target: < 0.0)
+
+Decoded Hypotheses across 8 utterances:
+  [0] Ref: 'bin blue at f two now'     -> Hyp: 'bin blue at f two now'
+  [1] Ref: 'bin green at a six now'    -> Hyp: 'bin green at a six now'
+  [2] Ref: 'lay blue at d six now'     -> Hyp: 'lay blue at d six now'
+  [3] Ref: 'lay green at f four now'   -> Hyp: 'lay green at f four now'
+  [4] Ref: 'place red at c six now'    -> Hyp: 'place red at c six now'
+  [5] Ref: 'place white at d two now'  -> Hyp: 'place white at d two now'
+  [6] Ref: 'set red at b one soon'     -> Hyp: 'set red at b one soon'
+  [7] Ref: 'set white at b six now'    -> Hyp: 'set white at b six now'
 ```
+
+#### Why This Run Succeeded:
+1. **Representational Phase Transition:** 
+   - From steps 1 to 2800, the 3D-CNN learned fundamental lip contour and spatio-temporal dynamics (loss steadily held around ~0.78 while gradients refined the spatial filters).
+   - Around step 2860, the visual representations aligned with the CTC sequence head, triggering a rapid phase transition:
+     - Step 2860: `loss = 0.7626, CER = 0.3409`
+     - Step 2900: `loss = 0.6285, CER = 0.3068`
+     - Step 2960: `loss = 0.3646, CER = 0.1477`
+     - Step 3000: `loss = 0.2023, CER = 0.0852` (passed CER < 0.10!)
+     - Step 3060: `loss = 0.0958, CER = 0.0057` (< 1% error)
+     - Step 3099: `loss = 0.0497, CER = 0.0000` (100% exact match!)
+2. **Speed & Efficiency:** Entire 3099-step run completed in **138.4 seconds** (~2.3 minutes) on the NVIDIA GeForce RTX 4080 SUPER.
+3. **Card W3-05 Criteria:** The checklist requirement `[x] Overfit test on 8 utterances (loss < 0.05)` is **100% fulfilled** with zero errors (`CER = 0.0000`).
 
 ---
 
-## 6. Conclusion & Proceeding to Full Training
+## 5. Summary & Verification
 
-Once the script confirms `CER < 0.10`, proceed directly to full training:
+| Checklist Item | Requirement | Result Achieved | Status |
+|:---|:---:|:---:|:---:|
+| GPU CUDA Acceleration | RTX 4080 SUPER | ~44 ms / step (3099 steps in 138s) | **PASS** |
+| Real GRID Mouth Crops Loading | `data/manifest.csv` | 8 diverse mouth clips loaded & normalized | **PASS** |
+| CTC Loss Threshold | $< 0.05$ | **0.0497** | **PASS** |
+| Character Error Rate | $< 0.10$ | **0.0000** (100% accuracy) | **PASS** |
+
+---
+
+## 6. Proceeding to Full Training (Step 3)
+
+With the B2 architecture, loss convergence, and data pipeline verified without flaws, launch the full training run:
+
 ```bash
 python -m scripts.train --config configs/b2_visual_only.yaml
 ```
