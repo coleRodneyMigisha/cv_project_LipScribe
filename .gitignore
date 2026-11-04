@@ -92,3 +92,4 @@ __pycache__/
 
 #processed audio wav
 audio_processing/processed/audio16k/s*/
+.venv311/
