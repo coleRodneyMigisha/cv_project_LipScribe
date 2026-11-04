@@ -1,0 +1,42 @@
+experiment: b2_visual_only
+seed: 1
+data:
+  manifest: data/manifest.csv
+  splits: data/splits.csv
+  feature_stats: data/stats/feature_norm.npz
+  noise_splits: Data/Noise_splits/splits.csv
+  noisy_dir: data/processed/noisy_test
+  visual_augment: true
+  train_snrs:
+  - clean
+  - 10
+  - 5
+  - 0
+  - -5
+  eval_snrs:
+  - clean
+  - 10
+  - 5
+  - 0
+  - -5
+model:
+  name: b2_visual_only
+  streams:
+  - visual
+  visual_encoder: conv3d_bilstm
+  fusion: none
+  dropout: 0.3
+train:
+  optimiser: adamw
+  lr: 0.0003
+  weight_decay: 0.01
+  batch_size: 16
+  grad_accum: 1
+  max_epochs: 60
+  warmup_epochs: 1
+  patience: 8
+  grad_clip: 5.0
+  amp: true
+  num_workers: 4
+decode:
+  method: greedy
