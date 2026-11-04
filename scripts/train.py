@@ -194,13 +194,21 @@ def param_groups(model: nn.Module, weight_decay: float) -> list[dict]:
 
 def warmup_cosine(optimiser: torch.optim.Optimizer, warmup_steps: int,
                   total_steps: int) -> torch.optim.lr_scheduler.LambdaLR:
-    """Linear warm-up to the peak learning rate, then cosine decay to zero."""
+    """Linear warm-up to the peak learning rate, then cosine decay to zero.
+
+    ``scheduler.total_ref["total"]`` can be lowered during training (time budget)
+    so the cosine still reaches zero at the new final step.
+    """
+    ref = {"total": total_steps}
+
     def factor(step: int) -> float:
         if step < warmup_steps:
             return (step + 1) / max(1, warmup_steps)
-        progress = (step - warmup_steps) / max(1, total_steps - warmup_steps)
+        progress = (step - warmup_steps) / max(1, ref["total"] - warmup_steps)
         return 0.5 * (1.0 + math.cos(math.pi * min(1.0, progress)))
-    return torch.optim.lr_scheduler.LambdaLR(optimiser, factor)
+    scheduler = torch.optim.lr_scheduler.LambdaLR(optimiser, factor)
+    scheduler.total_ref = ref
+    return scheduler
 
 
 # ---------------------------------------------------------------------------
@@ -364,6 +372,11 @@ def fit(cfg: dict, model: nn.Module, train_loader: Iterable, val_loaders: dict,
         results_csv: Path | None = RESULTS_CSV) -> dict:
     """Train until early stopping or ``max_epochs``; return the final ``state``.
 
+    ``train.time_budget_min`` (optional) caps wall-clock training time: after
+    every epoch the mean epoch time is measured and, if ``max_epochs`` would not
+    fit in the remaining budget, the run is shortened and the cosine schedule is
+    compressed to end at the new last epoch (so the learning rate still anneals).
+
     ``resume`` is a checkpoint dict from :func:`load_checkpoint`. If it is None
     the model is freshly initialised (LSTM forget-gate biases set to 1).
     """
@@ -393,14 +406,19 @@ def fit(cfg: dict, model: nn.Module, train_loader: Iterable, val_loaders: dict,
         scaler.load_state_dict(resume["scaler"])
         state.update(resume["state"])
         restore_rng(resume["rng"])
+        if state.get("budget_max_epochs"):
+            scheduler.total_ref["total"] = int(state["budget_max_epochs"] * steps_per_epoch)
         start_epoch = resume["epoch"] + 1
         print(f"Resumed from epoch {resume['epoch']} (best mean WER {state['best_wer']:.4f})")
 
     writer = SummaryWriter(log_dir=str(run_dir / "tensorboard"))
     ckpt = dict(model=model, optimiser=optimiser, scheduler=scheduler, scaler=scaler, cfg=cfg)
     epoch = start_epoch - 1
+    budget_s = float(tc.get("time_budget_min") or 0) * 60.0
+    max_epochs = int(state.get("budget_max_epochs") or tc["max_epochs"])
+    session_t0 = time.time()
     try:
-        for epoch in range(start_epoch, tc["max_epochs"]):
+        for epoch in range(start_epoch, min(int(tc["max_epochs"]), max_epochs)):
             t0 = time.time()
             train_loss = train_one_epoch(
                 model, train_loader, criterion, optimiser, scheduler, scaler,
@@ -425,6 +443,7 @@ def fit(cfg: dict, model: nn.Module, train_loader: Iterable, val_loaders: dict,
             save_checkpoint(run_dir / "latest.pt", epoch=epoch, state=state, **ckpt)
             if improved:
                 save_checkpoint(run_dir / "best.pt", epoch=epoch, state=state, **ckpt)
+            if improved and results_csv is not None:   # no convenience copy for --no-results smoke runs
                 try:
                     top_ckpt_dir = REPO_ROOT / "checkpoints"
                     top_ckpt_dir.mkdir(parents=True, exist_ok=True)
@@ -441,6 +460,20 @@ def fit(cfg: dict, model: nn.Module, train_loader: Iterable, val_loaders: dict,
             if state["bad_epochs"] >= tc["patience"]:
                 print(f"Early stopping: no improvement for {tc['patience']} epochs.")
                 break
+
+            if budget_s > 0:
+                spent = time.time() - session_t0
+                per_epoch = spent / (epoch - start_epoch + 1)
+                fit_epochs = epoch + 1 + int(max(0.0, budget_s - spent) // per_epoch)
+                if fit_epochs < max_epochs:
+                    max_epochs = max(epoch + 1, fit_epochs)
+                    state["budget_max_epochs"] = max_epochs
+                    scheduler.total_ref["total"] = int(max_epochs * steps_per_epoch)
+                    print(f"  time budget {budget_s / 60:.0f} min, {per_epoch / 60:.1f} min/epoch: "
+                          f"training shortened to {max_epochs} epochs (cosine compressed)")
+                if epoch + 1 >= max_epochs:
+                    print("Time budget reached.")
+                    break
     finally:
         writer.close()
 
@@ -642,6 +675,10 @@ def parse_args(argv=None) -> argparse.Namespace:
     p.add_argument("--runs-root", default=str(REPO_ROOT / "runs"))
     p.add_argument("--limit", type=int, help="use only the first N utterances per split (smoke runs)")
     p.add_argument("--max-epochs", type=int, help="override train.max_epochs")
+    p.add_argument("--time-budget-min", type=float,
+                   help="wall-clock training budget in minutes (shortens and compresses the schedule)")
+    p.add_argument("--no-results", action="store_true",
+                   help="smoke runs: do not append to experiments/results.csv or copy to checkpoints/")
     p.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     args = p.parse_args(argv)
     if not args.config and not args.resume:
@@ -664,6 +701,9 @@ def main(argv=None) -> None:
     if args.max_epochs is not None:
         cfg = copy.deepcopy(cfg)
         cfg["train"]["max_epochs"] = args.max_epochs
+    if args.time_budget_min is not None:
+        cfg = copy.deepcopy(cfg)
+        cfg["train"]["time_budget_min"] = args.time_budget_min
     if resume is None:
         run_dir = make_run_dir(cfg, args.runs_root)
     print(f"Run directory: {run_dir}")
@@ -676,7 +716,8 @@ def main(argv=None) -> None:
     model = build_model(cfg["model"])
     fit(cfg, model, train_loader, val_loaders, run_dir, device=device,
         prepare_batch=build_feature_step(cfg, device),
-        decode_fn=greedy_decode, wer_fn=wer, cer_fn=cer, resume=resume)
+        decode_fn=greedy_decode, wer_fn=wer, cer_fn=cer, resume=resume,
+        results_csv=None if args.no_results else RESULTS_CSV)
 
 
 if __name__ == "__main__":
