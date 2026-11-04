@@ -166,3 +166,26 @@ clean dB: 3998 utterances, WER 0.2518, CER 0.0704
     0 dB: 3998 utterances, WER 0.3840, CER 0.1396
    -5 dB: 3998 utterances, WER 0.4741, CER 0.2063
 Saved evaluation artifacts in /home/Lipscribe-team/Desktop/cv_project_LipScribe/reports/b3_concat_v2_20261104-204404_no_visual
+
+[21:16:27 | +76m] Pushed: results(w4): v1 grammar decoding and B3 v2 modality ablations
+
+[21:16:27 | +76m] Stage 5: merge cole into main
+error: Your local changes to the following files would be overwritten by checkout:
+	reports/w4_run/run_w4_20261104-195931.log
+Please commit your changes or stash them before you switch branches.
+Aborting
+
+[21:16:30 | +76m] FAILED: checkout origin/main
+
+[21:16:30 | +76m] Finished in 76 min. Log: reports/w4_run/run_w4_20261104-195931.log
+  ok   eval ok: runs/b1_audio_only_20261103-193743 
+  ok   eval ok: runs/b1_audio_only_20261103-193743 --decode grammar
+  ok   eval ok: runs/b2_visual_only_v2_20261104-200314 
+  ok   eval ok: runs/b2_visual_only_v2_20261104-200314 --decode grammar
+  ok   eval ok: runs/b3_concat_v2_20261104-204404 
+  ok   eval ok: runs/b3_concat_v2_20261104-204404 --decode grammar
+  ok   eval ok: runs/b2_visual_only_20261104-162358 --decode grammar
+  ok   eval ok: runs/b3_concat_20261104-181916 --decode grammar
+  ok   eval ok: runs/b3_concat_v2_20261104-204404 --drop-modality audio
+  ok   eval ok: runs/b3_concat_v2_20261104-204404 --drop-modality visual
+  FAIL checkout origin/main
