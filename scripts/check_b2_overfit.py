@@ -32,8 +32,14 @@ def create_synthetic_overfit_batch(
     """Create 8 distinct, deterministic utterances for overfitting."""
     dev = torch.device(device)
     g = torch.Generator().manual_seed(seed)
-    # Generate deterministically on CPU then transfer to target device (avoids CPU/CUDA generator mismatch)
-    video = torch.randn(b, 1, t, 96, 96, generator=g).to(dev)
+    # Generate deterministically on CPU then transfer to target device
+    video = torch.randn(b, 1, t, 96, 96, generator=g).to(dev) * 0.1
+    # Add distinct temporal pattern per utterance so synthetic clips are mutually distinguishable
+    for i in range(b):
+        freq = (i + 1) * 0.5
+        temporal_pattern = torch.sin(torch.linspace(0, freq * 3.14159, t, device=dev)).view(1, 1, t, 1, 1)
+        video[i] = video[i] + temporal_pattern
+
     lengths = torch.full((b,), t, dtype=torch.long, device=dev)
 
     # 8 distinct words from GRID vocabulary (clean targets without shared-prefix collisions)
@@ -101,13 +107,14 @@ def load_overfit_batch(
 def run_overfit(
     model: nn.Module,
     batch: dict,
-    max_steps: int = 300,
+    max_steps: int = 1500,
     target_loss: float = 0.05,
-    lr: float = 5e-3,
+    target_cer: float = 0.10,
+    lr: float = 3e-3,
     device: torch.device | str = "cpu",
     verbose: bool = True,
 ) -> tuple[float, float, int]:
-    """Train on batch until loss < target_loss or max_steps reached.
+    """Train on batch until loss < target_loss or CER < target_cer or max_steps reached.
 
     Returns:
         (final_loss, final_cer, steps_taken)
@@ -128,6 +135,7 @@ def run_overfit(
     start_time = time.time()
     final_loss = float("inf")
     final_cer = 1.0
+    hyps: list[str] = []
 
     for step in range(1, max_steps + 1):
         optimiser.zero_grad(set_to_none=True)
@@ -146,27 +154,56 @@ def run_overfit(
 
         final_loss = loss.item()
 
-        if step % 10 == 0 or final_loss < target_loss or step == 1:
+        if step % 20 == 0 or step == 1 or final_loss < target_loss:
+            model.eval()
             with torch.no_grad():
-                hyps = greedy_decode(out["log_probs"].float(), out["lengths"])
+                eval_out = model(batch)
+                hyps = greedy_decode(eval_out["log_probs"].float(), eval_out["lengths"])
                 final_cer = cer(batch["texts"], hyps)
+            model.train()
+
             if verbose:
                 elapsed = time.time() - start_time
-                print(f"Step {step:3d}/{max_steps}: loss = {final_loss:.4f}, CER = {final_cer:.4f} ({elapsed:.1f}s)")
+                curr_lr = optimiser.param_groups[0]["lr"]
+                print(f"Step {step:4d}/{max_steps}: loss = {final_loss:.4f}, CER = {final_cer:.4f}, lr = {curr_lr:.5f} ({elapsed:.1f}s)")
+                if (step % 100 == 0 or final_cer < target_cer or final_loss < target_loss) and hyps:
+                    print(f"   Sample: Ref: {batch['texts'][0]!r}")
+                    print(f"           Hyp: {hyps[0]!r}")
 
-        if final_loss < target_loss:
-            if verbose:
-                print(f"\nSUCCESS: Overfit threshold reached at step {step}! Loss = {final_loss:.4f} < {target_loss}")
-            return final_loss, final_cer, step
+            if final_loss < target_loss or final_cer < target_cer:
+                if verbose:
+                    print(f"\nSUCCESS: Target threshold reached at step {step}!")
+                    print(f"Loss = {final_loss:.4f} (target: < {target_loss}), CER = {final_cer:.4f} (target: < {target_cer})")
+                    print("\nDecoded Hypotheses across 8 utterances:")
+                    for i in range(len(batch["texts"])):
+                        h = hyps[i] if i < len(hyps) else ""
+                        print(f"  [{i}] Ref: {batch['texts'][i]!r}")
+                        print(f"      Hyp: {h!r}")
+                return final_loss, final_cer, step
+
+    model.eval()
+    with torch.no_grad():
+        eval_out = model(batch)
+        hyps = greedy_decode(eval_out["log_probs"].float(), eval_out["lengths"])
+        final_cer = cer(batch["texts"], hyps)
+
+    if verbose and hyps:
+        print("\nFinal Decoded Hypotheses across 8 utterances:")
+        for i in range(len(batch["texts"])):
+            h = hyps[i] if i < len(hyps) else ""
+            print(f"  [{i}] Ref: {batch['texts'][i]!r}")
+            print(f"      Hyp: {h!r}")
 
     return final_loss, final_cer, max_steps
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--steps", type=int, default=300, help="Max steps to overfit")
+    parser.add_argument("--steps", type=int, default=2000, help="Max steps to overfit")
     parser.add_argument("--target-loss", type=float, default=0.05, help="Target loss threshold")
-    parser.add_argument("--lr", type=float, default=5e-3, help="Learning rate")
+    parser.add_argument("--target-cer", type=float, default=0.10, help="Target CER threshold")
+    parser.add_argument("--lr", type=float, default=3e-3, help="Learning rate")
+    parser.add_argument("--dropout", type=float, default=0.0, help="Dropout rate (0.0 recommended for overfit test)")
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     parser.add_argument("--frames", type=int, default=35, help="Video frames per clip")
     parser.add_argument("--synthetic-only", action="store_true", help="Force synthetic batch even if manifest exists")
@@ -178,7 +215,7 @@ def main() -> None:
         gpu_name = torch.cuda.get_device_name(device)
         print(f"CUDA Device: {gpu_name}")
 
-    model = B2VisualOnly(dropout=0.0).to(device)
+    model = B2VisualOnly(dropout=args.dropout).to(device)
     if args.synthetic_only:
         batch = create_synthetic_overfit_batch(b=8, t=args.frames, device=device)
     else:
@@ -188,21 +225,18 @@ def main() -> None:
         model, batch,
         max_steps=args.steps,
         target_loss=args.target_loss,
+        target_cer=args.target_cer,
         lr=args.lr,
         device=device,
         verbose=True,
     )
 
-    if loss < args.target_loss:
-        print(f"\nTest passed: Final loss={loss:.4f} < {args.target_loss}, CER={cer_val:.4f} (at step {steps})")
+    if loss < args.target_loss or cer_val < args.target_cer:
+        print(f"\nTest passed: Final loss={loss:.4f}, CER={cer_val:.4f} < {args.target_cer} (at step {steps})")
         sys.exit(0)
     else:
-        print(f"\nTest finished: Final loss={loss:.4f} (target threshold: < {args.target_loss}), CER={cer_val:.4f}")
-        if loss < 0.25 or cer_val < 0.10:
-            print("Notice: Significant convergence achieved. Proceeding to full training is viable.")
-            sys.exit(0)
-        else:
-            sys.exit(1)
+        print(f"\nTest finished: Final loss={loss:.4f}, CER={cer_val:.4f} (target CER: < {args.target_cer})")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

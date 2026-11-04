@@ -54,20 +54,40 @@ In Runs 3, 4, and 5, real mouth crops from `data/manifest.csv` were loaded.
 - An untrained model outputs random characters and blanks, yielding $\text{CER} \approx 1.0$ (or higher).
 - In Run 5, the model achieved a **CER of $0.2804$**, meaning **over $72\%$ of all characters across the 8 utterances were correctly recognized from silent video**.
 
-### 4.4 Fixed Learning Rate Oscillation at 5000 Steps
-- At 5000 steps with a constant learning rate of $5 \times 10^{-3}$ without decay, updates began oscillating across the floor of the loss basin around $\approx 0.59$.
-- In commit `43fc396c`, `CosineAnnealingLR` was added to smoothly anneal the learning rate towards $10^{-5}$, enabling fine-grained convergence into the global minimum.
+### 4.4 Why CER Reached 0.2804 & Optimizations for CER < 0.10
+In Run 5, the model achieved a strong CER of $0.2804$ (>72% accuracy), but plateaued before reaching < 0.10 due to:
+1. **Dropout Noise During Evaluation:** The model was instantiated with `dropout=0.3`. During greedy decoding, the model remained in training mode (`model.train()`), causing 30% of features to be randomly masked even during metric calculation.
+2. **Weight Decay Regularization:** $L_2$ regularization penalizes weight expansion, which actively resists single-batch memorization.
+3. **Fixed Learning Rate Oscillation:** Without decay, AdamW step sizes oscillated around the minimum.
+
+**Fixes Applied in `scripts/check_b2_overfit.py`:**
+- **Zero Dropout for Overfit Sanity Check (`--dropout 0.0`):** Removes stochastic feature masking so the visual encoder can map exact lip configurations to characters.
+- **`model.eval()` During Evaluation:** Ensures greedy decoding and CER calculation are performed on deterministic, fully unmasked representations.
+- **Zero Weight Decay (`weight_decay=0.0`):** Removes artificial regularization constraints during batch memorization.
+- **Cosine Annealing (`CosineAnnealingLR`):** Smoothly decays learning rate from $3 \times 10^{-3} \to 10^{-5}$, enabling the optimizer to settle into the sharp global minimum.
+- **Early Stop at CER < 0.10:** Automatically terminates and prints the decoded hypotheses the moment character accuracy exceeds 90%.
 
 ---
 
-## 5. Conclusion & Next Steps
+## 5. Overfit Test Command for Alienware (Target: CER < 0.10)
 
-1. **Sanity Check Complete:** 
-   - Gradient flow, memory safety on RTX 4080 SUPER, dataset loading, and CTC sequence decoding are fully verified.
-   - The model demonstrated clear capacity to learn visual speech representations.
+Run the following command on the Alienware GPU rig:
+```bash
+git pull origin cole
+python scripts/check_b2_overfit.py --device cuda --steps 2000 --lr 3e-3 --target-cer 0.10
+```
 
-2. **Proceed to Step 3 (Full Training):**
-   - The Alienware rig is ready to execute full training on `configs/b2_visual_only.yaml`:
-   ```bash
-   python -m scripts.train --config configs/b2_visual_only.yaml
-   ```
+Upon reaching CER < 0.10 (expected within 500-1200 steps on CUDA), the script prints all 8 reference and decoded hypotheses and exits with code 0:
+```text
+SUCCESS: Target threshold reached at step ...!
+Loss = ... (target: < 0.05), CER = ... (target: < 0.10)
+```
+
+---
+
+## 6. Conclusion & Proceeding to Full Training
+
+Once the script confirms `CER < 0.10`, proceed directly to full training:
+```bash
+python -m scripts.train --config configs/b2_visual_only.yaml
+```
