@@ -153,12 +153,17 @@ def update_results_csv(results_path: Path, run_dir: Path, metrics: dict) -> None
 
 
 def write_report(path: Path, checkpoint_path: Path, results: dict) -> None:
+    try:
+        ckpt = load_checkpoint(checkpoint_path, map_location="cpu")
+        title = ckpt.get("config", {}).get("experiment", "Model").replace("_", " ").title()
+    except Exception:
+        title = "Model"
     rows = ["| SNR | Test utterances | WER (%) | CER (%) |", "|---|---:|---:|---:|"]
     rows.extend(f"| {snr} | {values['n_utts']} | {100 * values['wer']:.2f} | "
                 f"{100 * values['cer']:.2f} |"
                 for snr, values in results.items())
     path.write_text(
-        "# B1 Test Results\n\n"
+        f"# {title} Test Results\n\n"
         f"Config: `{checkpoint_path.parent / 'config.yaml'}`\n\n"
         f"Checkpoint: `{checkpoint_path}`\n\n"
         + "\n".join(rows)

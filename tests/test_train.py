@@ -90,6 +90,8 @@ def test_two_epochs_save_resume_and_log(tmp_path):
     state = _fit(tmp_path, _cfg(max_epochs=2))
     assert state["epochs_run"] == 2 and state["step"] == 8
     assert (tmp_path / "latest.pt").exists() and (tmp_path / "best.pt").exists()
+    assert (tmp_path / "history.csv").exists()
+    assert (tmp_path / "learning_curves.png").exists()
     assert list((tmp_path / "tensorboard").iterdir())
 
     ckpt = load_checkpoint(tmp_path / "latest.pt")
