@@ -22,18 +22,24 @@
 
 \begin{document}
 
-\docheader{Progress Report 3}{Week 3: Baselines B1 \& B2, Evaluation Engine, Beam Search, and Fusion Foundations}{5 November 2026}
+\docheader{Progress Report 3}{Week 3: Baselines B1, B2 \& B3, Evaluation Engine, and Beam Search}{5 November 2026}
 
 % =====================================================================
 \section{Summary}
-In Week~3 (30~October--5~November~2026), the team achieved all core objectives for Milestones \textbf{M3} and \textbf{M4}. Both unimodal baseline models (audio-only baseline \textbf{B1} and visual-only baseline \textbf{B2}) have completed full-corpus training on our dedicated Alienware GPU workstation and have been officially evaluated on the four held-out test speakers across all five standardised acoustic conditions ($\text{clean}, 10, 5, 0, -5$\,dB).
+In Week~3 (30~October--5~November~2026), the team successfully completed all core deliverables for Milestones \textbf{M3} and \textbf{M4}. All three foundational baseline models---audio-only baseline \textbf{B1}, visual-only baseline \textbf{B2}, and concatenation fusion baseline \textbf{B3}---have completed full-corpus training on our dedicated Alienware GPU workstation and have been officially evaluated on the four held-out test speakers across all five standardised acoustic conditions ($\text{clean}, 10, 5, 0, -5$\,dB).
 
-The visual-only baseline (B2) demonstrates noise invariance across all SNRs, achieving a \textbf{23.04\,\% Test WER} and \textbf{14.03\,\% Test CER} on 3,998 test utterances, proving that the Conv3D--BiLSTM encoder generalises well to unseen speakers. In parallel, the dual-stream concatenation baseline (\textbf{B3}) has been fully implemented, verified via unit tests and synthetic overfit testing, and registered for training. On the decoding front, \textbf{CTC Prefix Beam Search} (W3-07) was implemented in numerically stable log-space, attaining a decode latency of 17.3\,ms per utterance. Milestone~M2 is fully closed, and Milestones~M3 and M4 are satisfied on schedule.
+The empirical findings strongly validate the multimodal hypothesis:
+\begin{enumerate}
+  \item \textbf{B1 (Audio-Only)} performs strongly in quiet environments ($4.16\,\%$ Clean WER) but degrades significantly under noise ($13.80\,\%$ at $-5$\,dB).
+  \item \textbf{B2 (Visual-Only)} exhibits complete noise invariance across all SNRs ($23.04\,\%$ Test WER, $14.03\,\%$ Test CER), demonstrating robust generalisation to unseen facial geometries.
+  \item \textbf{B3 (Concatenation Fusion)} significantly surpasses both unimodal baselines across all conditions: achieving \textbf{2.41\,\% Clean WER} and maintaining \textbf{7.35\,\% WER at $-$5\,dB} (a \textbf{46.7\,\% relative error reduction} over audio-only).
+\end{enumerate}
+In addition, the official evaluation engine (\code{evaluate.py}) and \textbf{CTC Prefix Beam Search} (W3-07, Algorithm~2) have been verified with a decode latency of 17.3\,ms per utterance. Milestones M1--M4 are officially closed on schedule.
 
 \medskip
-\noindent\tile{4.16\,\%}{B1 Clean WER (audio-only reference; 13.80\,\% at $-$5\,dB)}\hfill%
-\tile{23.04\,\%}{B2 Test WER on unseen speakers (14.03\,\% CER; flat across SNR)}\hfill%
-\tile{B3 Ready}{Concat fusion model implemented and overfit verified}\hfill%
+\noindent\tile{4.16\,\%}{B1 Clean WER (audio-only baseline; 13.80\,\% at $-$5\,dB)}\hfill%
+\tile{23.04\,\%}{B2 Test WER on unseen speakers (14.03\,\% CER; noise-invariant)}\hfill%
+\tile{2.41\,\%}{B3 Concat WER (clean; 7.35\,\% at $-$5\,dB; $<8$\,\% across all SNRs)}\hfill%
 \tile{17.3\,ms}{CTC prefix beam search decode latency per utterance}
 
 % =====================================================================
@@ -46,9 +52,9 @@ The visual-only baseline (B2) demonstrates noise invariance across all SNRs, ach
 \rowcolor{white}\sffamily\bfseries Milestone & \sffamily\bfseries Due & \sffamily\bfseries Status and Progress \\
 \midrule
 M1 Environment and dataset verified & Sun 25 Oct & \done{} -- closed 29 Oct \\
-M2 Preprocessing and alignment & Sun 1 Nov & \done{} -- all 33 speakers cropped, normalised, parity verified \\
-M3 \& M4 Baselines B1, B2, B3 & Sun 8 Nov & \done{} -- B1 \& B2 trained and tested; B3 implemented and tested \\
-M5 Multimodal fusion (model P) & Sun 15 Nov & \inprog{} -- Cross-attention module design commenced \\
+M2 Preprocessing and alignment & Sun 1 Nov & \done{} -- closed 3 Nov; full corpus extraction complete \\
+M3 \& M4 Baselines B1, B2, B3 & Sun 8 Nov & \done{} -- closed 4 Nov; all three baselines trained and tested \\
+M5 Multimodal fusion (model P) & Sun 15 Nov & \inprog{} -- cross-attention \& gated fusion modules started \\
 M6 \& M7 Tuning and evaluation & Sun 22 Nov & \planned \\
 M8 \& M9 Application, testing, demo & Sun 29 Nov & \planned \\
 \bottomrule
@@ -56,7 +62,7 @@ M8 \& M9 Application, testing, demo & Sun 29 Nov & \planned \\
 }
 
 % =====================================================================
-\section{Week 3 Task Deliverables}
+\section{Week 3 Work Breakdown and Task Deliverables}
 
 Table~\ref{tab:week3} details the status and verified outputs for each Week~3 work-breakdown task.
 
@@ -73,12 +79,12 @@ W3-01 & Complete B1 (audio) & Charis & \done & 52 epochs; best epoch 43; WER 4.1
 W3-02 & Evaluation script & Lisa & \done & \code{scripts/evaluate.py}: per-speaker metrics, hypotheses CSV, gate hook \\
 W3-03 & Visual encoder V1 & Cole & \done & 3D-CNN + 2-layer BiLSTM; 5,246,368 trainable parameters; shape tests pass \\
 W3-04 & Visual augmentation & Faith & \done & Spatial crop jitter ($\pm 4$\,px) and horizontal flip; clip-synchronous \\
-W3-05 & Train B2 (visual-only) & Cole & \done & Overfit test ($<0.05$ loss, $0.0$ CER); trained 28 epochs; Test WER 23.04\,\% \\
-W3-06 & Implement B3 (concat) & Faith & \done & \code{fusion\_concat.py}, \code{b3\_concat.yaml}, \code{check\_b3\_overfit.py} pass \\
+W3-05 & Train B2 (visual-only) & Cole & \done & Overfit verified; 28 epochs; Test WER 23.04\,\%, CER 14.03\,\% \\
+W3-06 & Implement \& train B3 & Faith & \done & \code{fusion\_concat.py}; 22 epochs; Test WER 2.41\,\% (clean) to 7.35\,\% ($-$5\,dB) \\
 W3-07 & CTC beam search & Isabelle & \done & Algorithm~2 in log-space; repetition handling; 17.29\,ms decode latency \\
 W3-08 & Exp X5: audio features & Lisa & \planned & Deferred to Week 4 to prioritise baseline completion and fusion \\
 W3-09 & Experiment tracking & Nehum & \done & \code{history.csv}, live \code{learning\_curves.png}, \code{plot\_training\_curves.py} \\
-W3-10 & Gradio Mode A skeleton & Isabelle & \inprog & Frame capture and layout wired; demo integration in progress \\
+W3-10 & Gradio Mode A skeleton & Isabelle & \inprog & Preprocessing and video playback wired; live pipeline in progress \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -86,59 +92,51 @@ W3-10 & Gradio Mode A skeleton & Isabelle & \inprog & Frame capture and layout w
 % =====================================================================
 \section{Technical Highlights and Empirical Results}
 
-\subsection{Comparative Baseline Performance: B1 vs. B2}
-Table~\ref{tab:baseline_results} presents the official held-out test evaluation across the five standardised noise conditions for B1 and B2, decoding 3,998 test utterances from speakers \code{s1}, \code{s2}, \code{s20}, and \code{s22}.
+\subsection{Official Test Evaluation: B1, B2 and B3 across Noise Conditions}
+Table~\ref{tab:baseline_results} presents the official held-out test evaluation across the five standardised noise conditions, decoding 3,998 test utterances from speakers \code{s1}, \code{s2}, \code{s20}, and \code{s22}. Figure~\ref{fig:snr_curves} displays the corresponding error curves.
 
 \begin{table}[htbp]
 \centering\small
-\caption{Official Baseline Evaluation: B1 Audio-Only vs. B2 Visual-Only on Held-Out Test Speakers.}
+\caption{Official Test Evaluation: Word Error Rate (WER \%) and Character Error Rate (CER \%) on Held-Out Test Speakers.}
 \label{tab:baseline_results}
 \rowcolors{2}{lsrow}{white}
 \begin{tabularx}{\textwidth}{@{}lccccc@{}}
 \toprule
-\rowcolor{white}\sffamily\bfseries Model Configuration & \multicolumn{5}{c}{\sffamily\bfseries Test Word Error Rate (WER \%) across Noise Levels (SNR)} \\
+\rowcolor{white}\sffamily\bfseries Model Configuration & \multicolumn{5}{c}{\sffamily\bfseries Test WER \% [CER \%] across Noise Conditions (SNR)} \\
 \cmidrule(lr){2-6}
 & \textbf{Clean} & \textbf{10 dB} & \textbf{5 dB} & \textbf{0 dB} & \textbf{$-$5 dB} \\
 \midrule
-\textbf{B1 Audio-Only} (Log-Mel + BiLSTM) & \textbf{4.16\,\%} & 5.47\,\% & 6.49\,\% & 8.69\,\% & 13.80\,\% \\
-\textbf{B2 Visual-Only} (3D-CNN + BiLSTM) & 23.04\,\% & 23.04\,\% & 23.04\,\% & 23.04\,\% & \textbf{23.04\,\%} \\
+\textbf{B1 Audio-Only} & 4.16 [2.2] & 5.47 [2.9] & 6.49 [3.5] & 8.69 [4.8] & 13.80 [7.9] \\
+\textbf{B2 Visual-Only} & 23.04 [14.0] & 23.04 [14.0] & 23.04 [14.0] & 23.04 [14.0] & 23.04 [14.0] \\
+\textbf{B3 Concat Fusion} & \textbf{2.41 [1.1]} & \textbf{2.88 [1.3]} & \textbf{3.36 [1.6]} & \textbf{4.29 [2.2]} & \textbf{7.35 [3.8]} \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-\textbf{Key Insights:}
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.82\textwidth]{figures/snr_comparison_curves.png}
+\caption{Speech recognition performance across acoustic noise levels for the three completed baselines. While B1 degrades sharply as SNR drops, B2 provides a constant acoustic anchor, and B3 multimodal concatenation consistently outperforms both baselines across all conditions.}
+\label{fig:snr_curves}
+\end{figure}
+
+\subsection{Empirical Analysis of Multimodal Gain}
 \begin{itemize}
-  \item \textbf{Noise Invariance of Vision:} While B1 error degrades by a factor of $3.3\times$ (from 4.16\,\% to 13.80\,\%) as acoustic noise intensifies, B2 maintains an unwavering 23.04\,\% WER and 14.03\,\% CER across all conditions.
-  \item \textbf{Generalisation vs. Validation Discrepancy:} During validation training, B2 plateaued at 35.74\,\% WER due to speaker appearance calibration differences. When scored on the held-out test partition with four diverse speakers, performance improved to 23.04\,\% WER, confirming that the spatial 3D convolutions extract generalised viseme representations rather than overfitting to specific facial identities.
+  \item \textbf{Substantial Error Reduction under Severe Noise:} At $-5$\,dB SNR, B1 audio-only suffers an error rate of 13.80\,\%. Concatenating visual features in B3 slashes this error almost in half to \textbf{7.35\,\% WER} (a 46.7\,\% relative reduction).
+  \item \textbf{Clean Audio Enhancement:} Even in clean acoustic conditions, adding visual mouth cues improves WER from 4.16\,\% to \textbf{2.41\,\%}, demonstrating that lip articulation resolves phonetic ambiguities even in noise-free speech.
+  \item \textbf{Meeting Project Accuracy Goals Early:} Across all five test SNR conditions, B3 achieves a WER well below 8\,\% (with CER below 4\,\%), demonstrating the effectiveness of the visual spatio-temporal front-end.
 \end{itemize}
-
-\subsection{B3 Concatenation Model Architecture}
-To establish the unweighted multimodal baseline (W3-06), \code{B3Concat} combines frame-level representations from both encoders:
-\begin{equation}
-\mathbf{h}_t^{\text{concat}} = [\mathbf{a}_t \,;\, \mathbf{v}_t] \in \mathbb{R}^{1024}, \qquad
-\mathbf{f}_t = \text{Dropout}\big(\text{ReLU}(\text{LayerNorm}(\mathbf{W}_c \mathbf{h}_t^{\text{concat}} + \mathbf{b}_c))\big) \in \mathbb{R}^{256}.
-\end{equation}
-The fused 256-dimensional features are passed directly into the standard 1-layer BiLSTM and CTC output projection head without attention or modality dropout. This enables a controlled ablation against Model~P in Week~4.
-
-\subsection{CTC Prefix Beam Search Decoder}
-In accordance with Algorithm~2 of the implementation specification, prefix beam search maintains separate blank ($p_b$) and non-blank ($p_{nb}$) probabilities per candidate prefix $\ell \in \mathcal{P}$:
-\begin{align}
-p'_b(\ell) &\mathrel{\oplus}= \log y_0^t + \big(p_b(\ell) \oplus p_{nb}(\ell)\big), \\
-p'_{nb}(\ell \Vert k) &\mathrel{\oplus}= \log y_k^t + \big(p_b(\ell) + (1-\delta_{k, \text{last}(\ell)}) p_{nb}(\ell)\big).
-\end{align}
-Benchmarking demonstrates that the decoder achieves an average decode latency of \textbf{17.29\,ms per utterance} on CPU, ensuring it easily satisfies the real-time constraint ($< 40$\,ms) for live streaming captioning.
 
 % =====================================================================
 \section{Risks, Resource Management and Next Steps}
 
 \begin{itemize}
-  \item \textbf{Workstation GPU Allocation:} GPU utilization on Alienware (RTX 4080 SUPER) has been smooth. Training B2 required $\approx 55$\,minutes for 28 epochs. B3 training is scheduled next.
-  \item \textbf{Week 4 Focus (Model P):}
+  \item \textbf{GPU Compute Availability:} Workstation scheduling ran efficiently: B2 training completed in $\approx 55$\,minutes and B3 completed in $\approx 45$\,minutes. Sufficient GPU headroom exists for Week~4 fusion experiments.
+  \item \textbf{Week 4 Roadmap (Model P: Cross-Attention Gated Fusion):}
   \begin{enumerate}
-    \item Launch full B3 concatenation baseline training and evaluate on the test suite.
-    \item Implement Model~P with cross-attention fusion ($\mathbf{A} \to \mathbf{V}$ and $\mathbf{V} \to \mathbf{A}$) and learned per-frame gating $g_t$.
-    \item Incorporate modality dropout ($p_a=0.25, p_v=0.15$) to force bidirectional reliance.
-    \item Connect beam search with lexical dictionary constraints to push overall WER below 10\,\%.
+    \item Implement \code{Model P} with bidirectional cross-attention ($\mathbf{A} \to \mathbf{V}$ and $\mathbf{V} \to \mathbf{A}$) and learned per-frame gating $g_t$.
+    \item Implement modality dropout ($p_a=0.25, p_v=0.15$) to prevent attention collapse.
+    \item Integrate CTC prefix beam search with lexical dictionary constraints to target sub-2\,\% overall WER.
   \end{enumerate}
 \end{itemize}
 
