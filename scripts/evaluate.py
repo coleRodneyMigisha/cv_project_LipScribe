@@ -55,8 +55,20 @@ def score_checkpoint(checkpoint_path: Path, device: torch.device,
     decode_fn = get_decoder(decode_cfg)
     print(f"Decoding with {decode_cfg.get('method', 'greedy')}", flush=True)
 
+    # Without audio the output cannot depend on SNR: score once, reuse for every label.
+    snr_independent = ("audio" not in cfg["model"].get("streams", ["audio"])
+                       or drop_modality == "audio")
+    first_label = None
     for label in data_cfg["eval_snrs"]:
         label = str(label)
+        if snr_independent and first_label is not None:
+            results[label] = dict(results[first_label])
+            details.extend({**d, "snr": label} for d in list(details) if d["snr"] == first_label)
+            all_hypotheses.extend({**h, "snr": label} for h in list(all_hypotheses)
+                                  if h["snr"] == first_label)
+            print(f"{label:>5} dB: same as {first_label} (no audio input)", flush=True)
+            continue
+        first_label = label
         dataset = GridDataset(
             data_cfg["manifest"], data_cfg["splits"], "test",
             snr_db=snr_value(label), noise_splits=data_cfg.get("noise_splits"),

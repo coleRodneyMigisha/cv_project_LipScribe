@@ -1,5 +1,24 @@
 # W4 Retrain Guide: B2 v2 and B3 v2 (Alienware)
 
+## Quick start: one command
+
+```bash
+cd ~/Desktop/cv_project_LipScribe   # repo root on the Alienware
+git fetch origin && git checkout cole && git pull origin cole
+tmux new -s w4
+bash scripts/run_w4.sh              # detach: Ctrl-b d   re-attach: tmux attach -t w4
+```
+
+`scripts/run_w4.sh` runs every step below in order, with time-budgeted training:
+B2 v2 for 50 min and B3 v2 for 30 min, about 2 h in total. The cosine schedule is
+compressed to fit, so the learning rate still anneals. It commits and pushes results to
+`cole` after each stage, then merges `cole` into `main`. If `main` is protected it
+opens a PR with `gh` instead. The full log is in `reports/w4_run/`.
+
+More time gives better models. For example, `B2_BUDGET=150 B3_BUDGET=90 bash scripts/run_w4.sh`.
+
+The manual steps below are what the script does, if you need to run or redo one by hand.
+
 Run these steps on the Alienware (RTX 4080 SUPER, full GRID data) from the repo root,
 in the usual Python environment. Run them **in order**, because B3 v2 is initialised from the B1
 and B2 v2 checkpoints. Long runs should go inside `tmux` so they survive a closed terminal.
