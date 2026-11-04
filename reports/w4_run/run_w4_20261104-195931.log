@@ -26,3 +26,58 @@ clean dB: 3998 utterances, WER 0.0176, CER 0.0073
     0 dB: 3998 utterances, WER 0.0493, CER 0.0230
    -5 dB: 3998 utterances, WER 0.0835, CER 0.0456
 Saved evaluation artifacts in /home/Lipscribe-team/Desktop/cv_project_LipScribe/reports/b1_audio_only_20261103-193743_grammar
+
+[20:03:05 | +3m] Pushed: results(w4): B1 test evaluation (greedy + grammar)
+
+[20:03:05 | +3m] Stage 2: B2 v2
+Run directory: /tmp/tmp.CWsUGlLGvA/b2_visual_only_v2_20261104-200307
+epoch   0  train 7.2747  val 6.5391  WER 1.0000  CER 1.0000  [clean:1.000]  3s  *best (saved best.pt)*
+
+============================================================
+Training finished! Best epoch: 0 (Mean Val WER: 1.0000, CER: 1.0000)
+Best model checkpoint saved at: /tmp/tmp.CWsUGlLGvA/b2_visual_only_v2_20261104-200307/best.pt
+============================================================
+
+
+[20:03:12 | +3m] Training configs/b2_visual_only_v2.yaml for at most 50 min
+Run directory: /home/Lipscribe-team/Desktop/cv_project_LipScribe/runs/b2_visual_only_v2_20261104-200314
+epoch   0  train 2.4216  val 1.6056  WER 0.9627  CER 0.6301  [clean:0.963]  228s  *best (saved best.pt)*
+  time budget 50 min, 3.8 min/epoch: training shortened to 13 epochs (cosine compressed)
+epoch   1  train 1.2648  val 1.2284  WER 0.7976  CER 0.5130  [clean:0.798]  179s  *best (saved best.pt)*
+epoch   2  train 0.8444  val 1.1077  WER 0.6205  CER 0.3796  [clean:0.621]  179s  *best (saved best.pt)*
+epoch   3  train 0.5985  val 1.1984  WER 0.6350  CER 0.3838  [clean:0.635]  181s
+epoch   4  train 0.4445  val 1.0454  WER 0.6644  CER 0.3804  [clean:0.664]  178s
+epoch   5  train 0.4284  val 0.8438  WER 0.4895  CER 0.2993  [clean:0.489]  180s  *best (saved best.pt)*
+epoch   6  train 0.2646  val 0.8449  WER 0.5232  CER 0.3020  [clean:0.523]  179s
+epoch   7  train 0.2722  val 0.6799  WER 0.4287  CER 0.2508  [clean:0.429]  182s  *best (saved best.pt)*
+epoch   8  train 0.2527  val 0.7028  WER 0.4238  CER 0.2506  [clean:0.424]  181s  *best (saved best.pt)*
+epoch   9  train 0.2223  val 0.7459  WER 0.4306  CER 0.2597  [clean:0.431]  183s
+epoch  10  train 0.2066  val 0.7253  WER 0.4466  CER 0.2516  [clean:0.447]  182s
+epoch  11  train 0.2063  val 0.7144  WER 0.4371  CER 0.2528  [clean:0.437]  181s
+epoch  12  train 0.2012  val 0.7217  WER 0.4362  CER 0.2512  [clean:0.436]  185s
+Time budget reached.
+
+============================================================
+Training finished! Best epoch: 8 (Mean Val WER: 0.4238, CER: 0.2506)
+Best model checkpoint saved at: /home/Lipscribe-team/Desktop/cv_project_LipScribe/runs/b2_visual_only_v2_20261104-200314/best.pt
+Convenience copy saved at:      /home/Lipscribe-team/Desktop/cv_project_LipScribe/checkpoints/b2_visual_only_v2_best.pt
+============================================================
+
+
+[20:43:19 | +43m] Evaluate runs/b2_visual_only_v2_20261104-200314 
+Decoding with greedy
+clean dB: 3998 utterances, WER 0.3220, CER 0.1861
+   10 dB: same as clean (no audio input)
+    5 dB: same as clean (no audio input)
+    0 dB: same as clean (no audio input)
+   -5 dB: same as clean (no audio input)
+Saved evaluation artifacts in /home/Lipscribe-team/Desktop/cv_project_LipScribe/reports/b2_visual_only_v2_20261104-200314
+
+[20:43:38 | +44m] Evaluate runs/b2_visual_only_v2_20261104-200314 --decode grammar
+Decoding with grammar
+clean dB: 3998 utterances, WER 0.2826, CER 0.1854
+   10 dB: same as clean (no audio input)
+    5 dB: same as clean (no audio input)
+    0 dB: same as clean (no audio input)
+   -5 dB: same as clean (no audio input)
+Saved evaluation artifacts in /home/Lipscribe-team/Desktop/cv_project_LipScribe/reports/b2_visual_only_v2_20261104-200314_grammar
