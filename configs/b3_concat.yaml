@@ -1,0 +1,33 @@
+# B3 concatenation baseline: audio + visual -> concat -> Linear 256 -> CTC.
+# Concatenation baseline without adaptive weighting (Section 8.4, Table 10).
+experiment: b3_concat
+seed: 1
+data:
+  manifest: data/manifest.csv
+  splits: data/splits.csv
+  feature_stats: data/stats/feature_norm.npz
+  noise_splits: Data/Noise_splits/splits.csv   # MUSAN pools (make_noise_splits.py)
+  noisy_dir: data/processed/noisy_test         # fixed noisy val/test files (W2-06)
+  visual_augment: true                         # W3-04: random crop jitter and horizontal flip
+  train_snrs: [clean, 10, 5, 0, -5]
+  eval_snrs:  [clean, 10, 5, 0, -5]
+model:
+  name: b3_concat
+  streams: [audio, visual]
+  audio_features: logmel80
+  visual_encoder: conv3d_bilstm
+  fusion: concat
+  dropout: 0.3
+train:
+  optimiser: adamw
+  lr: 3.0e-4
+  weight_decay: 1.0e-2
+  batch_size: 16
+  grad_accum: 1
+  max_epochs: 60
+  warmup_epochs: 1
+  patience: 8
+  grad_clip: 5.0
+  amp: true
+  num_workers: 4
+decode: {method: greedy}
