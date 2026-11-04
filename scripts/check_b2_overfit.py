@@ -27,13 +27,14 @@ def create_synthetic_overfit_batch(
     b: int = 8,
     t: int = 30,
     seed: int = 42,
-    device: torch.device = torch.device("cpu"),
+    device: torch.device | str = "cpu",
 ) -> dict:
     """Create 8 distinct, deterministic utterances for overfitting."""
+    dev = torch.device(device)
     g = torch.Generator().manual_seed(seed)
-    # Distinct video patterns per utterance so visual encoder has distinct features
-    video = torch.randn(b, 1, t, 96, 96, generator=g, device=device)
-    lengths = torch.full((b,), t, dtype=torch.long, device=device)
+    # Generate deterministically on CPU then transfer to target device (avoids CPU/CUDA generator mismatch)
+    video = torch.randn(b, 1, t, 96, 96, generator=g).to(dev)
+    lengths = torch.full((b,), t, dtype=torch.long, device=dev)
 
     # 8 short distinct phrases from GRID grammar
     phrases = [
@@ -57,8 +58,8 @@ def create_synthetic_overfit_batch(
     return {
         "video": video,
         "lengths": lengths,
-        "targets": torch.tensor(all_targets, dtype=torch.long, device=device),
-        "target_lengths": torch.tensor(target_lengths, dtype=torch.long, device=device),
+        "targets": torch.tensor(all_targets, dtype=torch.long, device=dev),
+        "target_lengths": torch.tensor(target_lengths, dtype=torch.long, device=dev),
         "texts": phrases,
     }
 
@@ -69,7 +70,7 @@ def run_overfit(
     max_steps: int = 250,
     target_loss: float = 0.05,
     lr: float = 3e-3,
-    device: torch.device = torch.device("cpu"),
+    device: torch.device | str = "cpu",
     verbose: bool = True,
 ) -> tuple[float, float, int]:
     """Train on batch until loss < target_loss or max_steps reached.
@@ -77,6 +78,12 @@ def run_overfit(
     Returns:
         (final_loss, final_cer, steps_taken)
     """
+    dev = torch.device(device)
+    model = model.to(dev)
+    batch = {
+        k: (v.to(dev, non_blocking=True) if isinstance(v, torch.Tensor) else v)
+        for k, v in batch.items()
+    }
     model.train()
     criterion = nn.CTCLoss(blank=0, zero_infinity=True)
     optimiser = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=0.0)
@@ -128,6 +135,9 @@ def main() -> None:
 
     device = torch.device(args.device)
     print(f"Starting B2 overfit test on device: {device}")
+    if device.type == "cuda":
+        gpu_name = torch.cuda.get_device_name(device)
+        print(f"CUDA Device: {gpu_name}")
 
     model = B2VisualOnly(dropout=0.0).to(device)
     batch = create_synthetic_overfit_batch(b=8, t=args.frames, device=device)
