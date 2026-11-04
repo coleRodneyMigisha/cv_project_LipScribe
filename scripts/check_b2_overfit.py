@@ -143,7 +143,7 @@ def load_overfit_batch(
 def run_overfit(
     model: nn.Module,
     batch: dict,
-    max_steps: int = 2000,
+    max_steps: int = 3500,
     target_loss: float = 0.05,
     target_cer: float = 0.10,
     lr: float = 2e-3,
@@ -235,7 +235,7 @@ def run_overfit(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--steps", type=int, default=2000, help="Max steps to overfit")
+    parser.add_argument("--steps", type=int, default=3500, help="Max steps to overfit (default: 3500)")
     parser.add_argument("--num-utterances", "-n", type=int, default=8, help="Number of utterances to overfit (default: 8)")
     parser.add_argument("--target-loss", type=float, default=0.05, help="Target loss threshold")
     parser.add_argument("--target-cer", type=float, default=0.10, help="Target CER threshold")

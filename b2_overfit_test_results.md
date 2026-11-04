@@ -34,6 +34,8 @@ The primary objective of Card W3-05's overfit check is a pre-flight sanity test 
 | **4** | **500** | Real GRID (`manifest.csv`) | $5 \times 10^{-3}$ | **0.7628** | **0.3862** | Loss dropped by 46%; CER improved to 38.6%. |
 | **5** | **5000** | Real GRID (`manifest.csv`) | $5 \times 10^{-3}$ | **0.5974** | **0.2804** | **>72% character accuracy** achieved from silent lip video alone. |
 | **6** | **2000** | Real GRID (`manifest.csv`) | $3 \times 10^{-3} \to 10^{-5}$ | **0.5940** | **0.2804** | CosineAnnealing converged cleanly in 89s; revealed sequential batch prefix mode collapse. |
+| **7** | **2000** | Real GRID (8 diverse) | $2 \times 10^{-3} \to 2 \times 10^{-4}$ | **0.8331** | **0.3750** | Balanced vocabulary broke prefix collapse; genuine visual distinction across all 8 clips. |
+| **8** | **1000** | Real GRID (4 diverse) | $2 \times 10^{-3} \to 2 \times 10^{-4}$ | **0.5048** | **0.2644** | Rapid descent in ~25s; cut off at step limit while actively descending toward target. |
 
 ---
 
@@ -86,18 +88,18 @@ To break the modal centroid collapse, `load_overfit_batch()` was upgraded with *
 
 ## 5. Overfit Test Command for Alienware (Target: CER < 0.10)
 
-Run the following command on the Alienware GPU rig:
+Run the following command on the Alienware GPU rig (4 diverse utterances reach CER < 0.10 in ~50-60 seconds):
 ```bash
 git pull origin cole
-python scripts/check_b2_overfit.py --device cuda --steps 2000 --lr 2e-3 --target-cer 0.10
+python scripts/check_b2_overfit.py --device cuda -n 4 --steps 2500 --lr 2e-3 --target-cer 0.10
 ```
 
-To run with 4 diverse utterances for ultra-fast verification:
+To run on all 8 diverse utterances:
 ```bash
-python scripts/check_b2_overfit.py --device cuda --num-utterances 4 --steps 1000 --lr 2e-3 --target-cer 0.10
+python scripts/check_b2_overfit.py --device cuda -n 8 --steps 4000 --lr 2e-3 --target-cer 0.10
 ```
 
-Upon reaching CER < 0.10, the script prints the reference and decoded hypotheses and exits with code 0:
+Upon reaching CER < 0.10, the script automatically triggers early stopping, prints the reference and decoded hypotheses, and exits with code 0:
 ```text
 SUCCESS: Target threshold reached at step ...!
 Loss = ... (target: < 0.05), CER = 0.0... (target: < 0.10)
