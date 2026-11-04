@@ -81,3 +81,48 @@ clean dB: 3998 utterances, WER 0.2826, CER 0.1854
     0 dB: same as clean (no audio input)
    -5 dB: same as clean (no audio input)
 Saved evaluation artifacts in /home/Lipscribe-team/Desktop/cv_project_LipScribe/reports/b2_visual_only_v2_20261104-200314_grammar
+
+[20:44:03 | +44m] Pushed: results(w4): B2 v2 training + test evaluation (b2_visual_only_v2)
+
+[20:44:03 | +44m] Stage 3: B3 v2
+
+[20:44:03 | +44m] Training configs/b3_concat_v2.yaml for at most 30 min
+Run directory: /home/Lipscribe-team/Desktop/cv_project_LipScribe/runs/b3_concat_v2_20261104-204404
+Initialised audio_encoder from /home/Lipscribe-team/Desktop/cv_project_LipScribe/checkpoints/b1_audio_only_best.pt (30 tensors)
+Initialised visual_encoder from /home/Lipscribe-team/Desktop/cv_project_LipScribe/checkpoints/b2_visual_only_v2_best.pt (136 tensors)
+/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/train.py:273: UserWarning: Detected call of `lr_scheduler.step()` before `optimizer.step()`. In PyTorch 1.1.0 and later, you should call them in the opposite order: `optimizer.step()` before `lr_scheduler.step()`.  Failure to do this will result in PyTorch skipping the first value of the learning rate schedule. See more details at https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
+  scheduler.step()
+epoch   0  train 1.4888  val 0.4080  WER 0.1651  CER 0.0850  [clean:0.108  10:0.131  5:0.152  0:0.188  -5:0.246]  234s  *best (saved best.pt)*
+  time budget 30 min, 3.9 min/epoch: training shortened to 7 epochs (cosine compressed)
+epoch   1  train 0.1381  val 0.3115  WER 0.1188  CER 0.0660  [clean:0.070  10:0.090  5:0.108  0:0.141  -5:0.185]  232s  *best (saved best.pt)*
+epoch   2  train 0.0973  val 0.3016  WER 0.1194  CER 0.0686  [clean:0.070  10:0.091  5:0.109  0:0.141  -5:0.186]  230s
+epoch   3  train 0.0816  val 0.2700  WER 0.0977  CER 0.0561  [clean:0.060  10:0.073  5:0.087  0:0.114  -5:0.154]  230s  *best (saved best.pt)*
+epoch   4  train 0.0668  val 0.2220  WER 0.0979  CER 0.0545  [clean:0.062  10:0.071  5:0.087  0:0.112  -5:0.158]  231s
+epoch   5  train 0.0585  val 0.2123  WER 0.0872  CER 0.0493  [clean:0.053  10:0.063  5:0.076  0:0.101  -5:0.143]  233s  *best (saved best.pt)*
+epoch   6  train 0.0533  val 0.2136  WER 0.0880  CER 0.0499  [clean:0.053  10:0.065  5:0.077  0:0.102  -5:0.142]  233s
+Time budget reached.
+
+============================================================
+Training finished! Best epoch: 5 (Mean Val WER: 0.0872, CER: 0.0493)
+Best model checkpoint saved at: /home/Lipscribe-team/Desktop/cv_project_LipScribe/runs/b3_concat_v2_20261104-204404/best.pt
+Convenience copy saved at:      /home/Lipscribe-team/Desktop/cv_project_LipScribe/checkpoints/b3_concat_v2_best.pt
+============================================================
+
+
+[21:11:14 | +71m] Evaluate runs/b3_concat_v2_20261104-204404 
+Decoding with greedy
+clean dB: 3998 utterances, WER 0.0116, CER 0.0045
+   10 dB: 3998 utterances, WER 0.0166, CER 0.0066
+    5 dB: 3998 utterances, WER 0.0198, CER 0.0081
+    0 dB: 3998 utterances, WER 0.0281, CER 0.0125
+   -5 dB: 3998 utterances, WER 0.0521, CER 0.0255
+Saved evaluation artifacts in /home/Lipscribe-team/Desktop/cv_project_LipScribe/reports/b3_concat_v2_20261104-204404
+
+[21:12:22 | +72m] Evaluate runs/b3_concat_v2_20261104-204404 --decode grammar
+Decoding with grammar
+clean dB: 3998 utterances, WER 0.0077, CER 0.0036
+   10 dB: 3998 utterances, WER 0.0113, CER 0.0054
+    5 dB: 3998 utterances, WER 0.0138, CER 0.0067
+    0 dB: 3998 utterances, WER 0.0199, CER 0.0105
+   -5 dB: 3998 utterances, WER 0.0383, CER 0.0226
+Saved evaluation artifacts in /home/Lipscribe-team/Desktop/cv_project_LipScribe/reports/b3_concat_v2_20261104-204404_grammar
