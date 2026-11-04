@@ -121,6 +121,9 @@ def run_overfit(
     model.train()
     criterion = nn.CTCLoss(blank=0, zero_infinity=True)
     optimiser = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=0.0)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        optimiser, T_max=max_steps, eta_min=1e-5
+    )
 
     start_time = time.time()
     final_loss = float("inf")
@@ -139,6 +142,7 @@ def run_overfit(
         loss.backward()
         nn.utils.clip_grad_norm_(model.parameters(), 5.0)
         optimiser.step()
+        scheduler.step()
 
         final_loss = loss.item()
 
