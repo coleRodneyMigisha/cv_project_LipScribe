@@ -383,11 +383,18 @@ def fit(cfg: dict, model: nn.Module, train_loader: Iterable, val_loaders: dict,
             save_checkpoint(run_dir / "latest.pt", epoch=epoch, state=state, **ckpt)
             if improved:
                 save_checkpoint(run_dir / "best.pt", epoch=epoch, state=state, **ckpt)
+                try:
+                    top_ckpt_dir = REPO_ROOT / "checkpoints"
+                    top_ckpt_dir.mkdir(parents=True, exist_ok=True)
+                    import shutil
+                    shutil.copy2(run_dir / "best.pt", top_ckpt_dir / f"{cfg.get('experiment', 'model')}_best.pt")
+                except Exception:
+                    pass
 
             per_snr = "  ".join(f"{s}:{val[s]['wer']:.3f}" for s in val_loaders)
             print(f"epoch {epoch:3d}  train {train_loss:.4f}  val {val['mean_loss']:.4f}  "
                   f"WER {val['mean_wer']:.4f}  CER {val['mean_cer']:.4f}  [{per_snr}]  "
-                  f"{time.time() - t0:.0f}s{'  *best*' if improved else ''}")
+                  f"{time.time() - t0:.0f}s{'  *best (saved best.pt)*' if improved else ''}")
 
             if state["bad_epochs"] >= tc["patience"]:
                 print(f"Early stopping: no improvement for {tc['patience']} epochs.")
@@ -398,6 +405,15 @@ def fit(cfg: dict, model: nn.Module, train_loader: Iterable, val_loaders: dict,
     state["epochs_run"] = epoch + 1
     if results_csv is not None:
         append_results(results_csv, cfg, run_dir, state)
+
+    print("\n" + "=" * 60)
+    print(f"Training finished! Best epoch: {state['best_epoch']} "
+          f"(Mean Val WER: {state['best_wer']:.4f}, CER: {state['best_cer']:.4f})")
+    print(f"Best model checkpoint saved at: {run_dir / 'best.pt'}")
+    top_saved = REPO_ROOT / "checkpoints" / f"{cfg.get('experiment', 'model')}_best.pt"
+    if top_saved.exists():
+        print(f"Convenience copy saved at:      {top_saved}")
+    print("=" * 60 + "\n")
     return state
 
 
