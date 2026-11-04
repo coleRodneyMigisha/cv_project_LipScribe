@@ -33,6 +33,7 @@ The primary objective of Card W3-05's overfit check is a pre-flight sanity test 
 | **3** | **300** | Real GRID (`manifest.csv`) | $5 \times 10^{-3}$ | **1.4098** | **0.4656** | Real mouth clips loaded. Rapid initial character alignment. |
 | **4** | **500** | Real GRID (`manifest.csv`) | $5 \times 10^{-3}$ | **0.7628** | **0.3862** | Loss dropped by 46%; CER improved to 38.6%. |
 | **5** | **5000** | Real GRID (`manifest.csv`) | $5 \times 10^{-3}$ | **0.5974** | **0.2804** | **>72% character accuracy** achieved from silent lip video alone. |
+| **6** | **2000** | Real GRID (`manifest.csv`) | $3 \times 10^{-3} \to 10^{-5}$ | **0.5940** | **0.2804** | CosineAnnealing converged cleanly in 89s; revealed sequential batch prefix mode collapse. |
 
 ---
 
@@ -45,27 +46,41 @@ In Runs 1 and 2, synthetic Gaussian noise (`torch.randn`) was used.
 - Because all 8 clips produced nearly identical feature vectors at the BiLSTM layer, a deterministic model cannot map identical inputs to 8 distinct text sequences. It converged to the batch centroid / mode, which corresponds to the theoretical CTC loss floor of $\approx 1.20$.
 
 ### 4.2 Transition to Real GRID Data
-In Runs 3, 4, and 5, real mouth crops from `data/manifest.csv` were loaded. 
+In Runs 3, 4, 5, and 6, real mouth crops from `data/manifest.csv` were loaded. 
 - Real lip movements contain true phonemic articulatory dynamics (e.g. bilabial closures for `/b/`, `/p/`, lip rounding for `/u/`, mouth opening for vowels).
 - With genuine visual contrast, the model differentiated utterances and steadily drove down the loss:
-  - From $1.4098 \to 0.7628 \to 0.5974$.
+  - From $1.4098 \to 0.7628 \to 0.5940$.
 
-### 4.3 CER Drop from $\approx 1.0 \to 0.2804$
-- An untrained model outputs random characters and blanks, yielding $\text{CER} \approx 1.0$ (or higher).
-- In Run 5, the model achieved a **CER of $0.2804$**, meaning **over $72\%$ of all characters across the 8 utterances were correctly recognized from silent video**.
+### 4.3 Run 6 Diagnostic: The "Bin Blue At F Sive Snon" Modal Collapse
+In Run 6, the 2000-step test printed the exact decoded hypothesis across all 8 utterances:
+```text
+  [0] Ref: 'bin blue at f two now'      -> Hyp: 'bin blue at f sive snon'
+  [1] Ref: 'bin blue at f three soon'    -> Hyp: 'bin blue at f sive snon'
+  [2] Ref: 'bin blue at f four please'   -> Hyp: 'bin blue at f sive snon'
+  [3] Ref: 'bin blue at f five again'    -> Hyp: 'bin blue at f sive snon'
+  [4] Ref: 'bin blue at l six now'       -> Hyp: 'bin blue at f sive snon'
+  [5] Ref: 'bin blue at l seven soon'    -> Hyp: 'bin blue at f sive snon'
+  [6] Ref: 'bin blue at l eight please'  -> Hyp: 'bin blue at f sive snon'
+  [7] Ref: 'bin blue at l nine again'    -> Hyp: 'bin blue at f sive snon'
+```
 
-### 4.4 Why CER Reached 0.2804 & Optimizations for CER < 0.10
-In Run 5, the model achieved a strong CER of $0.2804$ (>72% accuracy), but plateaued before reaching < 0.10 due to:
-1. **Dropout Noise During Evaluation:** The model was instantiated with `dropout=0.3`. During greedy decoding, the model remained in training mode (`model.train()`), causing 30% of features to be randomly masked even during metric calculation.
-2. **Weight Decay Regularization:** $L_2$ regularization penalizes weight expansion, which actively resists single-batch memorization.
-3. **Fixed Learning Rate Oscillation:** Without decay, AdamW step sizes oscillated around the minimum.
+#### Why Did This Happen?
+1. **Sequential Data Ordering:** `ds[0]..ds[7]` are the first 8 consecutive items of Speaker 1 in `data/manifest.csv` (`bbaf2n`, `bbaf3s`, `bbaf4p`, `bbaf5a`, `bbal6n`, `bbal7s`, `bbal8p`, `bbal9a`).
+2. **70% Shared Prefix:** Every single utterance starts with `bin blue at` (and 4 with `f`, 4 with `l`).
+3. **Suffix Gradient Cancellation:** 
+   - For `bin blue at f`, all 8 samples provided identical positive gradient signals.
+   - For the final two words (`two now`, `three soon`, etc.), the 8 targets pulled in 8 opposing directions.
+   - The vector mean of the opposing gradients collapsed to `'sive'` (blending `six`, `five`, `seven`) and `'snon'` (blending `soon`, `now`, `again`).
+4. **The 0.2804 Floor:** The string `'bin blue at f sive snon'` matches **71.96%** of the characters across all 8 sentences ($1 - 0.7196 = 0.2804$ CER). Once the model found this compromise, the CTC loss fell to 0.59, gradients diminished, and the model settled into this local minimum.
 
-**Fixes Applied in `scripts/check_b2_overfit.py`:**
-- **Zero Dropout for Overfit Sanity Check (`--dropout 0.0`):** Removes stochastic feature masking so the visual encoder can map exact lip configurations to characters.
-- **`model.eval()` During Evaluation:** Ensures greedy decoding and CER calculation are performed on deterministic, fully unmasked representations.
-- **Zero Weight Decay (`weight_decay=0.0`):** Removes artificial regularization constraints during batch memorization.
-- **Cosine Annealing (`CosineAnnealingLR`):** Smoothly decays learning rate from $3 \times 10^{-3} \to 10^{-5}$, enabling the optimizer to settle into the sharp global minimum.
-- **Early Stop at CER < 0.10:** Automatically terminates and prints the decoded hypotheses the moment character accuracy exceeds 90%.
+### 4.4 The Solution: Balanced Vocabulary Diversity
+To break the modal centroid collapse, `load_overfit_batch()` was upgraded with **balanced vocabulary sampling**:
+- Samples are drawn across distinct commands (`bin`, `lay`, `place`, `set`) and colors (`blue`, `green`, `red`, `white`).
+- When utterance 0 is `bin blue`, utterance 1 is `lay green`, utterance 2 is `place red`, and utterance 3 is `set white`:
+  - **No common prefix exists.**
+  - A static guess cannot cheat the loss.
+  - The model is forced to use the 3D-CNN visual features from frame 1 (bilabial closure for `/b/` vs open tongue for `/l/` vs plosive `/p/` vs closed teeth `/s/`).
+- `eta_min` was raised to $2 \times 10^{-4}$ to prevent early optimizer freeze.
 
 ---
 
@@ -74,13 +89,18 @@ In Run 5, the model achieved a strong CER of $0.2804$ (>72% accuracy), but plate
 Run the following command on the Alienware GPU rig:
 ```bash
 git pull origin cole
-python scripts/check_b2_overfit.py --device cuda --steps 2000 --lr 3e-3 --target-cer 0.10
+python scripts/check_b2_overfit.py --device cuda --steps 2000 --lr 2e-3 --target-cer 0.10
 ```
 
-Upon reaching CER < 0.10 (expected within 500-1200 steps on CUDA), the script prints all 8 reference and decoded hypotheses and exits with code 0:
+To run with 4 diverse utterances for ultra-fast verification:
+```bash
+python scripts/check_b2_overfit.py --device cuda --num-utterances 4 --steps 1000 --lr 2e-3 --target-cer 0.10
+```
+
+Upon reaching CER < 0.10, the script prints the reference and decoded hypotheses and exits with code 0:
 ```text
 SUCCESS: Target threshold reached at step ...!
-Loss = ... (target: < 0.05), CER = ... (target: < 0.10)
+Loss = ... (target: < 0.05), CER = 0.0... (target: < 0.10)
 ```
 
 ---
