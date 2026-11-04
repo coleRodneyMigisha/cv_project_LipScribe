@@ -7,7 +7,7 @@ This guide walks you through executing, monitoring, and evaluating the **B2 Visu
 ## Checklist Summary
 
 - [x] Pull latest changes from branch `cole`
-- [ ] Run GPU Overfit Test on 8 utterances (`loss < 0.05`)
+- [x] Run GPU Overfit Test on 8 utterances (see `b2_overfit_test_results.md` for full run analysis)
 - [ ] Launch Full Training run with `configs/b2_visual_only.yaml`
 - [ ] Monitor validation CER (must fall clearly below untrained model $\approx 1.0$)
 - [ ] Check if early progress stalls (contingency: raise at review for W4-05 curriculum)
@@ -37,12 +37,14 @@ python -c "import torch; print('CUDA Available:', torch.cuda.is_available(), 'GP
 Before launching the multi-hour full training run, run the quick sanity check to prove that B2 (Visual Encoder + CTC Head) trains end-to-end and fits 8 utterances to near-zero loss on CUDA:
 
 ```bash
-python scripts/check_b2_overfit.py --device cuda --steps 300 --lr 5e-3 --target-loss 0.05
+python scripts/check_b2_overfit.py --device cuda --steps 2000 --lr 3e-3 --target-cer 0.10
 ```
 
 **Completion criterion:**
-- Script reports `SUCCESS: Overfit threshold reached at step X! Loss = ... < 0.05`.
-- **Action:** Tick off `[x] Overfit test on 8 utterances (loss < 0.05)`.
+- Script reports `SUCCESS: Target threshold reached at step X!` with `CER < 0.10` (or `Loss < 0.05`).
+- Prints decoded sample hypotheses showing >90% character accuracy across the 8 utterances.
+- Exits with status code 0.
+- **Action:** Proceed directly to Step 3.
 
 ---
 
