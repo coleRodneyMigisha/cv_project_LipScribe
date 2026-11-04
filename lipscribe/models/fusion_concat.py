@@ -1,6 +1,12 @@
 """Concatenation fusion baseline B3 (W3-06, implementation document Section 8).
 
 Concatenate audio and visual features per frame -> Linear(1024, 256) -> CTCHead(input_dim=256).
+
+Modality dropout (training only): with probability ``p_audio`` an utterance's
+audio features are zeroed after the encoder, and with ``p_visual`` its visual
+features (never both for the same utterance). Without it the fused model leans
+almost entirely on audio and barely learns to use the lips, which is exactly
+what it needs at low SNR.
 """
 from __future__ import annotations
 
@@ -9,16 +15,21 @@ from torch import nn
 
 from lipscribe.models.audio_encoder import AudioEncoder
 from lipscribe.models.ctc_head import CTCHead
-from lipscribe.models.visual_encoder import VisualEncoder
+from lipscribe.models.visual_encoder import build_visual_encoder
 
 
 class B3Concat(nn.Module):
     """B3 baseline: AudioEncoder (512) + VisualEncoder (512) -> Concat (1024) -> Linear (256) -> CTCHead."""
 
-    def __init__(self, dropout: float = 0.3) -> None:
+    def __init__(self, dropout: float = 0.3, model_cfg: dict | None = None,
+                 p_audio_drop: float = 0.0, p_visual_drop: float = 0.0) -> None:
         super().__init__()
+        if p_audio_drop + p_visual_drop > 1.0:
+            raise ValueError("p_audio_drop + p_visual_drop must be <= 1")
+        self.p_audio_drop = float(p_audio_drop)
+        self.p_visual_drop = float(p_visual_drop)
         self.audio_encoder = AudioEncoder(in_dim=80)
-        self.visual_encoder = VisualEncoder(dropout=dropout)
+        self.visual_encoder = build_visual_encoder(model_cfg, dropout=dropout)
         self.fusion_proj = nn.Sequential(
             nn.Linear(512 + 512, 256),
             nn.LayerNorm(256),
@@ -48,11 +59,20 @@ class B3Concat(nn.Module):
         else:
             lengths = torch.full((audio_feat.shape[0],), t, device=audio_feat.device, dtype=torch.long)
 
-        # 4. Concatenate per frame
+        # 4. Modality dropout: zero one stream for a random subset of utterances
+        if self.training and (self.p_audio_drop > 0 or self.p_visual_drop > 0):
+            u = torch.rand(audio_feat.shape[0], device=audio_feat.device)
+            keep_a = (u >= self.p_audio_drop).to(audio_feat.dtype).view(-1, 1, 1)
+            keep_v = ((u < self.p_audio_drop) | (u >= self.p_audio_drop + self.p_visual_drop))
+            keep_v = keep_v.to(video_feat.dtype).view(-1, 1, 1)
+            audio_feat = audio_feat * keep_a
+            video_feat = video_feat * keep_v
+
+        # 5. Concatenate per frame
         concat = torch.cat([audio_feat, video_feat], dim=-1)  # [B, t, 1024]
         fused = self.fusion_proj(concat)  # [B, t, 256]
 
-        # 5. CTC Sequence Head
+        # 6. CTC Sequence Head
         log_probs = self.ctc_head(fused, lengths)  # [t, B, 28]
         return {
             "log_probs": log_probs,

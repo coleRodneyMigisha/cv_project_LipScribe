@@ -142,6 +142,45 @@ def init_lstm_forget_bias(model: nn.Module, value: float = 1.0) -> None:
                 param[h:2 * h].fill_(value if name.startswith("bias_ih") else 0.0)
 
 
+def load_pretrained(model: nn.Module, init_from: dict, map_location="cpu") -> dict:
+    """Copy sub-module weights from other runs' checkpoints into ``model``.
+
+    ``init_from`` maps a sub-module name to a checkpoint, e.g.
+    ``{"audio_encoder": "checkpoints/b1_audio_only_best.pt",
+       "visual_encoder": "checkpoints/b2_visual_only_v2_best.pt"}``.
+    Every parameter of that sub-module must be present with the same shape in
+    the source checkpoint (B1/B2/B3 all name their encoders the same way), so a
+    mismatched encoder type fails loudly instead of silently training from scratch.
+    Returns ``{module: number_of_tensors_loaded}``.
+    """
+    loaded = {}
+    for module_name, ckpt_path in (init_from or {}).items():
+        path = Path(ckpt_path)
+        if not path.is_absolute():
+            path = REPO_ROOT / path
+        if not path.exists():
+            raise FileNotFoundError(f"init_from.{module_name}: checkpoint {path} not found")
+        source = torch.load(path, map_location=map_location, weights_only=False)
+        source = source.get("model", source)
+        target = getattr(model, module_name, None)
+        if target is None:
+            raise ValueError(f"init_from: model has no sub-module {module_name!r}")
+        prefix = module_name + "."
+        sub = {k[len(prefix):]: v for k, v in source.items() if k.startswith(prefix)}
+        own = target.state_dict()
+        missing = [k for k in own if k not in sub]
+        bad_shape = [k for k in own if k in sub and sub[k].shape != own[k].shape]
+        if missing or bad_shape:
+            raise ValueError(
+                f"init_from.{module_name}: {path} does not match this model "
+                f"(missing {missing[:3]}, shape mismatch {bad_shape[:3]}). "
+                "Check that model.visual_encoder matches the run being loaded.")
+        target.load_state_dict({k: sub[k] for k in own})
+        loaded[module_name] = len(own)
+        print(f"Initialised {module_name} from {path} ({len(own)} tensors)")
+    return loaded
+
+
 def param_groups(model: nn.Module, weight_decay: float) -> list[dict]:
     """Weight decay on weight matrices only; none on biases or norm parameters."""
     decay, no_decay = [], []
@@ -155,13 +194,21 @@ def param_groups(model: nn.Module, weight_decay: float) -> list[dict]:
 
 def warmup_cosine(optimiser: torch.optim.Optimizer, warmup_steps: int,
                   total_steps: int) -> torch.optim.lr_scheduler.LambdaLR:
-    """Linear warm-up to the peak learning rate, then cosine decay to zero."""
+    """Linear warm-up to the peak learning rate, then cosine decay to zero.
+
+    ``scheduler.total_ref["total"]`` can be lowered during training (time budget)
+    so the cosine still reaches zero at the new final step.
+    """
+    ref = {"total": total_steps}
+
     def factor(step: int) -> float:
         if step < warmup_steps:
             return (step + 1) / max(1, warmup_steps)
-        progress = (step - warmup_steps) / max(1, total_steps - warmup_steps)
+        progress = (step - warmup_steps) / max(1, ref["total"] - warmup_steps)
         return 0.5 * (1.0 + math.cos(math.pi * min(1.0, progress)))
-    return torch.optim.lr_scheduler.LambdaLR(optimiser, factor)
+    scheduler = torch.optim.lr_scheduler.LambdaLR(optimiser, factor)
+    scheduler.total_ref = ref
+    return scheduler
 
 
 # ---------------------------------------------------------------------------
@@ -325,6 +372,11 @@ def fit(cfg: dict, model: nn.Module, train_loader: Iterable, val_loaders: dict,
         results_csv: Path | None = RESULTS_CSV) -> dict:
     """Train until early stopping or ``max_epochs``; return the final ``state``.
 
+    ``train.time_budget_min`` (optional) caps wall-clock training time: after
+    every epoch the mean epoch time is measured and, if ``max_epochs`` would not
+    fit in the remaining budget, the run is shortened and the cosine schedule is
+    compressed to end at the new last epoch (so the learning rate still anneals).
+
     ``resume`` is a checkpoint dict from :func:`load_checkpoint`. If it is None
     the model is freshly initialised (LSTM forget-gate biases set to 1).
     """
@@ -332,6 +384,9 @@ def fit(cfg: dict, model: nn.Module, train_loader: Iterable, val_loaders: dict,
     model.to(device)
     if resume is None:
         init_lstm_forget_bias(model)
+        # After the forget-bias init, so pretrained LSTM biases are not overwritten.
+        if cfg.get("model", {}).get("init_from"):
+            load_pretrained(model, cfg["model"]["init_from"])
 
     optimiser = torch.optim.AdamW(param_groups(model, tc["weight_decay"]), lr=tc["lr"])
     steps_per_epoch = math.ceil(len(train_loader) / max(1, int(tc["grad_accum"])))
@@ -351,14 +406,19 @@ def fit(cfg: dict, model: nn.Module, train_loader: Iterable, val_loaders: dict,
         scaler.load_state_dict(resume["scaler"])
         state.update(resume["state"])
         restore_rng(resume["rng"])
+        if state.get("budget_max_epochs"):
+            scheduler.total_ref["total"] = int(state["budget_max_epochs"] * steps_per_epoch)
         start_epoch = resume["epoch"] + 1
         print(f"Resumed from epoch {resume['epoch']} (best mean WER {state['best_wer']:.4f})")
 
     writer = SummaryWriter(log_dir=str(run_dir / "tensorboard"))
     ckpt = dict(model=model, optimiser=optimiser, scheduler=scheduler, scaler=scaler, cfg=cfg)
     epoch = start_epoch - 1
+    budget_s = float(tc.get("time_budget_min") or 0) * 60.0
+    max_epochs = int(state.get("budget_max_epochs") or tc["max_epochs"])
+    session_t0 = time.time()
     try:
-        for epoch in range(start_epoch, tc["max_epochs"]):
+        for epoch in range(start_epoch, min(int(tc["max_epochs"]), max_epochs)):
             t0 = time.time()
             train_loss = train_one_epoch(
                 model, train_loader, criterion, optimiser, scheduler, scaler,
@@ -383,6 +443,7 @@ def fit(cfg: dict, model: nn.Module, train_loader: Iterable, val_loaders: dict,
             save_checkpoint(run_dir / "latest.pt", epoch=epoch, state=state, **ckpt)
             if improved:
                 save_checkpoint(run_dir / "best.pt", epoch=epoch, state=state, **ckpt)
+            if improved and results_csv is not None:   # no convenience copy for --no-results smoke runs
                 try:
                     top_ckpt_dir = REPO_ROOT / "checkpoints"
                     top_ckpt_dir.mkdir(parents=True, exist_ok=True)
@@ -399,6 +460,20 @@ def fit(cfg: dict, model: nn.Module, train_loader: Iterable, val_loaders: dict,
             if state["bad_epochs"] >= tc["patience"]:
                 print(f"Early stopping: no improvement for {tc['patience']} epochs.")
                 break
+
+            if budget_s > 0:
+                spent = time.time() - session_t0
+                per_epoch = spent / (epoch - start_epoch + 1)
+                fit_epochs = epoch + 1 + int(max(0.0, budget_s - spent) // per_epoch)
+                if fit_epochs < max_epochs:
+                    max_epochs = max(epoch + 1, fit_epochs)
+                    state["budget_max_epochs"] = max_epochs
+                    scheduler.total_ref["total"] = int(max_epochs * steps_per_epoch)
+                    print(f"  time budget {budget_s / 60:.0f} min, {per_epoch / 60:.1f} min/epoch: "
+                          f"training shortened to {max_epochs} epochs (cosine compressed)")
+                if epoch + 1 >= max_epochs:
+                    print("Time budget reached.")
+                    break
     finally:
         writer.close()
 
@@ -550,12 +625,18 @@ def build_loaders(cfg: dict, limit: int | None = None):
     # Optional data.noise_splits / data.noisy_dir; otherwise the dataset's default locations.
     extra = {k: d[k] for k in ("noise_splits", "noisy_dir") if d.get(k)}
     visual_aug = bool(d.get("visual_augment", False) or cfg.get("augmentation", {}).get("visual", False))
+    # Optional data.visual_aug: max_jitter, p_flip, max_scale, time_masks, max_mask_width,
+    # p_erase, max_erase_area (lipscribe.data.augmentation.apply_visual_augmentation).
+    aug = dict(d.get("visual_aug") or {})
+    aug_base = {k: aug.pop(k) for k in ("max_jitter", "p_flip") if k in aug}
     train_ds = GridDataset(d["manifest"], d["splits"], "train", seed=int(cfg.get("seed", 1)),
                            snrs=[snr_value(s) for s in d["train_snrs"]],
-                           visual_augment=visual_aug, **extra)
+                           visual_augment=visual_aug, visual_aug_params=aug, **aug_base, **extra)
+    # data.val_snrs (default eval_snrs): a visual-only model scores the same at
+    # every SNR, so validating it once on clean audio is enough.
     val_sets = {str(s): GridDataset(d["manifest"], d["splits"], "val", snr_db=snr_value(s),
                                     visual_augment=False, **extra)
-                for s in d["eval_snrs"]}
+                for s in d.get("val_snrs") or d["eval_snrs"]}
     if limit:
         train_ds = Subset(train_ds, range(min(limit, len(train_ds))))
         val_sets = {s: Subset(ds, range(min(limit, len(ds)))) for s, ds in val_sets.items()}
@@ -594,6 +675,10 @@ def parse_args(argv=None) -> argparse.Namespace:
     p.add_argument("--runs-root", default=str(REPO_ROOT / "runs"))
     p.add_argument("--limit", type=int, help="use only the first N utterances per split (smoke runs)")
     p.add_argument("--max-epochs", type=int, help="override train.max_epochs")
+    p.add_argument("--time-budget-min", type=float,
+                   help="wall-clock training budget in minutes (shortens and compresses the schedule)")
+    p.add_argument("--no-results", action="store_true",
+                   help="smoke runs: do not append to experiments/results.csv or copy to checkpoints/")
     p.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     args = p.parse_args(argv)
     if not args.config and not args.resume:
@@ -616,6 +701,9 @@ def main(argv=None) -> None:
     if args.max_epochs is not None:
         cfg = copy.deepcopy(cfg)
         cfg["train"]["max_epochs"] = args.max_epochs
+    if args.time_budget_min is not None:
+        cfg = copy.deepcopy(cfg)
+        cfg["train"]["time_budget_min"] = args.time_budget_min
     if resume is None:
         run_dir = make_run_dir(cfg, args.runs_root)
     print(f"Run directory: {run_dir}")
@@ -628,7 +716,8 @@ def main(argv=None) -> None:
     model = build_model(cfg["model"])
     fit(cfg, model, train_loader, val_loaders, run_dir, device=device,
         prepare_batch=build_feature_step(cfg, device),
-        decode_fn=greedy_decode, wer_fn=wer, cer_fn=cer, resume=resume)
+        decode_fn=greedy_decode, wer_fn=wer, cer_fn=cer, resume=resume,
+        results_csv=None if args.no_results else RESULTS_CSV)
 
 
 if __name__ == "__main__":
