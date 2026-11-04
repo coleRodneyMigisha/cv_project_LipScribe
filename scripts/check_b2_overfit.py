@@ -78,7 +78,7 @@ def load_overfit_batch(
     seed: int = 42,
     device: torch.device | str = "cpu",
 ) -> dict:
-    """Load 8 real utterances from GRID manifest if present, else fall back to synthetic."""
+    """Load b diverse real utterances from GRID manifest if present, else fall back to synthetic."""
     dev = torch.device(device)
     manifest = Path(manifest_path)
     splits = Path(splits_path)
@@ -87,16 +87,52 @@ def load_overfit_batch(
         try:
             from lipscribe.data.dataset import GridDataset, collate
             ds = GridDataset(manifest, splits, "train", visual_augment=False)
-            if len(ds) >= b:
-                items = [ds[i] for i in range(b)]
-                batch = collate(items)
-                batch = {
-                    k: (v.to(dev, non_blocking=True) if torch.is_tensor(v) else v)
-                    for k, v in batch.items()
-                }
-                if "targets" in batch and "video" in batch:
-                    print(f"Loaded {b} real utterances from {manifest_path} for overfit test.")
-                    return batch
+
+            # Select diverse utterances across commands and colors to prevent
+            # sequence centroid collapse (e.g. 8 utterances sharing 'bin blue at' prefix)
+            selected_indices: list[int] = []
+            seen_pairs: set[tuple[str, str]] = set()
+            commands_count: dict[str, int] = {}
+            colors_count: dict[str, int] = {}
+            max_per_word = max(2, b // 4)
+
+            for idx in range(len(ds)):
+                r = ds[idx]
+                words = r["text"].split()
+                if len(words) >= 2:
+                    cmd, col = words[0], words[1]
+                    pair = (cmd, col)
+                    if (
+                        pair not in seen_pairs
+                        and commands_count.get(cmd, 0) < max_per_word
+                        and colors_count.get(col, 0) < max_per_word
+                    ):
+                        seen_pairs.add(pair)
+                        commands_count[cmd] = commands_count.get(cmd, 0) + 1
+                        colors_count[col] = colors_count.get(col, 0) + 1
+                        selected_indices.append(idx)
+                        if len(selected_indices) == b:
+                            break
+
+            # Fallback to fill any remaining slots
+            if len(selected_indices) < b:
+                for idx in range(len(ds)):
+                    if idx not in selected_indices:
+                        selected_indices.append(idx)
+                        if len(selected_indices) == b:
+                            break
+
+            items = [ds[i] for i in selected_indices]
+            batch = collate(items)
+            batch = {
+                k: (v.to(dev, non_blocking=True) if torch.is_tensor(v) else v)
+                for k, v in batch.items()
+            }
+            if "targets" in batch and "video" in batch:
+                print(f"Loaded {len(items)} diverse real utterances from {manifest_path} for overfit test:")
+                for i, it in enumerate(items):
+                    print(f"  [{i}] ({it['utt_id']}) {it['text']!r}")
+                return batch
         except Exception as e:
             print(f"Notice: Could not load real utterances ({e}); using synthetic batch.")
 
@@ -107,10 +143,10 @@ def load_overfit_batch(
 def run_overfit(
     model: nn.Module,
     batch: dict,
-    max_steps: int = 1500,
+    max_steps: int = 2000,
     target_loss: float = 0.05,
     target_cer: float = 0.10,
-    lr: float = 3e-3,
+    lr: float = 2e-3,
     device: torch.device | str = "cpu",
     verbose: bool = True,
 ) -> tuple[float, float, int]:
@@ -129,7 +165,7 @@ def run_overfit(
     criterion = nn.CTCLoss(blank=0, zero_infinity=True)
     optimiser = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=0.0)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-        optimiser, T_max=max_steps, eta_min=1e-5
+        optimiser, T_max=max_steps, eta_min=2e-4
     )
 
     start_time = time.time()
@@ -174,7 +210,7 @@ def run_overfit(
                 if verbose:
                     print(f"\nSUCCESS: Target threshold reached at step {step}!")
                     print(f"Loss = {final_loss:.4f} (target: < {target_loss}), CER = {final_cer:.4f} (target: < {target_cer})")
-                    print("\nDecoded Hypotheses across 8 utterances:")
+                    print(f"\nDecoded Hypotheses across {len(batch['texts'])} utterances:")
                     for i in range(len(batch["texts"])):
                         h = hyps[i] if i < len(hyps) else ""
                         print(f"  [{i}] Ref: {batch['texts'][i]!r}")
@@ -188,7 +224,7 @@ def run_overfit(
         final_cer = cer(batch["texts"], hyps)
 
     if verbose and hyps:
-        print("\nFinal Decoded Hypotheses across 8 utterances:")
+        print(f"\nFinal Decoded Hypotheses across {len(batch['texts'])} utterances:")
         for i in range(len(batch["texts"])):
             h = hyps[i] if i < len(hyps) else ""
             print(f"  [{i}] Ref: {batch['texts'][i]!r}")
@@ -200,9 +236,10 @@ def run_overfit(
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--steps", type=int, default=2000, help="Max steps to overfit")
+    parser.add_argument("--num-utterances", "-n", type=int, default=8, help="Number of utterances to overfit (default: 8)")
     parser.add_argument("--target-loss", type=float, default=0.05, help="Target loss threshold")
     parser.add_argument("--target-cer", type=float, default=0.10, help="Target CER threshold")
-    parser.add_argument("--lr", type=float, default=3e-3, help="Learning rate")
+    parser.add_argument("--lr", type=float, default=2e-3, help="Learning rate (default: 2e-3)")
     parser.add_argument("--dropout", type=float, default=0.0, help="Dropout rate (0.0 recommended for overfit test)")
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     parser.add_argument("--frames", type=int, default=35, help="Video frames per clip")
@@ -217,9 +254,9 @@ def main() -> None:
 
     model = B2VisualOnly(dropout=args.dropout).to(device)
     if args.synthetic_only:
-        batch = create_synthetic_overfit_batch(b=8, t=args.frames, device=device)
+        batch = create_synthetic_overfit_batch(b=args.num_utterances, t=args.frames, device=device)
     else:
-        batch = load_overfit_batch(b=8, frames=args.frames, device=device)
+        batch = load_overfit_batch(b=args.num_utterances, frames=args.frames, device=device)
 
     loss, cer_val, steps = run_overfit(
         model, batch,
