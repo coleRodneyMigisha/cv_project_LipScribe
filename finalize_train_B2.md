@@ -37,8 +37,10 @@ python -c "import torch; print('CUDA Available:', torch.cuda.is_available(), 'GP
 Before launching the multi-hour full training run, run the quick sanity check to prove that B2 (Visual Encoder + CTC Head) trains end-to-end and fits 8 utterances to near-zero loss on CUDA:
 
 ```bash
-python scripts/check_b2_overfit.py --device cuda --steps 2000 --lr 3e-3 --target-cer 0.10
+python scripts/check_b2_overfit.py --device cuda -n 4 --steps 2500 --lr 2e-3 --target-cer 0.10
 ```
+
+*(Or for all 8 utterances: `python scripts/check_b2_overfit.py --device cuda -n 8 --steps 4000 --lr 2e-3 --target-cer 0.10`)*
 
 **Completion criterion:**
 - Script reports `SUCCESS: Target threshold reached at step X!` with `CER < 0.10` (or `Loss < 0.05`).
