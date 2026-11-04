@@ -32,21 +32,18 @@ python -c "import torch; print('CUDA Available:', torch.cuda.is_available(), 'GP
 
 ---
 
-## Step 2: Run GPU Overfit Test (8 Utterances)
+## Step 2: Run GPU Overfit Test (8 Utterances) — [COMPLETED]
 
-Before launching the multi-hour full training run, run the quick sanity check to prove that B2 (Visual Encoder + CTC Head) trains end-to-end and fits 8 utterances to near-zero loss on CUDA:
+**Result:**
+- **Final Loss:** `0.0497` (target: `< 0.05`)
+- **Final CER:** `0.0000` (100% character accuracy across all 8 utterances)
+- **Steps:** 3099 steps in **138.4 seconds** on NVIDIA GeForce RTX 4080 SUPER
+- **Status:** **PASS** (Full breakdown documented in `b2_overfit_test_results.md`)
 
 ```bash
-python scripts/check_b2_overfit.py --device cuda -n 4 --steps 2500 --lr 2e-3 --target-cer 0.10
+# Executed command:
+python scripts/check_b2_overfit.py --device cuda -n 8 --steps 4000 --lr 2e-3 --target-loss 0.05 --target-cer 0.0
 ```
-
-*(Or for all 8 utterances: `python scripts/check_b2_overfit.py --device cuda -n 8 --steps 4000 --lr 2e-3 --target-cer 0.10`)*
-
-**Completion criterion:**
-- Script reports `SUCCESS: Target threshold reached at step X!` with `CER < 0.10` (or `Loss < 0.05`).
-- Prints decoded sample hypotheses showing >90% character accuracy across the 8 utterances.
-- Exits with status code 0.
-- **Action:** Proceed directly to Step 3.
 
 ---
 
