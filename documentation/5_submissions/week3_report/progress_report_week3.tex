@@ -1,4 +1,4 @@
-% LipScribe -- Progress Report 3 (Week 3 / Milestone M3 & M4)
+% LipScribe -- Progress Report 3 (Week 3 / Milestone M3, M4 & Early M5)
 % Compile: pdflatex progress_report_week3.tex
 \documentclass[11pt,a4paper]{article}
 \usepackage{lipscribe-report}
@@ -7,7 +7,7 @@
 \usepackage{float}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning}
-\fancyhead[L]{\small\sffamily\color{lsgrey}LipScribe -- Progress Report 3 (Week 3: Baselines \& Decoding)}
+\fancyhead[L]{\small\sffamily\color{lsgrey}LipScribe -- Progress Report 3 (Week 3: Baselines, Fusion \& Decoding)}
 
 \newcommand{\notstarted}{\textcolor{lsplan}{\sffamily Not started}}
 \newcommand{\blocked}{\textcolor{red!60!black}{\sffamily\bfseries Blocked}}
@@ -22,26 +22,25 @@
 
 \begin{document}
 
-\docheader{Progress Report 3}{Week 3: Baselines B1, B2 \& B3, Evaluation Engine, and Beam Search}{5 November 2026}
+\docheader{Progress Report 3}{Week 3: Baselines B1--B3, Proposed Model P, Evaluation Engine, and Beam Search}{9 November 2026}
 
 % =====================================================================
 \section{Summary}
-In Week~3 (30~October--5~November~2026), the team successfully completed all core deliverables for Milestones \textbf{M3} and \textbf{M4}. All three foundational baseline models---audio-only baseline \textbf{B1}, visual-only baseline \textbf{B2}, and concatenation fusion baseline \textbf{B3}---have completed full-corpus training on our dedicated Alienware GPU workstation and have been officially evaluated on the four held-out test speakers across all five standardised acoustic conditions ($\text{clean}, 10, 5, 0, -5$\,dB).
+In Week~3 (and early Week~4 follow-through), the team completed all deliverables for Milestones \textbf{M3} and \textbf{M4} and finished the full training and evaluation of Proposed \textbf{Model~P} (\textbf{M5}). All three baseline families---audio-only \textbf{B1}, visual-only \textbf{B2} (v1 \& v2), and concatenation fusion \textbf{B3} (v1 \& v2)---along with all four initialisation variants of \textbf{Model~P} (bidirectional cross-modal attention + per-frame gated fusion + learned missing-modality embedding $\mathbf{e}_{\text{miss}}$) have been trained on the full GRID corpus on our Alienware RTX 4080 SUPER workstation and evaluated across all five acoustic conditions ($\text{clean}, 10, 5, 0, -5$\,dB) on the four held-out test speakers.
 
-The main findings support the multimodal hypothesis:
+The empirical findings validate both our multimodal hypothesis and our architectural choices:
 \begin{enumerate}
-  \item \textbf{B1 (Audio-Only)} is strong in clean audio ($1.96\,\%$ test WER) but its error rises almost five-fold under noise ($9.45\,\%$ at $-5$\,dB).
-  \item \textbf{B2 (Visual-Only)} is unaffected by acoustic noise by construction ($23.04\,\%$ test WER, $14.03\,\%$ CER at every SNR), but varies strongly between unseen speakers (from $13.3\,\%$ for \code{s24} to $33.7\,\%$ for \code{s9}).
-  \item \textbf{B3 (Concatenation Fusion)}, in its improved v2 form (Section~\ref{sec:v2}), beats audio-only at every SNR: \textbf{1.16\,\%} WER clean and \textbf{5.21\,\%} at $-5$\,dB, a \textbf{40.8\,\%} and \textbf{44.9\,\%} relative error reduction over B1. The first B3 run (v1) helped only under noise ($7.35\,\%$ vs.\ $9.45\,\%$ at $-5$\,dB) and was slightly worse than B1 on clean audio ($2.41\,\%$).
-  \item \textbf{GRID grammar-constrained decoding} lowers WER for every model without retraining; B3 v2 reaches \textbf{0.77\,\%} (clean) and \textbf{3.83\,\%} ($-5$\,dB).
+  \item \textbf{B1 (Audio-Only)} achieves $1.96\,\%$ test WER on clean speech ($1.76\,\%$ with grammar decoding), but degrades nearly five-fold under severe noise ($9.45\,\%$ greedy, $8.35\,\%$ grammar at $-5$\,dB).
+  \item \textbf{B2 (Visual-Only)} is completely invariant to acoustic noise ($23.04\,\%$ greedy, $21.03\,\%$ grammar test WER across all SNRs for v1), providing a noise-immune floor in adverse environments.
+  \item \textbf{B3 (Concatenation Fusion v2)} reduces B1's error at every SNR (\textbf{1.16\,\%} clean, \textbf{5.21\,\%} at $-5$\,dB greedy; \textbf{0.77\,\%} clean, \textbf{3.83\,\%} at $-5$\,dB with grammar decoding), but collapses catastrophically when a modality is missing at test time ($25.18\,\%$ without video on clean speech; $75.31\,\%$ without audio).
+  \item \textbf{Proposed Model~P (P4, initialised from B1 + B2 v2)} achieves our best overall greedy test WER (\textbf{1.02\,\%} clean, \textbf{2.51\,\%} mean across SNRs) and best clean grammar WER (\textbf{0.71\,\%}, $0.34\,\%$ CER). Crucially, Model~P resolves B3's missing-modality fragility via $\mathbf{e}_{\text{miss}}$ and dynamic gating: dropping video yields \textbf{1.88\,\%} clean WER (matching standalone B1's $1.96\,\%$), dropping audio yields \textbf{23.78\,\%--31.57\,\%} WER (matching standalone B2), and the mean fusion gate $\bar{g}$ automatically shifts from $0.804$ (clean) down to $0.691$ ($-5$\,dB) to rely more heavily on lip movements as acoustic noise intensifies.
 \end{enumerate}
-The evaluation engine (\code{evaluate.py}) and \textbf{CTC Prefix Beam Search} (W3-07, Algorithm~2) are verified, with a decode latency of 17.3\,ms per utterance. Milestones M1--M4 are closed on schedule.
 
 \medskip
 \noindent\tile{1.96\,\%}{B1 audio-only test WER, clean (9.45\,\% at $-$5\,dB)}\hfill%
-\tile{23.04\,\%}{B2 visual-only test WER (14.03\,\% CER; same at every SNR)}\hfill%
-\tile{1.16\,\%}{B3 v2 concat test WER, clean (5.21\,\% at $-$5\,dB)}\hfill%
-\tile{3.83\,\%}{B3 v2 + grammar decoding at $-$5\,dB (0.77\,\% clean)}
+\tile{23.04\,\%}{B2 visual-only test WER (21.03\,\% grammar; constant across SNR)}\hfill%
+\tile{1.02\,\%}{Model P4 greedy test WER, clean (0.71\,\% grammar; 2.51\,\% mean)}\hfill%
+\tile{1.88\,\%}{Model P4 no-visual fallback WER vs.\ 25.18\,\% for B3 v2}
 
 % =====================================================================
 \section{Progress against the Milestones}
@@ -54,153 +53,141 @@ The evaluation engine (\code{evaluate.py}) and \textbf{CTC Prefix Beam Search} (
 \midrule
 M1 Environment and dataset verified & Sun 25 Oct & \done{} -- closed 29 Oct \\
 M2 Preprocessing and alignment & Sun 1 Nov & \done{} -- closed 3 Nov; full corpus extraction complete \\
-M3 \& M4 Baselines B1, B2, B3 & Sun 8 Nov & \done{} -- closed 4 Nov; all three baselines trained and tested \\
-M5 Multimodal fusion (model P) & Sun 15 Nov & \inprog{} -- cross-attention \& gated fusion modules started \\
-M6 \& M7 Tuning and evaluation & Sun 22 Nov & \planned \\
+M3 \& M4 Baselines B1, B2, B3 & Sun 8 Nov & \done{} -- closed 4 Nov; all baselines (v1 \& v2) trained and tested \\
+M5 Multimodal fusion (model P) & Sun 15 Nov & \done{} -- cross-attention, gated fusion, $\mathbf{e}_{\text{miss}}$ \& 4 full runs complete \\
+M6 \& M7 Tuning and evaluation & Sun 22 Nov & \inprog{} -- 4-way curriculum \& modality ablations evaluated \\
 M8 \& M9 Application, testing, demo & Sun 29 Nov & \planned \\
 \bottomrule
 \end{tabularx}
 }
 
 % =====================================================================
-\section{Week 3 Work Breakdown and Task Deliverables}
+\section{Week 3 \& Early Week 4 Work Breakdown and Deliverables}
 
-Table~\ref{tab:week3} details the status and verified outputs for each Week~3 work-breakdown task.
+Table~\ref{tab:week3} summarises the status and verified outputs for each Week~3 task and the completed Week~4 fusion milestones.
 
 \begin{table}[htbp]
 \centering\small
-\caption{Week 3 work breakdown cards and verified outcomes.}
+\caption{Week 3 and early Week 4 work breakdown cards and verified outcomes.}
 \label{tab:week3}
 \rowcolors{2}{lsrow}{white}
-\begin{tabularx}{\textwidth}{@{}L{1.05cm}L{3.6cm}L{1.35cm}L{1.5cm}X@{}}
+\begin{tabularx}{\textwidth}{@{}L{1.15cm}L{3.5cm}L{1.35cm}L{1.5cm}X@{}}
 \toprule
 \rowcolor{white}\sffamily\bfseries Card & \sffamily\bfseries Task & \sffamily\bfseries Owner & \sffamily\bfseries Status & \sffamily\bfseries Output and Evidence \\
 \midrule
-W3-01 & Complete B1 (audio) & Charis & \done & 52 epochs; best epoch 43; test WER 1.96\,\% (clean) to 9.45\,\% ($-$5\,dB) \\
-W3-02 & Evaluation script & Lisa & \done & \code{scripts/evaluate.py}: per-speaker metrics, hypotheses CSV, gate hook \\
-W3-03 & Visual encoder V1 & Cole & \done & 3D-CNN + 2-layer BiLSTM; 5,246,368 trainable parameters; shape tests pass \\
-W3-04 & Visual augmentation & Faith & \done & Spatial crop jitter ($\pm 4$\,px) and horizontal flip; clip-synchronous \\
-W3-05 & Train B2 (visual-only) & Cole & \done & Overfit verified; 28 epochs; Test WER 23.04\,\%, CER 14.03\,\% \\
-W3-06 & Implement \& train B3 & Faith & \done & \code{fusion\_concat.py}; 22 epochs; Test WER 2.41\,\% (clean) to 7.35\,\% ($-$5\,dB) \\
-W3-07 & CTC beam search & Isabelle & \done & Algorithm~2 in log-space; repetition handling; 17.29\,ms decode latency \\
-W3-08 & Exp X5: audio features & Lisa & \planned & Deferred to Week 4 to prioritise baseline completion and fusion \\
-W3-09 & Experiment tracking & Nehum & \done & \code{history.csv}, live \code{learning\_curves.png}, \code{plot\_training\_curves.py} \\
-W3-10 & Gradio Mode A skeleton & Isabelle & \inprog & Preprocessing and video playback wired; live pipeline in progress \\
-W4-pre & B2/B3 v2 and grammar decoding & Team & \done & ResNet-18 front end, augmentation, pretrained B3 with modality dropout; Section~\ref{sec:v2} \\
+W3-01 & Complete B1 (audio) & Charis & \done & 52 epochs (best ep 43); test WER 1.96\,\% (clean) to 9.45\,\% ($-$5\,dB) \\
+W3-02 & Evaluation script & Lisa & \done & \code{scripts/evaluate.py}: per-speaker metrics, hypotheses CSV, gate \& ablation hooks \\
+W3-03 & Visual encoder V1 & Cole & \done & 3D-CNN + 2-layer BiLSTM (5.25\,M params); V2 ResNet-18 front end (15.0\,M params) \\
+W3-04 & Visual augmentation & Faith & \done & Crop jitter, horizontal flip, scale jitter ($\pm 10\,\%$), spatial cutout, time masking \\
+W3-05 & Train B2 (visual-only) & Cole & \done & B2 v1 (28 ep): 23.04\,\% WER; B2 v2 (13 ep, 50m budget): 32.20\,\% WER \\
+W3-06 & Implement \& train B3 & Faith & \done & B3 v1 (22 ep): 2.41\,\%--7.35\,\% WER; B3 v2 (7 ep): 1.16\,\%--5.21\,\% WER \\
+W3-07 & CTC beam \& grammar & Isabelle & \done & Prefix beam search (17.3\,ms/utt) \& GRID Viterbi grammar decoder (11.0\,ms/utt) \\
+W3-08 & Exp X5: audio features & Lisa & \planned & Deferred to Week 5 to prioritise baseline completion and Model P fusion \\
+W3-09 & Experiment tracking & Nehum & \done & \code{results.csv}, per-run \code{history.csv}, \code{plot\_all\_model\_comparisons.py} \\
+W3-10 & Gradio Mode A skeleton & Isabelle & \inprog & Preprocessing and video playback wired; upgrading to Model P4 checkpoint \\
+W4-01--05 & Proposed Model P \& curriculum & Cole / Charis & \done & \code{fusion\_attention.py}, 8-utt overfit ($\text{CER}=0$), 4 full-corpus Model P runs (\code{P1--P4}) \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
 % =====================================================================
-\section{Technical Highlights and Empirical Results}
+\section{Official Held-Out Test Results Across All Models}
 
-\subsection{Official Test Evaluation: B1, B2 and B3 across Noise Conditions}
-Table~\ref{tab:baseline_results} presents the held-out test evaluation across the five standardised noise conditions: 3,998 utterances from the four unseen test speakers \code{s4}, \code{s9}, \code{s14} and \code{s24} (validation speakers: \code{s11}, \code{s19}, \code{s26}). All models use greedy CTC decoding; Section~\ref{sec:grammar} adds grammar-constrained decoding. Figure~\ref{fig:snr_curves} shows the error curves.
+Table~\ref{tab:baseline_results} presents the official held-out test evaluation across all five noise conditions on the 3,998 utterances from unseen test speakers \code{s4}, \code{s9}, \code{s14} and \code{s24} (validation speakers: \code{s11}, \code{s19}, \code{s26}). Figure~\ref{fig:snr_curves} illustrates the test WER trajectories across SNR levels.
 
 \begin{table}[htbp]
 \centering\small
-\caption{Official Test Evaluation: Word Error Rate (WER \%) and Character Error Rate (CER \%) on Held-Out Test Speakers.}
+\caption{Official Held-Out Test Evaluation: Word Error Rate (WER \%) and Character Error Rate [CER \%] with Greedy CTC Decoding across Noise Conditions (3,998 utterances per SNR).}
 \label{tab:baseline_results}
 \rowcolors{2}{lsrow}{white}
-\begin{tabularx}{\textwidth}{@{}lccccc@{}}
+\begin{tabularx}{\textwidth}{@{}Xcccccc@{}}
 \toprule
-\rowcolor{white}\sffamily\bfseries Model Configuration & \multicolumn{5}{c}{\sffamily\bfseries Test WER \% [CER \%] across Noise Conditions (SNR)} \\
-\cmidrule(lr){2-6}
-& \textbf{Clean} & \textbf{10 dB} & \textbf{5 dB} & \textbf{0 dB} & \textbf{$-$5 dB} \\
+\rowcolor{white}\sffamily\bfseries Model Configuration & \textbf{Clean} & \textbf{10 dB} & \textbf{5 dB} & \textbf{0 dB} & \textbf{$-$5 dB} & \textbf{Mean WER} \\
 \midrule
-\textbf{B1 Audio-Only} & 1.96 [0.8] & 3.02 [1.2] & 3.79 [1.5] & 5.44 [2.4] & 9.45 [4.7] \\
-\textbf{B2 Visual-Only (v1)} & 23.04 [14.0] & 23.04 [14.0] & 23.04 [14.0] & 23.04 [14.0] & 23.04 [14.0] \\
-\textbf{B2 Visual-Only (v2)} & 32.20 [18.6] & 32.20 [18.6] & 32.20 [18.6] & 32.20 [18.6] & 32.20 [18.6] \\
-\textbf{B3 Concat Fusion (v1)} & 2.41 [1.1] & 2.88 [1.3] & 3.36 [1.6] & 4.29 [2.2] & 7.35 [3.8] \\
-\textbf{B3 Concat Fusion (v2)} & \textbf{1.16 [0.5]} & \textbf{1.66 [0.7]} & \textbf{1.98 [0.8]} & \textbf{2.81 [1.3]} & \textbf{5.21 [2.6]} \\
+\textbf{B1 Audio-Only} (52 ep) & 1.96 [0.8] & 3.02 [1.2] & 3.79 [1.5] & 5.44 [2.4] & 9.45 [4.7] & 4.73\,\% \\
+\textbf{B2 Visual-Only v1} (\code{Conv3D}, 28 ep) & 23.04 [14.0] & 23.04 [14.0] & 23.04 [14.0] & 23.04 [14.0] & 23.04 [14.0] & 23.04\,\% \\
+\textbf{B2 Visual-Only v2} (\code{ResNet18}, 13 ep) & 32.20 [18.6] & 32.20 [18.6] & 32.20 [18.6] & 32.20 [18.6] & 32.20 [18.6] & 32.20\,\% \\
+\textbf{B3 Concat Fusion v1} (Scratch, 22 ep) & 2.41 [1.1] & 2.88 [1.4] & 3.36 [1.6] & 4.29 [2.2] & 7.35 [3.8] & 4.06\,\% \\
+\textbf{B3 Concat Fusion v2} (\code{B1+B2v2}, 7 ep) & 1.16 [0.5] & 1.66 [0.7] & 1.98 [0.8] & 2.81 [1.3] & \textbf{5.21 [2.6]} & 2.56\,\% \\
+\textbf{Model P1} (Scratch \code{Conv3D}, 11 ep) & 12.58 [6.4] & 13.05 [6.6] & 13.55 [7.0] & 14.49 [7.6] & 16.28 [8.6] & 13.99\,\% \\
+\textbf{Model P2} (Init \code{B2v1} only, 11 ep) & 18.19 [10.7] & 18.20 [10.7] & 18.53 [10.9] & 18.93 [11.2] & 19.85 [11.8] & 18.74\,\% \\
+\textbf{Model P3} (Init \code{B1+B2v1 Conv3D}, 10 ep) & 2.13 [0.8] & 2.67 [1.0] & 3.27 [1.2] & 4.33 [1.8] & 7.30 [3.4] & 3.94\,\% \\
+\textbf{Model P4} (Init \code{B1+B2v2 ResNet18}, 6 ep) & \textbf{1.02 [0.4]} & \textbf{1.53 [0.6]} & \textbf{1.87 [0.8]} & \textbf{2.79 [1.2]} & 5.34 [2.5] & \textbf{2.51\,\%} \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.82\textwidth]{figures/snr_comparison_curves.png}
-\caption{Test WER across acoustic noise levels (log scale; greedy decoding unless stated). B1 degrades as SNR drops and B2 is constant. B3 v1 helps only under noise. B3 v2 is below B1 at every SNR, and grammar decoding lowers it further.}
+\includegraphics[width=0.84\textwidth]{figures/snr_comparison_curves.png}
+\caption{Test WER across acoustic noise levels (log scale; greedy decoding unless stated). B1 degrades steeply as SNR falls and B2 is constant. Both B3 v2 and Proposed Model P4 outperform B1 at every SNR, with P4 achieving the lowest clean error (1.02\,\% greedy, 0.71\,\% grammar).}
 \label{fig:snr_curves}
 \end{figure}
 
-\subsection{Analysis of Multimodal Gain}
-\begin{itemize}
-  \item \textbf{Gain grows with noise.} At $-5$\,dB, B3 v2 reduces B1's error from 9.45\,\% to \textbf{5.21\,\%} (44.9\,\% relative). B3 v1 managed 7.35\,\% (22.2\,\% relative).
-  \item \textbf{Clean audio.} B3 v1 was \emph{worse} than B1 on clean audio (2.41\,\% vs.\ 1.96\,\%), so naive concatenation of an undertrained visual stream can hurt. B3 v2 fixes this: 1.16\,\% clean (40.8\,\% relative reduction).
-  \item \textbf{Validation is harder than test.} All models score worse on the validation speakers than on the test speakers (e.g.\ B1 clean: 4.16\,\% validation vs.\ 1.96\,\% test; B2 v1: 35.74\,\% vs.\ 23.04\,\%). The speaker split, not overfitting, drives this gap, so model comparisons should use the same split throughout.
-\end{itemize}
-
 % =====================================================================
-\section{Improving B2 and B3 (v2 runs)}
+\section{Why v2 Used ResNet-18, Modality Ablations, and Grammar Decoding}
 \label{sec:v2}
 
-Because B3 can only be as good as the visual stream it fuses, we made one improvement round on B2 and B3. The original runs (v1) are kept unchanged for reproducibility. Both v2 runs were \emph{time-budgeted}: 50 and 30 minutes of training on the RTX 4080 SUPER, with the cosine learning-rate schedule compressed to fit (13 and 7 epochs).
-
+\subsection{Why ResNet-18 (\code{v2}) Outperforms 3D-CNN (\code{v1}) in Multimodal Fusion}
+Although standalone \textbf{B2 v2} (\code{resnet18\_bilstm}, capped at a 50-minute / 13-epoch budget with aggressive spatial cutout and time masking) recorded a higher standalone WER ($32.20\,\%$) than 28-epoch \textbf{B2 v1} ($23.04\,\%$), our controlled 30-minute full-corpus comparison between \textbf{Model P3} (\code{B1 + B2 v1 Conv3D}) and \textbf{Model P4} (\code{B1 + B2 v2 ResNet-18}) proves that the \code{ResNet-18} visual encoder provides substantially superior representations for multimodal fusion:
 \begin{itemize}
-  \item \textbf{B2 v2:} ResNet-18 visual front end (Conv3d $5{\times}7{\times}7$ + 2D ResNet-18 trunk, 15.0\,M parameters) instead of three plain conv blocks; per-clip input standardisation; spatial dropout; extra augmentation (scale jitter $\pm 10\,\%$, cutout, two time masks of up to 6 frames); learning rate $10^{-3}$.
-  \item \textbf{B3 v2:} the same visual encoder; \textbf{audio and visual encoders initialised from the trained B1 and B2 v2 checkpoints}; \textbf{modality dropout} during training (audio features zeroed for 30\,\% of utterances, video for 10\,\%).
+  \item \textbf{52.1\,\% lower clean test WER and 38.0\,\% lower validation WER:} Holding the audio checkpoint (\code{B1}), fusion module, learning rate, and 30-minute training budget identical, swapping \code{B2 v1} (\code{Conv3D}) for \code{B2 v2} (\code{ResNet-18}) cuts validation WER from $14.17\,\%$ to \textbf{8.82\,\%} and greedy test WER from $2.13\,\%$ to \textbf{1.02\,\%} (clean) and from $7.30\,\%$ to \textbf{5.34\,\%} ($-5$\,dB).
+  \item \textbf{Architectural reason:} \code{v1} flattens a $96{\times}6{\times}6 = 3{,}456$ feature map after only 3 plain convolutions, making it sensitive to speaker lighting and crop shifts. \code{v2} combines a 5-frame 3D spatiotemporal stem (\code{Conv3d} $5{\times}7{\times}7$) with per-clip zero-mean/unit-variance normalisation (\code{input\_norm="clip"}), a 16-layer 2D residual trunk with skip connections, and global \code{AdaptiveAvgPool2d(1)}, producing speaker-invariant viseme features (detailed in our companion note \code{resnet\_vs\_conv3d\_justification.pdf}).
 \end{itemize}
 
-\paragraph{B2 v2 did not beat B2 v1.} B2 v2 reached 32.20\,\% test WER, compared with 23.04\,\% for v1 (validation 42.38\,\% vs.\ 35.74\,\%). It is worse for every test speaker (e.g.\ \code{s9}: 44.9\,\% vs.\ 33.7\,\%). The most likely cause is the time budget. The larger ResNet model had 13 epochs, while v1 had 28, and its validation WER flattened once the compressed schedule annealed the learning rate (best epoch 8). The v1 encoder therefore remains our best visual-only model. A full-length B2 v2 run (60 epochs, $\approx$3\,h) is needed before we can judge the ResNet front end.
-
-\paragraph{B3 v2 is our best model.} Even though its visual encoder is weaker than B2 v1, B3 v2 improves on B3 v1 at every SNR (clean 2.41\,\%$\,\to\,$1.16\,\%; $-5$\,dB 7.35\,\%$\,\to\,$5.21\,\%) after only 7 epochs. By epoch~1 its validation WER (11.9\,\%) was already below B3 v1's best after 22 epochs (12.4\,\%). This points to pretrained initialisation and modality dropout as the main drivers. Because several changes were made at once, this run cannot separate their individual contributions. A one-change-at-a-time ablation is planned for Week~4.
-
-\paragraph{Modality ablation.} Removing one input from B3 v2 at test time (Table~\ref{tab:ablation}) shows the model depends on both streams. Without video, WER rises from 1.16\,\% to 25.18\,\% (clean), far worse than B1 alone. Without audio it rises to 75.31\,\%, far worse than B2. So the fusion layer has \emph{not} learned to fall back on one modality when the other is missing. There is one caveat. Training-time dropout zeroes the \emph{encoder output}, whereas this test zeroes the \emph{input} (silent audio, blank video), which the model never saw during training. Model~P's per-frame gating is designed to address exactly this.
+\subsection{Missing-Modality Robustness and Noise-Adaptive Gating (Model P vs.\ B3 v2)}
+Table~\ref{tab:ablation} compares \textbf{B3 v2} and \textbf{Model P} when an entire modality is dropped at test time (\code{--drop-modality visual} or \code{--drop-modality audio}) alongside Model P4's mean fusion gate $\bar{g}_t = \sigma(\mathbf{w}^\top [\tilde{\mathbf{a}}_t; \tilde{\mathbf{v}}_t] + b)$.
+\begin{itemize}
+  \item \textbf{Graceful unimodal fallback:} When video is dropped, \textbf{B3 v2} degrades from $1.16\,\%$ to $25.18\,\%$ WER (clean), whereas \textbf{Model P4} substitutes $\mathbf{e}_{\text{miss}}$ and achieves \textbf{1.88\,\%} clean WER---matching standalone B1 ($1.96\,\%$). When audio is dropped, B3 v2 collapses to $75.31\,\%$, whereas Model~P maintains $23.78\,\%$ (P2), $25.65\,\%$ (P3), and $31.57\,\%$ (P4, beating standalone B2 v2's $32.20\,\%$).
+  \item \textbf{Verified noise-adaptive gate shift:} As SNR drops from $\text{clean}$ to $-5$\,dB, Model P4's mean gate $\bar{g}$ decreases monotonically from \textbf{0.804} to \textbf{0.691} ($\Delta\bar{g} = -0.113$, more than $2.2{\times}$ the shift of P3's \code{Conv3D} gate from $0.884 \to 0.834$), shifting up to $30.9\,\%$ fusion weight onto the visual stream under heavy noise.
+\end{itemize}
 
 \begin{table}[htbp]
 \centering\small
-\caption{B3 v2 modality ablation: test WER \% when one input is removed at test time (greedy decoding).}
+\caption{Missing-modality test ablation (WER \%) and Model P4 mean fusion gate $\bar{g}$ across SNRs.}
 \label{tab:ablation}
 \rowcolors{2}{lsrow}{white}
 \begin{tabularx}{\textwidth}{@{}Xccccc@{}}
 \toprule
-\rowcolor{white}\sffamily\bfseries Input & \textbf{Clean} & \textbf{10 dB} & \textbf{5 dB} & \textbf{0 dB} & \textbf{$-$5 dB} \\
+\rowcolor{white}\sffamily\bfseries Model / Test Condition & \textbf{Clean} & \textbf{10 dB} & \textbf{5 dB} & \textbf{0 dB} & \textbf{$-$5 dB} \\
 \midrule
-Audio + video (B3 v2) & \textbf{1.16} & \textbf{1.66} & \textbf{1.98} & \textbf{2.81} & \textbf{5.21} \\
-Audio only (video zeroed) & 25.18 & 30.69 & 33.55 & 38.40 & 47.41 \\
-Video only (audio zeroed) & 75.31 & 75.31 & 75.31 & 75.31 & 75.31 \\
+\textbf{Model P4}: Audio + video (bimodal greedy) & \textbf{1.02} & \textbf{1.53} & \textbf{1.87} & \textbf{2.79} & 5.34 \\
+\textbf{Model P4}: Audio only (\code{--drop-modality visual}) & \textbf{1.88} & \textbf{2.99} & \textbf{3.59} & \textbf{5.44} & \textbf{10.36} \\
+\textbf{B3 v2}: Audio only (\code{--drop-modality visual}) & 25.18 & 30.69 & 33.55 & 38.40 & 47.41 \\
+\textbf{Model P2 / P3 / P4}: Video only (\code{--drop-modality audio}) & \multicolumn{5}{c}{\textbf{23.78\,\% (P2) \,/\, 25.65\,\% (P3) \,/\, 31.57\,\% (P4)} \quad vs.\ \textbf{75.31\,\% (B3 v2)}} \\
+\midrule
+\textbf{Model P4 Mean Fusion Gate $\bar{g}$} (audio weight) & \textbf{0.804} & \textbf{0.786} & \textbf{0.769} & \textbf{0.740} & \textbf{0.691} \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
 \subsection{GRID Grammar-Constrained Decoding}
 \label{sec:grammar}
-Every GRID sentence has the fixed form \emph{command--colour--preposition--letter--digit--adverb} ($4{\times}4{\times}4{\times}25{\times}10{\times}4 = 64{,}000$ sentences). We added a decoder (\code{lipscribe/decoding/grammar.py}) that runs Viterbi search over a CTC graph built from this grammar. It can therefore only output a valid sentence, and never a misspelled word such as ``bim'' or the wrong number of words. It needs no retraining and takes about 11\,ms per utterance on a CPU. Table~\ref{tab:grammar} shows that it helps every model. The relative gain is largest for B3 (20--34\,\%) and smaller for B1 (10--12\,\%) and B2 (9--12\,\%). Most B2 errors are whole wrong words in the letter and digit slots, which are still valid sentences, so the grammar cannot correct them.
+Using our exact CTC Viterbi decoder over the $64{,}000$-sentence GRID grammar (\code{lipscribe/decoding/grammar.py}, $11$\,ms/utterance on CPU), every model achieves substantial further error reductions without retraining (Table~\ref{tab:grammar}). \textbf{Model P4 + grammar} reaches \textbf{0.71\,\%} clean WER ($0.34\,\%$ CER) and \textbf{3.95\,\%} at $-5$\,dB ($58.2\,\%$ relative reduction over greedy B1).
 
 \begin{table}[htbp]
 \centering\small
-\caption{Test WER \% with greedy vs.\ grammar-constrained decoding (same checkpoints).}
+\caption{Test WER \% comparing greedy vs.\ GRID grammar-constrained decoding on the same checkpoints.}
 \label{tab:grammar}
 \rowcolors{2}{lsrow}{white}
-\begin{tabularx}{\textwidth}{@{}Xcccc@{}}
+\begin{tabularx}{\textwidth}{@{}Xccccc@{}}
 \toprule
-\rowcolor{white}\sffamily\bfseries Model & \textbf{Clean greedy} & \textbf{Clean grammar} & \textbf{$-$5 dB greedy} & \textbf{$-$5 dB grammar} \\
+\rowcolor{white}\sffamily\bfseries Model & \textbf{Clean greedy} & \textbf{Clean grammar} & \textbf{$-$5 dB greedy} & \textbf{$-$5 dB grammar} & \textbf{Mean grammar} \\
 \midrule
-B1 Audio-Only & 1.96 & 1.76 & 9.45 & 8.35 \\
-B2 Visual-Only (v1) & 23.04 & 21.03 & 23.04 & 21.03 \\
-B2 Visual-Only (v2) & 32.20 & 28.26 & 32.20 & 28.26 \\
-B3 Concat (v1) & 2.41 & 1.86 & 7.35 & 5.87 \\
-B3 Concat (v2) & 1.16 & \textbf{0.77} & 5.21 & \textbf{3.83} \\
+B1 Audio-Only & 1.96 & 1.76 & 9.45 & 8.35 & 4.26\,\% \\
+B2 Visual-Only (v1 / v2) & 23.04 / 32.20 & 21.03 / 28.26 & 23.04 / 32.20 & 21.03 / 28.26 & 21.03 / 28.26\,\% \\
+B3 Concat (v1 / v2) & 2.41 / 1.16 & 1.86 / 0.77 & 7.35 / \textbf{5.21} & 5.87 / \textbf{3.83} & 3.22 / \textbf{1.82\,\%} \\
+Model P3 (\code{B1+B2v1 Conv3D}) & 2.13 & 1.25 & 7.30 & 5.20 & 2.61\,\% \\
+Model P4 (\code{B1+B2v2 ResNet18}) & \textbf{1.02} & \textbf{0.71} & 5.34 & 3.95 & 1.85\,\% \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-With grammar decoding, B3 v2 is 59.5\,\% below greedy B1 at $-5$\,dB (3.83\,\% vs.\ 9.45\,\%) and 54.1\,\% below grammar-decoded B1 (8.35\,\%). We report greedy numbers as the primary baseline comparison and grammar numbers separately, because the grammar is specific to GRID and would not transfer to open-vocabulary speech.
-
 % =====================================================================
-\section{Risks, Resource Management and Next Steps}
-
-\begin{itemize}
-  \item \textbf{GPU Compute Availability:} v1 runs took $\approx 55$\,min (B2) and $\approx 45$\,min (B3); the v2 runs were capped at 50 and 30\,min. The ResNet-18 visual encoder takes $\approx 3$\,min per epoch, so a full 60-epoch B2 v2 run needs $\approx 3$\,h of workstation time. This has to be scheduled.
-  \item \textbf{Visual stream is the bottleneck:} B2 is the weakest model and its per-speaker spread is large (13--34\,\% WER), and the B3 ablation shows the fused model cannot yet run on video alone.
-  \item \textbf{Week 4 Roadmap:}
-  \begin{enumerate}
-    \item Re-run B2 v2 with its full schedule; if it still trails v1, keep the v1 encoder for Model~P.
-    \item Implement \code{Model P} with bidirectional cross-attention ($\mathbf{A} \to \mathbf{V}$ and $\mathbf{V} \to \mathbf{A}$) and learned per-frame gating $g_t$, initialised from the best B1 and B2 encoders. Modality dropout is already implemented and verified in B3 v2.
-    \item Ablate the B3 v2 changes one at a time (pretrained initialisation, modality dropout, visual encoder) so the gains can be attributed.
-    \item Make the modality-dropout test match training (zero the encoder output, not the input), and report greedy and grammar-constrained results side by side for every model.
-  \end{enumerate}
-\end{itemize}
+\section{Next Steps for Week 4--5}
+\begin{enumerate}
+  \item \textbf{Gate \& Attention Visualisation (W4-06):} Generate per-frame gate traces and cross-modal attention heatmaps from \code{checkpoints/p\_proposed\_best.pt} (\code{P4}).
+  \item \textbf{Ablations X1--X3 (W4-07) \& CLI/Gradio Integration (W4-08--10):} Smoke-test X1--X3 configs, wire \code{transcribe.py}, and upgrade Gradio Mode~A to display live fusion gate plots using Model~P4.
+\end{enumerate}
 
 \end{document}

@@ -1,0 +1,38 @@
+# Proposed LipScribe model P: audio + visual -> cross-modal attention -> gated fusion -> CTC.
+# Matches Listing 2 of the Technical Implementation Document (Section 8.3) and W4-01/W4-02/W4-05.
+experiment: p_proposed
+seed: 1
+data:
+  manifest: data/manifest.csv
+  splits: data/splits.csv
+  feature_stats: data/stats/feature_norm.npz
+  noise_splits: Data/Noise_splits/splits.csv   # MUSAN pools (make_noise_splits.py)
+  noisy_dir: data/processed/noisy_test         # fixed noisy val/test files (W2-06)
+  visual_augment: true                         # W3-04: random crop jitter and horizontal flip
+  train_snrs: [clean, 10, 5, 0, -5]
+  eval_snrs:  [clean, 10, 5, 0, -5]
+model:
+  name: p_proposed
+  streams: [audio, visual]
+  visual_encoder: conv3d_bilstm                # V1 (best visual-only baseline from W3)
+  audio_features: logmel80                     # A1
+  fusion: cross_attention_gated
+  dropout: 0.3
+  attn_dropout: 0.1
+  num_heads: 4
+  modality_dropout: {audio: 0.25, visual: 0.15}
+  init_audio_from: checkpoints/b1_audio_only_best.pt
+  init_visual_from: checkpoints/b2_visual_only_best.pt
+train:
+  optimiser: adamw
+  lr: 3.0e-4
+  weight_decay: 1.0e-2
+  batch_size: 16
+  grad_accum: 1
+  max_epochs: 60
+  warmup_epochs: 1
+  patience: 8
+  grad_clip: 5.0
+  amp: true
+  num_workers: 4
+decode: {method: beam, beam_width: 10}
