@@ -60,7 +60,12 @@ class B3Concat(nn.Module):
             lengths = torch.full((audio_feat.shape[0],), t, device=audio_feat.device, dtype=torch.long)
 
         # 4. Modality dropout: zero one stream for a random subset of utterances
-        if self.training and (self.p_audio_drop > 0 or self.p_visual_drop > 0):
+        drop_modality = batch.get("drop_modality")
+        if drop_modality == "audio":
+            audio_feat = torch.zeros_like(audio_feat)
+        elif drop_modality == "visual":
+            video_feat = torch.zeros_like(video_feat)
+        elif self.training and (self.p_audio_drop > 0 or self.p_visual_drop > 0):
             u = torch.rand(audio_feat.shape[0], device=audio_feat.device)
             keep_a = (u >= self.p_audio_drop).to(audio_feat.dtype).view(-1, 1, 1)
             keep_v = ((u < self.p_audio_drop) | (u >= self.p_audio_drop + self.p_visual_drop))
