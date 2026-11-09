@@ -1,0 +1,134 @@
+
+[14:29:02 | +0m] === Found completed training checkpoint for p_init_b1_b2_v2: runs/p_init_b1_b2_v2_20261105-170138/best.pt (skipping training; set RETRAIN=1 to force) ===
+
+[14:29:02 | +0m] === Evaluating p_init_b1_b2_v2 (runs/p_init_b1_b2_v2_20261105-170138/best.pt): greedy, grammar, drop-audio, drop-visual ===
+Decoding with greedy
+clean dB: 3998 utterances, WER 0.0102, CER 0.0043
+   10 dB: 3998 utterances, WER 0.0153, CER 0.0063
+    5 dB: 3998 utterances, WER 0.0187, CER 0.0076
+    0 dB: 3998 utterances, WER 0.0279, CER 0.0123
+   -5 dB: 3998 utterances, WER 0.0534, CER 0.0251
+Saved evaluation artifacts in /home/Lipscribe-team/Desktop/cv_project_LipScribe/reports/p_init_b1_b2_v2_20261105-170138
+Decoding with grammar
+clean dB: 3998 utterances, WER 0.0071, CER 0.0034
+   10 dB: 3998 utterances, WER 0.0110, CER 0.0052
+    5 dB: 3998 utterances, WER 0.0142, CER 0.0068
+    0 dB: 3998 utterances, WER 0.0206, CER 0.0104
+   -5 dB: 3998 utterances, WER 0.0395, CER 0.0225
+Saved evaluation artifacts in /home/Lipscribe-team/Desktop/cv_project_LipScribe/reports/p_init_b1_b2_v2_20261105-170138_grammar
+Decoding with greedy
+clean dB: 3998 utterances, WER 0.3157, CER 0.1859
+   10 dB: same as clean (no audio input)
+    5 dB: same as clean (no audio input)
+    0 dB: same as clean (no audio input)
+   -5 dB: same as clean (no audio input)
+Saved evaluation artifacts in /home/Lipscribe-team/Desktop/cv_project_LipScribe/reports/p_init_b1_b2_v2_20261105-170138_no_audio
+Decoding with greedy
+clean dB: 3998 utterances, WER 0.0188, CER 0.0075
+   10 dB: 3998 utterances, WER 0.0299, CER 0.0115
+    5 dB: 3998 utterances, WER 0.0359, CER 0.0148
+    0 dB: 3998 utterances, WER 0.0544, CER 0.0243
+   -5 dB: 3998 utterances, WER 0.1036, CER 0.0524
+Saved evaluation artifacts in /home/Lipscribe-team/Desktop/cv_project_LipScribe/reports/p_init_b1_b2_v2_20261105-170138_no_visual
+
+[14:34:44 | +5m] === Found completed training checkpoint for p_init_b1_b2: runs/p_init_b1_b2_20261105-173253/best.pt (skipping training; set RETRAIN=1 to force) ===
+
+[14:34:44 | +5m] === Evaluating p_init_b1_b2 (runs/p_init_b1_b2_20261105-173253/best.pt): greedy, grammar, drop-audio, drop-visual ===
+Decoding with greedy
+clean dB: 3998 utterances, WER 0.0213, CER 0.0078
+   10 dB: 3998 utterances, WER 0.0267, CER 0.0097
+    5 dB: 3998 utterances, WER 0.0327, CER 0.0123
+    0 dB: 3998 utterances, WER 0.0433, CER 0.0181
+   -5 dB: 3998 utterances, WER 0.0730, CER 0.0342
+Saved evaluation artifacts in /home/Lipscribe-team/Desktop/cv_project_LipScribe/reports/p_init_b1_b2_20261105-173253
+Decoding with grammar
+clean dB: 3998 utterances, WER 0.0125, CER 0.0056
+   10 dB: 3998 utterances, WER 0.0162, CER 0.0072
+    5 dB: 3998 utterances, WER 0.0208, CER 0.0099
+    0 dB: 3998 utterances, WER 0.0288, CER 0.0150
+   -5 dB: 3998 utterances, WER 0.0520, CER 0.0304
+Saved evaluation artifacts in /home/Lipscribe-team/Desktop/cv_project_LipScribe/reports/p_init_b1_b2_20261105-173253_grammar
+Decoding with greedy
+clean dB: 3998 utterances, WER 0.2565, CER 0.1530
+   10 dB: same as clean (no audio input)
+    5 dB: same as clean (no audio input)
+    0 dB: same as clean (no audio input)
+   -5 dB: same as clean (no audio input)
+Saved evaluation artifacts in /home/Lipscribe-team/Desktop/cv_project_LipScribe/reports/p_init_b1_b2_20261105-173253_no_audio
+Decoding with greedy
+clean dB: 3998 utterances, WER 0.0272, CER 0.0097
+   10 dB: 3998 utterances, WER 0.0352, CER 0.0132
+    5 dB: 3998 utterances, WER 0.0438, CER 0.0171
+    0 dB: 3998 utterances, WER 0.0657, CER 0.0276
+   -5 dB: 3998 utterances, WER 0.1239, CER 0.0612
+Saved evaluation artifacts in /home/Lipscribe-team/Desktop/cv_project_LipScribe/reports/p_init_b1_b2_20261105-173253_no_visual
+
+[14:39:28 | +10m] === Found completed training checkpoint for p_init_b2: runs/p_init_b2_20261105-180345/best.pt (skipping training; set RETRAIN=1 to force) ===
+
+[14:39:28 | +10m] === Evaluating p_init_b2 (runs/p_init_b2_20261105-180345/best.pt): greedy, grammar, drop-audio, drop-visual ===
+Decoding with greedy
+clean dB: 3998 utterances, WER 0.1819, CER 0.1065
+   10 dB: 3998 utterances, WER 0.1820, CER 0.1074
+    5 dB: 3998 utterances, WER 0.1853, CER 0.1087
+    0 dB: 3998 utterances, WER 0.1893, CER 0.1118
+   -5 dB: 3998 utterances, WER 0.1985, CER 0.1178
+Saved evaluation artifacts in /home/Lipscribe-team/Desktop/cv_project_LipScribe/reports/p_init_b2_20261105-180345
+Decoding with grammar
+clean dB: 3998 utterances, WER 0.1538, CER 0.1019
+   10 dB: 3998 utterances, WER 0.1548, CER 0.1027
+    5 dB: 3998 utterances, WER 0.1567, CER 0.1038
+    0 dB: 3998 utterances, WER 0.1616, CER 0.1072
+   -5 dB: 3998 utterances, WER 0.1701, CER 0.1135
+Saved evaluation artifacts in /home/Lipscribe-team/Desktop/cv_project_LipScribe/reports/p_init_b2_20261105-180345_grammar
+Decoding with greedy
+clean dB: 3998 utterances, WER 0.2378, CER 0.1465
+   10 dB: same as clean (no audio input)
+    5 dB: same as clean (no audio input)
+    0 dB: same as clean (no audio input)
+   -5 dB: same as clean (no audio input)
+Saved evaluation artifacts in /home/Lipscribe-team/Desktop/cv_project_LipScribe/reports/p_init_b2_20261105-180345_no_audio
+Decoding with greedy
+clean dB: 3998 utterances, WER 0.2882, CER 0.1110
+   10 dB: 3998 utterances, WER 0.3105, CER 0.1268
+    5 dB: 3998 utterances, WER 0.3325, CER 0.1414
+    0 dB: 3998 utterances, WER 0.3815, CER 0.1733
+   -5 dB: 3998 utterances, WER 0.4693, CER 0.2405
+Saved evaluation artifacts in /home/Lipscribe-team/Desktop/cv_project_LipScribe/reports/p_init_b2_20261105-180345_no_visual
+
+[14:43:31 | +14m] === Found completed training checkpoint for p_scratch: runs/p_scratch_20261105-183620/best.pt (skipping training; set RETRAIN=1 to force) ===
+
+[14:43:31 | +14m] === Evaluating p_scratch (runs/p_scratch_20261105-183620/best.pt): greedy, grammar, drop-audio, drop-visual ===
+Decoding with greedy
+clean dB: 3998 utterances, WER 0.1258, CER 0.0641
+   10 dB: 3998 utterances, WER 0.1305, CER 0.0664
+    5 dB: 3998 utterances, WER 0.1355, CER 0.0698
+    0 dB: 3998 utterances, WER 0.1449, CER 0.0762
+   -5 dB: 3998 utterances, WER 0.1628, CER 0.0864
+Saved evaluation artifacts in /home/Lipscribe-team/Desktop/cv_project_LipScribe/reports/p_scratch_20261105-183620
+Decoding with grammar
+clean dB: 3998 utterances, WER 0.0940, CER 0.0595
+   10 dB: 3998 utterances, WER 0.0984, CER 0.0619
+    5 dB: 3998 utterances, WER 0.1030, CER 0.0653
+    0 dB: 3998 utterances, WER 0.1132, CER 0.0720
+   -5 dB: 3998 utterances, WER 0.1316, CER 0.0832
+Saved evaluation artifacts in /home/Lipscribe-team/Desktop/cv_project_LipScribe/reports/p_scratch_20261105-183620_grammar
+Decoding with greedy
+clean dB: 3998 utterances, WER 0.2503, CER 0.1387
+   10 dB: same as clean (no audio input)
+    5 dB: same as clean (no audio input)
+    0 dB: same as clean (no audio input)
+   -5 dB: same as clean (no audio input)
+Saved evaluation artifacts in /home/Lipscribe-team/Desktop/cv_project_LipScribe/reports/p_scratch_20261105-183620_no_audio
+Decoding with greedy
+clean dB: 3998 utterances, WER 0.3241, CER 0.1396
+   10 dB: 3998 utterances, WER 0.3415, CER 0.1488
+    5 dB: 3998 utterances, WER 0.3607, CER 0.1590
+    0 dB: 3998 utterances, WER 0.4103, CER 0.1895
+   -5 dB: 3998 utterances, WER 0.4957, CER 0.2464
+Saved evaluation artifacts in /home/Lipscribe-team/Desktop/cv_project_LipScribe/reports/p_scratch_20261105-183620_no_visual
+
+[14:47:43 | +18m] === Regenerating comparison plots ===
+Saved: /home/Lipscribe-team/Desktop/cv_project_LipScribe/reports/model_p_4way_curriculum.png
+Saved: /home/Lipscribe-team/Desktop/cv_project_LipScribe/reports/all_models_snr_and_summary.png
+
+[14:47:45 | +18m] === All 4 full Model P evaluations and plots finished! ===
