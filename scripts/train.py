@@ -142,6 +142,33 @@ def init_lstm_forget_bias(model: nn.Module, value: float = 1.0) -> None:
                 param[h:2 * h].fill_(value if name.startswith("bias_ih") else 0.0)
 
 
+def resolve_init_from(cfg: dict) -> dict:
+    """Resolve pretrained encoder checkpoint paths from ``cfg`` (W4-05).
+
+    Supports both ``model.init_from: {audio_encoder: ..., visual_encoder: ...}``
+    and the shorthand ``init_visual_from`` / ``init_audio_from`` keys (under
+    ``model``, ``train`` or top-level).
+    """
+    model_cfg = cfg.get("model") or {}
+    train_cfg = cfg.get("train") or {}
+    init_from = dict(model_cfg.get("init_from") or cfg.get("init_from") or {})
+    vis_ckpt = (
+        model_cfg.get("init_visual_from")
+        or train_cfg.get("init_visual_from")
+        or cfg.get("init_visual_from")
+    )
+    if vis_ckpt:
+        init_from["visual_encoder"] = vis_ckpt
+    aud_ckpt = (
+        model_cfg.get("init_audio_from")
+        or train_cfg.get("init_audio_from")
+        or cfg.get("init_audio_from")
+    )
+    if aud_ckpt:
+        init_from["audio_encoder"] = aud_ckpt
+    return init_from
+
+
 def load_pretrained(model: nn.Module, init_from: dict, map_location="cpu") -> dict:
     """Copy sub-module weights from other runs' checkpoints into ``model``.
 
@@ -385,8 +412,9 @@ def fit(cfg: dict, model: nn.Module, train_loader: Iterable, val_loaders: dict,
     if resume is None:
         init_lstm_forget_bias(model)
         # After the forget-bias init, so pretrained LSTM biases are not overwritten.
-        if cfg.get("model", {}).get("init_from"):
-            load_pretrained(model, cfg["model"]["init_from"])
+        init_from = resolve_init_from(cfg)
+        if init_from:
+            load_pretrained(model, init_from)
 
     optimiser = torch.optim.AdamW(param_groups(model, tc["weight_decay"]), lr=tc["lr"])
     steps_per_epoch = math.ceil(len(train_loader) / max(1, int(tc["grad_accum"])))

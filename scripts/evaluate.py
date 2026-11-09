@@ -85,14 +85,17 @@ def score_checkpoint(checkpoint_path: Path, device: torch.device,
         with torch.inference_mode():
             for batch in loader:
                 batch = prepare_batch(to_device(batch, device))
-                if drop_modality == "audio":
-                    if "features" in batch:
-                        batch["features"] = torch.zeros_like(batch["features"])
-                    if "audio" in batch:
-                        batch["audio"] = torch.zeros_like(batch["audio"])
-                elif drop_modality == "visual":
-                    if "video" in batch:
-                        batch["video"] = torch.zeros_like(batch["video"])
+                if drop_modality is not None:
+                    batch["drop_modality"] = drop_modality
+                    if not hasattr(model, "fusion"):
+                        if drop_modality == "audio":
+                            if "features" in batch:
+                                batch["features"] = torch.zeros_like(batch["features"])
+                            if "audio" in batch:
+                                batch["audio"] = torch.zeros_like(batch["audio"])
+                        elif drop_modality == "visual":
+                            if "video" in batch:
+                                batch["video"] = torch.zeros_like(batch["video"])
 
                 with torch.autocast(device_type=device.type, enabled=use_amp):
                     output = model(batch)
@@ -154,8 +157,11 @@ def save_hypotheses(path: Path, hypotheses: list[dict]) -> None:
 
 
 def save_metrics(path: Path, details: list[dict]) -> None:
+    fieldnames = ["snr", "scope", "n_utts", "wer", "cer"]
+    if any("gate_mean" in d for d in details):
+        fieldnames.append("gate_mean")
     with path.open("w", newline="", encoding="utf-8") as stream:
-        writer = csv.DictWriter(stream, fieldnames=("snr", "scope", "n_utts", "wer", "cer"))
+        writer = csv.DictWriter(stream, fieldnames=fieldnames, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(details)
 
