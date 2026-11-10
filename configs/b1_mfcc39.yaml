@@ -1,0 +1,31 @@
+# W3-08 (Experiment X5): B1 audio-only with A2 features (13 MFCC + delta + delta-delta).
+# Identical to configs/b1_audio_only.yaml (A1, 80 log-Mel) except model.audio_features
+# and data.feature_stats, so the comparison isolates the feature choice.
+experiment: b1_mfcc39
+seed: 1
+data:
+  manifest: data/manifest.csv
+  splits: data/splits.csv
+  feature_stats: data/stats/feature_norm_mfcc39.npz   # scripts/compute_norm_stats.py --audio-features mfcc39
+  noise_splits: Data/Noise_splits/splits.csv   # MUSAN pools (make_noise_splits.py)
+  noisy_dir: data/processed/noisy_test         # fixed noisy val/test files (W2-06)
+  train_snrs: [clean, 10, 5, 0, -5]
+  eval_snrs:  [clean, 10, 5, 0, -5]
+model:
+  name: b1_audio_only
+  streams: [audio]
+  audio_features: mfcc39
+  fusion: none
+train:
+  optimiser: adamw
+  lr: 3.0e-4
+  weight_decay: 1.0e-2
+  batch_size: 16
+  grad_accum: 1
+  max_epochs: 60
+  warmup_epochs: 1
+  patience: 8
+  grad_clip: 5.0
+  amp: true
+  num_workers: 4
+decode: {method: greedy}
