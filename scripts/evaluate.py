@@ -144,9 +144,11 @@ def update_results_csv(results_path: Path, run_dir: Path, metrics: dict) -> None
         "test_wer_by_snr": ";".join(f"{snr}={metrics[snr]['wer']:.4f}" for snr in metrics),
         "test_cer_by_snr": ";".join(f"{snr}={metrics[snr]['cer']:.4f}" for snr in metrics),
     })
+    for r in rows:
+        r.pop(None, None)
     tmp = results_path.with_suffix(".csv.tmp")
     with tmp.open("w", newline="", encoding="utf-8") as stream:
-        writer = csv.DictWriter(stream, fieldnames=fieldnames)
+        writer = csv.DictWriter(stream, fieldnames=fieldnames, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(rows)
     tmp.replace(results_path)
