@@ -1,0 +1,24 @@
+{
+  "lines": 23455,
+  "word_tokens": 141687,
+  "vocab": 9053,
+  "titles": {
+    "casino_royale": 821,
+    "quantum": 699,
+    "a_haunting_in_venice": 1417,
+    "his_hers": 1801,
+    "malcolm_marie": 973,
+    "project_hail_mary": 1549,
+    "the_chosen": 11621,
+    "it_derry": 4574
+  },
+  "held_out": [
+    "challengers",
+    "i_robot",
+    "little_women",
+    "skyfall",
+    "the_devil_all_the_time",
+    "the_drama",
+    "vision_quest"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "trial": "final_t03",
+  "from_trial": "t03",
+  "final_epochs": 150,
+  "hparams": {
+    "init": "p4_recipe",
+    "lr": 0.001,
+    "freeze": "visual_encoder",
+    "dropout": 0.3,
+    "weight_decay": 0.05,
+    "audio_dropout": 0.25,
+    "batch_size": 8,
+    "snrs": "mild"
+  }
+}

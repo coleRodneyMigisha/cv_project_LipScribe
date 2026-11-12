@@ -208,15 +208,35 @@ def load_pretrained(model: nn.Module, init_from: dict, map_location="cpu") -> di
     return loaded
 
 
-def param_groups(model: nn.Module, weight_decay: float) -> list[dict]:
-    """Weight decay on weight matrices only; none on biases or norm parameters."""
-    decay, no_decay = [], []
+def param_groups(model: nn.Module, weight_decay: float, lr: float | None = None,
+                 lr_mult: dict | None = None) -> list[dict]:
+    """Weight decay on weight matrices only; none on biases or norm parameters.
+
+    ``lr_mult`` (optional, ``train.lr_mult``) maps a parameter-name prefix such as
+    ``visual_encoder`` or ``visual_encoder.trunk.6`` to a multiplier of ``lr``; the longest
+    matching prefix wins. Without it the two groups are exactly as before.
+    """
+    lr_mult = dict(lr_mult or {})
+    groups: dict[tuple[bool, float], list] = {}
     for name, param in model.named_parameters():
         if not param.requires_grad:
             continue
-        (no_decay if param.ndim <= 1 or name.endswith(".bias") else decay).append(param)
-    return [{"params": decay, "weight_decay": weight_decay},
-            {"params": no_decay, "weight_decay": 0.0}]
+        mult = 1.0
+        for prefix in sorted(lr_mult, key=len, reverse=True):
+            if name == prefix or name.startswith(prefix + "."):
+                mult = float(lr_mult[prefix]); break
+        nd = param.ndim <= 1 or name.endswith(".bias")
+        groups.setdefault((nd, mult), []).append(param)
+    out = []
+    for (nd, mult), params in sorted(groups.items(), key=lambda kv: (kv[0][1] != 1.0, kv[0][0])):
+        g = {"params": params, "weight_decay": 0.0 if nd else weight_decay}
+        if mult != 1.0 and lr is not None:
+            g["lr"] = lr * mult
+        out.append(g)
+    if not lr_mult:          # keep the original [decay, no_decay] order (and empty groups)
+        dec = groups.get((False, 1.0), []); nod = groups.get((True, 1.0), [])
+        return [{"params": dec, "weight_decay": weight_decay}, {"params": nod, "weight_decay": 0.0}]
+    return out
 
 
 def warmup_cosine(optimiser: torch.optim.Optimizer, warmup_steps: int,
@@ -415,8 +435,21 @@ def fit(cfg: dict, model: nn.Module, train_loader: Iterable, val_loaders: dict,
         init_from = resolve_init_from(cfg)
         if init_from:
             load_pretrained(model, init_from)
+    # Optional model.freeze: [sub-module, ...] keeps those weights fixed (param_groups
+    # skips parameters with requires_grad=False). Used for small-data fine-tuning (X6 Flix).
+    for module_name in (cfg.get("model") or {}).get("freeze") or []:
+        try:                                  # dotted paths allowed, e.g. visual_encoder.trunk.0
+            sub = model.get_submodule(module_name)
+        except AttributeError:
+            raise ValueError(f"model.freeze: model has no sub-module {module_name!r}") from None
+        sub.requires_grad_(False)
+        print(f"Frozen {module_name}")
+    # train.select_metric: "wer" (default) or "cer" picks best.pt / early stopping.
+    # CER is the useful signal when WER saturates near 100% (open-vocabulary film clips).
+    select_key = "mean_cer" if str(tc.get("select_metric", "wer")).lower() == "cer" else "mean_wer"
 
-    optimiser = torch.optim.AdamW(param_groups(model, tc["weight_decay"]), lr=tc["lr"])
+    optimiser = torch.optim.AdamW(param_groups(model, tc["weight_decay"], lr=tc["lr"],
+                                               lr_mult=tc.get("lr_mult")), lr=tc["lr"])
     steps_per_epoch = math.ceil(len(train_loader) / max(1, int(tc["grad_accum"])))
     scheduler = warmup_cosine(optimiser, warmup_steps=int(tc["warmup_epochs"] * steps_per_epoch),
                               total_steps=int(tc["max_epochs"] * steps_per_epoch))
@@ -460,7 +493,7 @@ def fit(cfg: dict, model: nn.Module, train_loader: Iterable, val_loaders: dict,
                               lr=scheduler.get_last_lr()[0], elapsed=time.time() - t0)
             plot_history(run_dir / "history.csv", run_dir / "learning_curves.png")
 
-            improved = val["mean_wer"] < state["best_wer"]
+            improved = val[select_key] < state["best_cer" if select_key == "mean_cer" else "best_wer"]
             if improved:
                 state.update(best_wer=val["mean_wer"], best_cer=val["mean_cer"],
                              best_epoch=epoch, bad_epochs=0,
