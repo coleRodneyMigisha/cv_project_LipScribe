@@ -56,7 +56,7 @@ fi
 echo "== $(date +%T) v3: waiting for the laptop's Whisper-labelled clips"
 until [ -f flix_v3/.mined_done ]; do sleep 60; done
 echo "== $(date +%T) v3: waiting for the TED harvester to finish (full TED set in v3)"
-while pgrep -f "^$PY -u -m scripts.ted_harvest" > /dev/null; do sleep 300; done
+until [ -f flix_ted/.harvest_done ]; do sleep 300; done     # written only when the whole list is done
 cp -n flix_v2/clips/* flix_v3/clips/
 merge flix_v2/manifest_local.csv flix_v3/manifest_laptop.csv flix_v3/manifest_v2w.csv
 # TED: snapshot of what the harvester has mined so far (it keeps running for a later v4)
