@@ -1,9 +1,9 @@
-"""LipScribe web demo backend (FastAPI), runs on the Alienware.
+"""LipScribe web demo backend (FastAPI), runs on the Alienware. See demo/README.md.
 
 POST /caption  multipart: clip (a browser recording, webm/mp4 with audio), model ("grid"|"films"),
                header X-Demo-Code -> {caption, seconds, face_fraction, lips_trust, warnings, mouth_strip}
 GET  /health   -> loaded models
-GET  /         -> the demo page (web/index.html), handy over an SSH tunnel
+GET  /         -> the demo page (demo/index.html)
 
 Models:
   grid   Model P4 (p_proposed_best.pt, read-only) + GRID grammar decoder: accurate for GRID
@@ -11,7 +11,7 @@ Models:
   films  experimental open-vocabulary model retrained on film clips + lexicon/bigram LM.
 The caption chain is lipscribe.app.inference.LipScribe (same as evaluate.py, PR #55).
 
-  DEMO_CODE=<secret> PYTHONPATH=asr_pkgs .venv/bin/python -m uvicorn scripts.demo_server:app \
+  DEMO_CODE=<secret> PYTHONPATH=asr_pkgs .venv/bin/python -m uvicorn demo.server:app \
       --host 127.0.0.1 --port 8800
 Binds to localhost only; reach it through an SSH tunnel or a Cloudflare Tunnel.
 """
@@ -84,7 +84,7 @@ def health() -> dict:
 
 @app.get("/")
 def page() -> FileResponse:
-    return FileResponse(REPO / "web/index.html")
+    return FileResponse(REPO / "demo/index.html")
 
 
 def _png(a: np.ndarray) -> str:
