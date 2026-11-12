@@ -60,7 +60,12 @@ def _titles():
         t.append((f"it_derry/{p.stem[:30]}", p, ("embedded", "eng")))
     for p in sorted((s / "vision_quest").glob("*.mkv")):
         t.append((f"vision_quest/{p.stem[:20]}", p, ("embedded", "eng")))
+    for key, rel, srt in EXTRA:                 # e.g. Whisper-labelled films (--extra-titles)
+        t.append((key, V / rel, Path(srt)))
     return t
+
+
+EXTRA: list[tuple[str, str, str]] = []
 
 # split by title (speaker-independent analogue)
 VAL = {"the_devil_all_the_time", "vision_quest"}
@@ -254,6 +259,8 @@ def main():
                     help="per-video 16 kHz mono FLACs named <video stem with non-word chars as _>.flac")
     ap.add_argument("--uid-by-time", action="store_true",
                     help="name clips <title>_t<start ms> and skip cues already in the manifest by (title, start)")
+    ap.add_argument("--extra-titles", type=Path, default=None,
+                    help="lines 'key|video path relative to --videos|srt path' (e.g. Whisper subtitles)")
     ap.add_argument("--only", nargs="*", default=None, help="mine only these title groups (e.g. the_chosen his_hers)")
     ap.add_argument("--skip-manifest", type=Path, nargs="*", default=[],
                     help="manifests whose cues (title, start) are skipped even if their clip files are elsewhere")
@@ -261,6 +268,8 @@ def main():
                     help="stop if no cue finishes for this long (a killed worker hangs multiprocessing.Pool)")
     args = ap.parse_args()
     V = args.videos
+    if args.extra_titles:
+        EXTRA.extend(tuple(l.split("|", 2)) for l in args.extra_titles.read_text().splitlines() if l.strip())
     out = args.out; (out / "clips").mkdir(parents=True, exist_ok=True); (out / "subs").mkdir(exist_ok=True)
     now = dt.datetime.now()
     hh, mm = map(int, args.deadline.split(":"))

@@ -222,6 +222,11 @@ def main() -> None:
         h_best = hparams_of(best)
     final = f"final_{best['trial']}"
     print(f"\nBest stage-1 trial: {best['trial']} val CER {best['val_cer']} {h_best}", flush=True)
+    if a.final_epochs == 0:                    # tuning only: record the winner, no finals / test
+        (a.out / "best.json").write_text(json.dumps({"trial": best["trial"], "from_trial": best["trial"],
+                                                     "final_epochs": 0, "hparams": h_best}, indent=2))
+        print("tuning only (--final-epochs 0): best.json written", flush=True)
+        return
     for seed in (1, 2, 3):
         if (final, str(seed)) not in have:
             record(run_trial(final, h_best, seed, a, a.out, max_epochs=a.final_epochs,
