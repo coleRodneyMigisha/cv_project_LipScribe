@@ -13,5 +13,5 @@ echo "== $(date +%T) sweep done, LM decoding"
 ARGS=(--ckpt base=checkpoints/flix_base_p4.pt --ckpt tuned=checkpoints/flix_finetuned_p4.pt)
 while IFS=, read -r seed run; do ARGS+=(--ckpt "sweep_s$seed=$run/best.pt"); done < <(
   $PY -c "import csv,sys; [print(r['seed']+','+r['run_dir']) for r in csv.DictReader(open('$SWEEP/sweep.csv')) if r['trial'].startswith('final') and r['run_dir']]")
-$PY -m scripts.flix_lm_eval --lm data/flix_lm.json --data "$DATA" --out "$OUT" "${ARGS[@]}"
+$PY -m scripts.flix_lm_eval --lm "${LM:-data/flix_lm.json}" --data "$DATA" --out "$OUT" "${ARGS[@]}"
 touch "$OUT/DONE"; echo "== $(date +%T) done"

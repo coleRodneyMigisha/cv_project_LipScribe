@@ -695,9 +695,18 @@ def build_loaders(cfg: dict, limit: int | None = None):
                            visual_augment=visual_aug, visual_aug_params=aug, **aug_base, **extra)
     # data.val_snrs (default eval_snrs): a visual-only model scores the same at
     # every SNR, so validating it once on clean audio is enough.
-    val_sets = {str(s): GridDataset(d["manifest"], d["splits"], "val", snr_db=snr_value(s),
-                                    visual_augment=False, **extra)
-                for s in d.get("val_snrs") or d["eval_snrs"]}
+    # data.val_manifests (optional) {domain: manifest}: one validation set per domain and SNR, so
+    # the mean used for best.pt / early stopping weighs each domain equally (X6: films + TED).
+    vm = d.get("val_manifests") or {}
+    snrs = d.get("val_snrs") or d["eval_snrs"]
+    if vm:
+        val_sets = {f"{name}_{s}": GridDataset(path, d["splits"], "val", snr_db=snr_value(s),
+                                               visual_augment=False, **extra)
+                    for name, path in vm.items() for s in snrs}
+    else:
+        val_sets = {str(s): GridDataset(d["manifest"], d["splits"], "val", snr_db=snr_value(s),
+                                        visual_augment=False, **extra)
+                    for s in snrs}
     if limit:
         train_ds = Subset(train_ds, range(min(limit, len(train_ds))))
         val_sets = {s: Subset(ds, range(min(limit, len(ds)))) for s, ds in val_sets.items()}
