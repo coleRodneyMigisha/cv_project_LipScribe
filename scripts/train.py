@@ -415,6 +415,17 @@ def fit(cfg: dict, model: nn.Module, train_loader: Iterable, val_loaders: dict,
         init_from = resolve_init_from(cfg)
         if init_from:
             load_pretrained(model, init_from)
+    # Optional model.freeze: [sub-module, ...] keeps those weights fixed (param_groups
+    # skips parameters with requires_grad=False). Used for small-data fine-tuning (X6 Flix).
+    for module_name in (cfg.get("model") or {}).get("freeze") or []:
+        sub = getattr(model, module_name, None)
+        if sub is None:
+            raise ValueError(f"model.freeze: model has no sub-module {module_name!r}")
+        sub.requires_grad_(False)
+        print(f"Frozen {module_name}")
+    # train.select_metric: "wer" (default) or "cer" picks best.pt / early stopping.
+    # CER is the useful signal when WER saturates near 100% (open-vocabulary film clips).
+    select_key = "mean_cer" if str(tc.get("select_metric", "wer")).lower() == "cer" else "mean_wer"
 
     optimiser = torch.optim.AdamW(param_groups(model, tc["weight_decay"]), lr=tc["lr"])
     steps_per_epoch = math.ceil(len(train_loader) / max(1, int(tc["grad_accum"])))
@@ -460,7 +471,7 @@ def fit(cfg: dict, model: nn.Module, train_loader: Iterable, val_loaders: dict,
                               lr=scheduler.get_last_lr()[0], elapsed=time.time() - t0)
             plot_history(run_dir / "history.csv", run_dir / "learning_curves.png")
 
-            improved = val["mean_wer"] < state["best_wer"]
+            improved = val[select_key] < state["best_cer" if select_key == "mean_cer" else "best_wer"]
             if improved:
                 state.update(best_wer=val["mean_wer"], best_cer=val["mean_cer"],
                              best_epoch=epoch, bad_epochs=0,
