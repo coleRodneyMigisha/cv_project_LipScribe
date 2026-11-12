@@ -90,6 +90,8 @@ def test_two_epochs_save_resume_and_log(tmp_path):
     state = _fit(tmp_path, _cfg(max_epochs=2))
     assert state["epochs_run"] == 2 and state["step"] == 8
     assert (tmp_path / "latest.pt").exists() and (tmp_path / "best.pt").exists()
+    assert (tmp_path / "history.csv").exists()
+    assert (tmp_path / "learning_curves.png").exists()
     assert list((tmp_path / "tensorboard").iterdir())
 
     ckpt = load_checkpoint(tmp_path / "latest.pt")
@@ -155,3 +157,23 @@ def test_warmup_then_cosine():
     assert lrs[4] == pytest.approx(1.0)
     assert lrs[8] == pytest.approx(0.5 * (1 + math.cos(math.pi * 0.5)))
     assert all(a >= b for a, b in zip(lrs[3:], lrs[4:]))
+
+
+def test_time_budget_shortens_run_and_compresses_schedule(tmp_path):
+    cfg = _cfg(max_epochs=10)
+    cfg["train"]["time_budget_min"] = 1e-6       # exhausted after the first epoch
+    cfg["train"]["patience"] = 100
+    state = _fit(tmp_path, cfg)
+    assert state["epochs_run"] == 1
+    assert state["budget_max_epochs"] == 1
+
+
+def test_warmup_cosine_total_can_be_lowered():
+    from scripts.train import warmup_cosine
+    opt = torch.optim.SGD([torch.nn.Parameter(torch.zeros(1))], lr=1.0)
+    sched = warmup_cosine(opt, warmup_steps=0, total_steps=100)
+    sched.total_ref["total"] = 10
+    for _ in range(10):
+        opt.step()
+        sched.step()
+    assert sched.get_last_lr()[0] < 1e-6

@@ -232,3 +232,24 @@ def test_mix_at_snr_hits_target():
     for snr in (10, 5, 0, -5):
         w = mix_at_snr(clean, noise, snr) - clean
         assert abs(10 * np.log10(np.mean(clean ** 2) / np.mean(w ** 2)) - snr) < 0.01
+
+
+def test_build_loaders_passes_visual_aug_and_val_snrs(corpus):
+    """W4: data.visual_aug reaches the train set; data.val_snrs limits validation."""
+    from scripts.train import TRAIN_DEFAULTS, build_loaders
+    cfg = {"seed": 1,
+           "data": {"manifest": str(corpus["manifest"]), "splits": str(corpus["splits"]),
+                    "noise_splits": str(corpus["noise_splits"]), "visual_augment": True,
+                    "visual_aug": {"max_jitter": 2, "p_flip": 0.0, "max_scale": 0.1,
+                                   "time_masks": 2, "max_mask_width": 6, "p_erase": 1.0},
+                    "train_snrs": ["clean", 0], "val_snrs": ["clean"],
+                    "eval_snrs": ["clean", 10, 0]},
+           "train": {**TRAIN_DEFAULTS, "batch_size": 4, "num_workers": 0}}
+    train_loader, val_loaders = build_loaders(cfg)
+    ds = train_loader.dataset
+    assert ds.max_jitter == 2 and ds.p_flip == 0.0
+    assert ds.visual_aug_params == {"max_scale": 0.1, "time_masks": 2,
+                                    "max_mask_width": 6, "p_erase": 1.0}
+    assert list(val_loaders) == ["clean"]
+    batch = next(iter(train_loader))
+    assert batch["video"].shape[1:] == (1, 75, 96, 96)
