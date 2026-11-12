@@ -1,0 +1,214 @@
+{
+  "flix_clips": 1268,
+  "dropped": {},
+  "by_partition": {
+    "train": 1156,
+    "val": 69,
+    "test": 43
+  },
+  "ted_test_clips": 0,
+  "by_title": {
+    "the_chosen": 733,
+    "a_haunting_in_venice": 206,
+    "malcolm_marie": 91,
+    "casino_royale": 40,
+    "it_derry": 36,
+    "his_hers": 34,
+    "i_robot": 31,
+    "the_drama": 21,
+    "skyfall": 20,
+    "little_women": 12,
+    "challengers": 10,
+    "quantum": 10,
+    "vision_quest": 9,
+    "the_devil_all_the_time": 9,
+    "project_hail_mary": 6
+  },
+  "titles_by_partition": {
+    "train": [
+      "a_haunting_in_venice",
+      "casino_royale",
+      "his_hers",
+      "it_derry",
+      "malcolm_marie",
+      "project_hail_mary",
+      "quantum",
+      "the_chosen"
+    ],
+    "val": [
+      "i_robot",
+      "skyfall",
+      "the_devil_all_the_time",
+      "vision_quest"
+    ],
+    "test": [
+      "challengers",
+      "little_women",
+      "the_drama"
+    ]
+  },
+  "minutes": 39.4,
+  "distinct_words": 1606,
+  "word_tokens": 7291,
+  "distinct_words_in_grid": 26,
+  "grid_vocab": 51,
+  "grid_words": [
+    "a",
+    "again",
+    "at",
+    "b",
+    "bin",
+    "blue",
+    "by",
+    "c",
+    "d",
+    "e",
+    "eight",
+    "f",
+    "five",
+    "four",
+    "g",
+    "green",
+    "h",
+    "i",
+    "in",
+    "j",
+    "k",
+    "l",
+    "lay",
+    "m",
+    "n",
+    "nine",
+    "now",
+    "o",
+    "one",
+    "p",
+    "place",
+    "please",
+    "q",
+    "r",
+    "red",
+    "s",
+    "set",
+    "seven",
+    "six",
+    "soon",
+    "t",
+    "three",
+    "two",
+    "u",
+    "v",
+    "white",
+    "with",
+    "x",
+    "y",
+    "z",
+    "zero"
+  ],
+  "test_tokens_seen_in_flix_train": 220,
+  "test_tokens": 249,
+  "top_words": [
+    [
+      "you",
+      322
+    ],
+    [
+      "i",
+      272
+    ],
+    [
+      "the",
+      257
+    ],
+    [
+      "to",
+      190
+    ],
+    [
+      "a",
+      140
+    ],
+    [
+      "and",
+      126
+    ],
+    [
+      "it",
+      124
+    ],
+    [
+      "of",
+      109
+    ],
+    [
+      "that",
+      94
+    ],
+    [
+      "me",
+      87
+    ],
+    [
+      "what",
+      79
+    ],
+    [
+      "was",
+      78
+    ],
+    [
+      "is",
+      78
+    ],
+    [
+      "not",
+      67
+    ],
+    [
+      "in",
+      67
+    ],
+    [
+      "for",
+      66
+    ],
+    [
+      "have",
+      65
+    ],
+    [
+      "my",
+      64
+    ],
+    [
+      "we",
+      60
+    ],
+    [
+      "your",
+      55
+    ],
+    [
+      "be",
+      55
+    ],
+    [
+      "but",
+      55
+    ],
+    [
+      "know",
+      53
+    ],
+    [
+      "do",
+      52
+    ],
+    [
+      "are",
+      50
+    ]
+  ],
+  "train_mix_rows": 1225,
+  "grid_test_rows": 600
+}
