@@ -1,7 +1,8 @@
 # X6 'Flix': fine-tune a COPY of Model P4 (checkpoints/flix_base_p4.pt, md5-identical to
 # p_proposed_best.pt) on mouth clips mined from films/series, mixed with a GRID subset so
 # it does not forget GRID. Same architecture and augmentation as p_init_b1_b2_v2.yaml;
-# lower learning rate because every module starts from trained weights.
+# Flix train clips are repeated x8 against 1000 GRID clips so roughly 60% of each epoch
+# is film speech (new words) while GRID still anchors the model.
 # Built by scripts/flix_prepare.py; run by scripts/flix_run.sh.
 experiment: flix_finetune_p4
 seed: 1
@@ -40,13 +41,13 @@ model:
     ctc_head: checkpoints/flix_base_p4.pt
 train:
   optimiser: adamw
-  lr: 1.0e-4
+  lr: 2.0e-4
   weight_decay: 1.0e-2
   batch_size: 16
   grad_accum: 1
   max_epochs: 40
   warmup_epochs: 1
-  patience: 8
+  patience: 10
   grad_clip: 5.0
   amp: true
   num_workers: 8
