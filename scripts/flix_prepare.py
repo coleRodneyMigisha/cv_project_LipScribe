@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import random
 from collections import Counter
@@ -51,6 +52,10 @@ def main() -> None:
     ap.add_argument("--grid-test", type=int, default=600)
     ap.add_argument("--flix-repeat", type=int, default=8)
     ap.add_argument("--seed", type=int, default=1)
+    ap.add_argument("--ted-val-frac", type=float, default=0.0,
+                    help="share of TED training talks (by a hash of the title) moved to a TED validation set")
+    ap.add_argument("--lm", action="store_true",
+                    help="also write <out>/lm_train.json: word-bigram LM from the TRAIN transcripts only")
     ap.add_argument("--extra-val", nargs="*", default=[],
                     help="train titles to move into val (a bigger val set for tuning); test is never touched")
     args = ap.parse_args()
@@ -69,11 +74,15 @@ def main() -> None:
         if ctc_min_frames(encode(t)) > max(T_GRID, int(float(r.get("n_frames") or 0))):
             dropped["too many letters for 3 s"] += 1; continue
         part = r["partition"]          # "ted_test": held-out TED talks, scored separately
+        spk = r["speaker"]
+        if (spk == "ted" and args.ted_val_frac and part == "train"
+                and int(hashlib.md5(r["title"].encode()).hexdigest(), 16) % 1000 < args.ted_val_frac * 1000):
+            part, spk = "val", "ted_val"
         if r["speaker"] in args.extra_val:
             if part == "test":
                 raise SystemExit(f"--extra-val {r['speaker']} is a test title")
             part = "val"
-        flix.append({"utt_id": f"flix_{r['utt_id']}", "speaker": r["speaker"],
+        flix.append({"utt_id": f"flix_{r['utt_id']}", "speaker": spk,
                      "partition": part, "transcript": t, "usable": "True",
                      "mouths_path": str(npz), "valid_path": "", "audio_path": str(wav),
                      "speech_start_s": "", "source": "flix", "dur_s": r.get("dur_s", "")})
@@ -116,6 +125,12 @@ def main() -> None:
                  + grid["val"][:args.grid_val])          # --grid-train 0 --grid-val 0 -> Flix only
     write_csv(args.out / "train_mix.csv", train_mix)
     write_csv(args.out / "flix_test.csv", f_test)
+    if any(r["speaker"] == "ted_val" for r in f_val):       # per-domain validation sets
+        write_csv(args.out / "film_val.csv", [r for r in f_val if r["speaker"] != "ted_val"])
+        write_csv(args.out / "ted_val.csv", [r for r in f_val if r["speaker"] == "ted_val"])
+    if args.lm:
+        from lipscribe.decoding.lexicon_lm import WordBigramLM
+        WordBigramLM.from_texts([r["transcript"] for r in f_train]).save(args.out / "lm_train.json")
     write_csv(args.out / "grid_test.csv", grid["test"][:args.grid_test])
 
     grid_words = {w for r in grid["train"] for w in r["transcript"].split()}
@@ -126,6 +141,7 @@ def main() -> None:
         "flix_clips": len(flix), "dropped": dict(dropped),
         "by_partition": {p: sum(r["partition"] == p for r in flix) for p in ("train", "val", "test")},
         "ted_test_clips": len(ted_test),
+        "ted_val_clips": sum(r["speaker"] == "ted_val" for r in f_val),
         "by_title": dict(Counter(r["speaker"] for r in flix).most_common()),
         "titles_by_partition": {p: sorted({r["speaker"] for r in flix if r["partition"] == p})
                                 for p in ("train", "val", "test")},

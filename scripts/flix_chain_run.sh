@@ -69,7 +69,10 @@ print(f"TED snapshot: {len(rows)} clips, {sum(float(r['dur_s']) for r in rows) /
 PYEOF
 cut -d, -f1 flix_v3/manifest_ted.csv | tail -n +2 | while read -r u; do ln -f "flix_ted/clips/$u.npz" "flix_ted/clips/$u.wav" flix_v3/clips/ 2>/dev/null; done
 merge flix_v3/manifest_v2w.csv flix_v3/manifest_ted.csv flix_v3/manifest_local.csv
-prep flix_v3 data/flix_v3
+# 3 % of TED training talks become a TED validation set; best.pt / early stopping use the equal-
+# weight mean of film-val and TED-val CER (real-world use is closer to TED than to films)
+$PY -m scripts.flix_prepare --flix flix_v3 --grid-root ../cv_project_LipScribe --out data/flix_v3 \
+    --grid-train 0 --grid-val 0 --flix-repeat 1 --extra-val i_robot skyfall --ted-val-frac 0.03 --lm
 # ---- v3: all 11 ResNet (eyes) variations on the full data (v2 + Whisper films + TED), 60 epochs
 # each like the GRID models, patience 20; then the winner 3 times (seeds 1-3) x 60 epochs with no
 # early stopping; test titles scored once. Compare with $RN (the same 11 on the v2 data).
@@ -85,6 +88,6 @@ if [ -f data/flix_v3/ted_test.csv ]; then
         --splits data/flix_v3/splits.csv --out "$V3" --tag "v3_s${seed}_ted_test"
   done < <($PY -c "import csv; [print(r['seed']+','+r['run_dir']) for r in csv.DictReader(open('$V3/sweep.csv')) if r['trial'].startswith('final') and r['run_dir']]")
 fi
-SWEEP="$V3" DATA=data/flix_v3 OUT="$V3/lm" bash scripts/flix_lm_run.sh
+LM=data/flix_v3/lm_train.json SWEEP="$V3" DATA=data/flix_v3 OUT="$V3/lm" bash scripts/flix_lm_run.sh
 md5sum ../cv_project_LipScribe/checkpoints/p_proposed_best.pt | tee "$V3/main_model_md5.txt"
 touch "$V3/ALL_DONE"; echo "== $(date +%T) all done"

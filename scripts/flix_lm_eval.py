@@ -80,6 +80,7 @@ def main() -> None:
     ap.add_argument("--alphas", type=float, nargs="+", default=[0.3, 0.6, 1.0, 1.5, 2.0])
     ap.add_argument("--betas", type=float, nargs="+", default=[0.0, 1.0, 2.0, 3.0, 4.0])
     ap.add_argument("--beam", type=int, default=32)
+    ap.add_argument("--tune-max", type=int, default=300, help="validation clips per SNR used to tune alpha/beta")
     a = ap.parse_args()
     a.out.mkdir(parents=True, exist_ok=True)
     dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -89,6 +90,10 @@ def main() -> None:
     for spec in a.ckpt:
         label, ck = spec.split("=", 1)
         val = {s: logits(ck, str(a.data / "train_mix.csv"), sp, "val", s, None, dev) for s in ("clean", "0")}
+        # alpha/beta are only two numbers: tune on a fixed subset (all film-val + a sample of TED-val)
+        for s_ in val:
+            film = [x for x in val[s_] if "_ted_" not in x[0]]; ted = [x for x in val[s_] if "_ted_" in x[0]]
+            val[s_] = film + ted[: max(0, a.tune_max - len(film))]
         test = {s: logits(ck, str(a.data / "flix_test.csv"), sp, "test", s, None, dev) for s in ("clean", "0")}
         lips = {"clean": logits(ck, str(a.data / "flix_test.csv"), sp, "test", "clean", "audio", dev)}
         best = None
@@ -108,6 +113,10 @@ def main() -> None:
         save(a.out, f"{label}_lm_flix_lips_only", {s: decode_all(lips[s], d.decode_one) for s in lips}, ck, extra)
         save(a.out, f"{label}_greedy_flix", {s: decode_all(test[s], greedy) for s in test}, ck, {})
         save(a.out, f"{label}_greedy_flix_lips_only", {s: decode_all(lips[s], greedy) for s in lips}, ck, {})
+        if (a.data / "ted_test.csv").exists():                 # held-out TED talks
+            ted = {s: logits(ck, str(a.data / "ted_test.csv"), sp, "test", s, None, dev) for s in ("clean", "0")}
+            save(a.out, f"{label}_lm_ted", {s: decode_all(ted[s], d.decode_one) for s in ted}, ck, extra)
+            save(a.out, f"{label}_greedy_ted", {s: decode_all(ted[s], greedy) for s in ted}, ck, {})
         summary[label] = {"checkpoint": ck, "alpha": al, "beta": be, "val_wer": vw, "val_cer": vc}
     with open(a.out / "tuning.csv", "w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=list(tune_rows[0])); w.writeheader(); w.writerows(tune_rows)
