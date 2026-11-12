@@ -1,0 +1,51 @@
+experiment: p_init_b2
+seed: 1
+data:
+  manifest: data/manifest.csv
+  splits: data/splits.csv
+  feature_stats: data/stats/feature_norm.npz
+  noise_splits: Data/Noise_splits/splits.csv
+  noisy_dir: data/processed/noisy_test
+  visual_augment: true
+  train_snrs:
+  - clean
+  - 10
+  - 5
+  - 0
+  - -5
+  eval_snrs:
+  - clean
+  - 10
+  - 5
+  - 0
+  - -5
+model:
+  name: p_proposed
+  streams:
+  - audio
+  - visual
+  visual_encoder: conv3d_bilstm
+  audio_features: logmel80
+  fusion: cross_attention_gated
+  dropout: 0.3
+  attn_dropout: 0.1
+  num_heads: 4
+  modality_dropout:
+    audio: 0.25
+    visual: 0.15
+  init_visual_from: checkpoints/b2_visual_only_best.pt
+train:
+  optimiser: adamw
+  lr: 0.0003
+  weight_decay: 0.01
+  batch_size: 16
+  grad_accum: 1
+  max_epochs: 40
+  warmup_epochs: 1
+  patience: 12
+  grad_clip: 5.0
+  amp: true
+  num_workers: 8
+  time_budget_min: 30.0
+decode:
+  method: greedy

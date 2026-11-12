@@ -1,0 +1,437 @@
+
+[17:01:37 | +0m] === Training p_init_b1_b2_v2 (configs/p_init_b1_b2_v2.yaml) for 30 min on full dataset ===
+Run directory: /home/Lipscribe-team/Desktop/cv_project_LipScribe/runs/p_init_b1_b2_v2_20261105-170138
+Initialised visual_encoder from /home/Lipscribe-team/Desktop/cv_project_LipScribe/checkpoints/b2_visual_only_v2_best.pt (136 tensors)
+Initialised audio_encoder from /home/Lipscribe-team/Desktop/cv_project_LipScribe/checkpoints/b1_audio_only_best.pt (30 tensors)
+epoch   0  train 1.4172  val 0.3788  WER 0.1593  CER 0.0845  [clean:0.106  10:0.128  5:0.149  0:0.178  -5:0.236]  273s  *best (saved best.pt)*
+  time budget 30 min, 4.5 min/epoch: training shortened to 6 epochs (cosine compressed)
+epoch   1  train 0.1232  val 0.3180  WER 0.1343  CER 0.0774  [clean:0.079  10:0.102  5:0.121  0:0.157  -5:0.212]  272s  *best (saved best.pt)*
+epoch   2  train 0.0872  val 0.2410  WER 0.1002  CER 0.0567  [clean:0.052  10:0.072  5:0.090  0:0.119  -5:0.168]  262s  *best (saved best.pt)*
+epoch   3  train 0.0688  val 0.2577  WER 0.1011  CER 0.0582  [clean:0.061  10:0.078  5:0.091  0:0.116  -5:0.160]  268s
+epoch   4  train 0.0554  val 0.2224  WER 0.0896  CER 0.0523  [clean:0.051  10:0.064  5:0.078  0:0.105  -5:0.151]  266s  *best (saved best.pt)*
+epoch   5  train 0.0494  val 0.2255  WER 0.0882  CER 0.0517  [clean:0.051  10:0.063  5:0.078  0:0.102  -5:0.146]  267s  *best (saved best.pt)*
+Time budget reached.
+
+============================================================
+Training finished! Best epoch: 5 (Mean Val WER: 0.0882, CER: 0.0517)
+Best model checkpoint saved at: /home/Lipscribe-team/Desktop/cv_project_LipScribe/runs/p_init_b1_b2_v2_20261105-170138/best.pt
+Convenience copy saved at:      /home/Lipscribe-team/Desktop/cv_project_LipScribe/checkpoints/p_init_b1_b2_v2_best.pt
+============================================================
+
+
+[17:28:30 | +26m] === Evaluating p_init_b1_b2_v2 (runs/p_init_b1_b2_v2_20261105-170138/best.pt): greedy, grammar, drop-audio, drop-visual ===
+Decoding with greedy
+clean dB: 3998 utterances, WER 0.0102, CER 0.0043
+   10 dB: 3998 utterances, WER 0.0153, CER 0.0063
+    5 dB: 3998 utterances, WER 0.0187, CER 0.0076
+    0 dB: 3998 utterances, WER 0.0279, CER 0.0123
+   -5 dB: 3998 utterances, WER 0.0534, CER 0.0251
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 305, in <module>
+    main()
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 294, in main
+    save_metrics(report_dir / "test_metrics.csv", details)
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 163, in save_metrics
+    writer.writerows(details)
+  File "/home/Lipscribe-team/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/csv.py", line 157, in writerows
+    return self.writer.writerows(map(self._dict_to_list, rowdicts))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Lipscribe-team/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/csv.py", line 149, in _dict_to_list
+    raise ValueError("dict contains fields not in fieldnames: "
+ValueError: dict contains fields not in fieldnames: 'gate_mean'
+Decoding with grammar
+clean dB: 3998 utterances, WER 0.0071, CER 0.0034
+   10 dB: 3998 utterances, WER 0.0110, CER 0.0052
+    5 dB: 3998 utterances, WER 0.0142, CER 0.0068
+    0 dB: 3998 utterances, WER 0.0206, CER 0.0104
+   -5 dB: 3998 utterances, WER 0.0395, CER 0.0225
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 305, in <module>
+    main()
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 294, in main
+    save_metrics(report_dir / "test_metrics.csv", details)
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 163, in save_metrics
+    writer.writerows(details)
+  File "/home/Lipscribe-team/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/csv.py", line 157, in writerows
+    return self.writer.writerows(map(self._dict_to_list, rowdicts))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Lipscribe-team/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/csv.py", line 149, in _dict_to_list
+    raise ValueError("dict contains fields not in fieldnames: "
+ValueError: dict contains fields not in fieldnames: 'gate_mean'
+Decoding with greedy
+clean dB: 3998 utterances, WER 0.3157, CER 0.1859
+   10 dB: same as clean (no audio input)
+    5 dB: same as clean (no audio input)
+    0 dB: same as clean (no audio input)
+   -5 dB: same as clean (no audio input)
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 305, in <module>
+    main()
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 294, in main
+    save_metrics(report_dir / "test_metrics.csv", details)
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 163, in save_metrics
+    writer.writerows(details)
+  File "/home/Lipscribe-team/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/csv.py", line 157, in writerows
+    return self.writer.writerows(map(self._dict_to_list, rowdicts))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Lipscribe-team/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/csv.py", line 149, in _dict_to_list
+    raise ValueError("dict contains fields not in fieldnames: "
+ValueError: dict contains fields not in fieldnames: 'gate_mean'
+Decoding with greedy
+clean dB: 3998 utterances, WER 0.0188, CER 0.0075
+   10 dB: 3998 utterances, WER 0.0299, CER 0.0115
+    5 dB: 3998 utterances, WER 0.0359, CER 0.0148
+    0 dB: 3998 utterances, WER 0.0544, CER 0.0243
+   -5 dB: 3998 utterances, WER 0.1036, CER 0.0524
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 305, in <module>
+    main()
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 294, in main
+    save_metrics(report_dir / "test_metrics.csv", details)
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 163, in save_metrics
+    writer.writerows(details)
+  File "/home/Lipscribe-team/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/csv.py", line 157, in writerows
+    return self.writer.writerows(map(self._dict_to_list, rowdicts))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Lipscribe-team/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/csv.py", line 149, in _dict_to_list
+    raise ValueError("dict contains fields not in fieldnames: "
+ValueError: dict contains fields not in fieldnames: 'gate_mean'
+
+[17:32:51 | +31m] === Training p_init_b1_b2 (configs/p_init_b1_b2.yaml) for 30 min on full dataset ===
+Run directory: /home/Lipscribe-team/Desktop/cv_project_LipScribe/runs/p_init_b1_b2_20261105-173253
+Initialised visual_encoder from /home/Lipscribe-team/Desktop/cv_project_LipScribe/checkpoints/b2_visual_only_best.pt (39 tensors)
+Initialised audio_encoder from /home/Lipscribe-team/Desktop/cv_project_LipScribe/checkpoints/b1_audio_only_best.pt (30 tensors)
+epoch   0  train 1.3908  val 0.5006  WER 0.2115  CER 0.1184  [clean:0.148  10:0.178  5:0.202  0:0.237  -5:0.291]  171s  *best (saved best.pt)*
+  time budget 30 min, 2.8 min/epoch: training shortened to 10 epochs (cosine compressed)
+epoch   1  train 0.0803  val 0.5805  WER 0.2102  CER 0.1250  [clean:0.159  10:0.186  5:0.206  0:0.230  -5:0.269]  168s  *best (saved best.pt)*
+epoch   2  train 0.0517  val 0.5239  WER 0.1965  CER 0.1136  [clean:0.140  10:0.169  5:0.191  0:0.220  -5:0.263]  179s  *best (saved best.pt)*
+epoch   3  train 0.0443  val 0.3934  WER 0.1564  CER 0.0884  [clean:0.108  10:0.132  5:0.149  0:0.176  -5:0.217]  175s  *best (saved best.pt)*
+epoch   4  train 0.0352  val 0.4946  WER 0.1648  CER 0.0984  [clean:0.102  10:0.141  5:0.161  0:0.191  -5:0.229]  180s
+epoch   5  train 0.0281  val 0.7206  WER 0.1938  CER 0.1324  [clean:0.150  10:0.175  5:0.188  0:0.210  -5:0.244]  171s
+epoch   6  train 0.0239  val 0.3947  WER 0.1417  CER 0.0853  [clean:0.091  10:0.120  5:0.136  0:0.162  -5:0.200]  162s  *best (saved best.pt)*
+epoch   7  train 0.0199  val 0.5223  WER 0.1698  CER 0.1077  [clean:0.123  10:0.150  5:0.164  0:0.188  -5:0.225]  155s
+epoch   8  train 0.0171  val 0.5510  WER 0.1693  CER 0.1106  [clean:0.124  10:0.148  5:0.162  0:0.187  -5:0.226]  158s
+epoch   9  train 0.0149  val 0.5379  WER 0.1677  CER 0.1082  [clean:0.121  10:0.146  5:0.162  0:0.185  -5:0.224]  154s
+Time budget reached.
+
+============================================================
+Training finished! Best epoch: 6 (Mean Val WER: 0.1417, CER: 0.0853)
+Best model checkpoint saved at: /home/Lipscribe-team/Desktop/cv_project_LipScribe/runs/p_init_b1_b2_20261105-173253/best.pt
+Convenience copy saved at:      /home/Lipscribe-team/Desktop/cv_project_LipScribe/checkpoints/p_init_b1_b2_best.pt
+============================================================
+
+
+[18:00:49 | +59m] === Evaluating p_init_b1_b2 (runs/p_init_b1_b2_20261105-173253/best.pt): greedy, grammar, drop-audio, drop-visual ===
+Decoding with greedy
+clean dB: 3998 utterances, WER 0.0213, CER 0.0078
+   10 dB: 3998 utterances, WER 0.0267, CER 0.0097
+    5 dB: 3998 utterances, WER 0.0327, CER 0.0123
+    0 dB: 3998 utterances, WER 0.0433, CER 0.0181
+   -5 dB: 3998 utterances, WER 0.0730, CER 0.0342
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 305, in <module>
+    main()
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 294, in main
+    save_metrics(report_dir / "test_metrics.csv", details)
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 163, in save_metrics
+    writer.writerows(details)
+  File "/home/Lipscribe-team/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/csv.py", line 157, in writerows
+    return self.writer.writerows(map(self._dict_to_list, rowdicts))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Lipscribe-team/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/csv.py", line 149, in _dict_to_list
+    raise ValueError("dict contains fields not in fieldnames: "
+ValueError: dict contains fields not in fieldnames: 'gate_mean'
+Decoding with grammar
+clean dB: 3998 utterances, WER 0.0125, CER 0.0056
+   10 dB: 3998 utterances, WER 0.0162, CER 0.0072
+    5 dB: 3998 utterances, WER 0.0208, CER 0.0099
+    0 dB: 3998 utterances, WER 0.0288, CER 0.0150
+   -5 dB: 3998 utterances, WER 0.0520, CER 0.0304
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 305, in <module>
+    main()
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 294, in main
+    save_metrics(report_dir / "test_metrics.csv", details)
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 163, in save_metrics
+    writer.writerows(details)
+  File "/home/Lipscribe-team/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/csv.py", line 157, in writerows
+    return self.writer.writerows(map(self._dict_to_list, rowdicts))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Lipscribe-team/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/csv.py", line 149, in _dict_to_list
+    raise ValueError("dict contains fields not in fieldnames: "
+ValueError: dict contains fields not in fieldnames: 'gate_mean'
+Decoding with greedy
+clean dB: 3998 utterances, WER 0.2565, CER 0.1530
+   10 dB: same as clean (no audio input)
+    5 dB: same as clean (no audio input)
+    0 dB: same as clean (no audio input)
+   -5 dB: same as clean (no audio input)
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 305, in <module>
+    main()
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 294, in main
+    save_metrics(report_dir / "test_metrics.csv", details)
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 163, in save_metrics
+    writer.writerows(details)
+  File "/home/Lipscribe-team/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/csv.py", line 157, in writerows
+    return self.writer.writerows(map(self._dict_to_list, rowdicts))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Lipscribe-team/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/csv.py", line 149, in _dict_to_list
+    raise ValueError("dict contains fields not in fieldnames: "
+ValueError: dict contains fields not in fieldnames: 'gate_mean'
+Decoding with greedy
+clean dB: 3998 utterances, WER 0.0272, CER 0.0097
+   10 dB: 3998 utterances, WER 0.0352, CER 0.0132
+    5 dB: 3998 utterances, WER 0.0438, CER 0.0171
+    0 dB: 3998 utterances, WER 0.0657, CER 0.0276
+   -5 dB: 3998 utterances, WER 0.1239, CER 0.0612
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 305, in <module>
+    main()
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 294, in main
+    save_metrics(report_dir / "test_metrics.csv", details)
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 163, in save_metrics
+    writer.writerows(details)
+  File "/home/Lipscribe-team/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/csv.py", line 157, in writerows
+    return self.writer.writerows(map(self._dict_to_list, rowdicts))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Lipscribe-team/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/csv.py", line 149, in _dict_to_list
+    raise ValueError("dict contains fields not in fieldnames: "
+ValueError: dict contains fields not in fieldnames: 'gate_mean'
+
+[18:03:43 | +62m] === Training p_init_b2 (configs/p_init_b2.yaml) for 30 min on full dataset ===
+Run directory: /home/Lipscribe-team/Desktop/cv_project_LipScribe/runs/p_init_b2_20261105-180345
+Initialised visual_encoder from /home/Lipscribe-team/Desktop/cv_project_LipScribe/checkpoints/b2_visual_only_best.pt (39 tensors)
+epoch   0  train 1.6007  val 1.4302  WER 0.4308  CER 0.2705  [clean:0.431  10:0.431  5:0.431  0:0.430  -5:0.431]  158s  *best (saved best.pt)*
+  time budget 30 min, 2.6 min/epoch: training shortened to 11 epochs (cosine compressed)
+epoch   1  train 0.2850  val 1.4742  WER 0.3906  CER 0.2606  [clean:0.389  10:0.390  5:0.390  0:0.391  -5:0.393]  164s  *best (saved best.pt)*
+epoch   2  train 0.2082  val 1.3575  WER 0.3801  CER 0.2311  [clean:0.379  10:0.380  5:0.380  0:0.380  -5:0.382]  164s  *best (saved best.pt)*
+epoch   3  train 0.1764  val 1.9847  WER 0.3977  CER 0.2599  [clean:0.397  10:0.396  5:0.398  0:0.398  -5:0.400]  160s
+epoch   4  train 0.1549  val 1.8474  WER 0.4055  CER 0.2554  [clean:0.404  10:0.404  5:0.406  0:0.406  -5:0.407]  156s
+epoch   5  train 0.1283  val 1.3220  WER 0.3621  CER 0.2375  [clean:0.355  10:0.359  5:0.361  0:0.365  -5:0.370]  161s  *best (saved best.pt)*
+epoch   6  train 0.1085  val 1.9005  WER 0.3810  CER 0.2482  [clean:0.375  10:0.377  5:0.380  0:0.384  -5:0.389]  159s
+epoch   7  train 0.0915  val 1.6178  WER 0.3564  CER 0.2409  [clean:0.352  10:0.353  5:0.355  0:0.358  -5:0.363]  163s  *best (saved best.pt)*
+epoch   8  train 0.0810  val 1.5391  WER 0.3493  CER 0.2320  [clean:0.344  10:0.346  5:0.349  0:0.351  -5:0.357]  162s  *best (saved best.pt)*
+epoch   9  train 0.0712  val 1.5723  WER 0.3526  CER 0.2350  [clean:0.348  10:0.349  5:0.352  0:0.354  -5:0.360]  157s
+epoch  10  train 0.0664  val 1.6004  WER 0.3526  CER 0.2361  [clean:0.348  10:0.349  5:0.351  0:0.354  -5:0.360]  160s
+Time budget reached.
+
+============================================================
+Training finished! Best epoch: 8 (Mean Val WER: 0.3493, CER: 0.2320)
+Best model checkpoint saved at: /home/Lipscribe-team/Desktop/cv_project_LipScribe/runs/p_init_b2_20261105-180345/best.pt
+Convenience copy saved at:      /home/Lipscribe-team/Desktop/cv_project_LipScribe/checkpoints/p_init_b2_best.pt
+============================================================
+
+
+[18:33:14 | +91m] === Evaluating p_init_b2 (runs/p_init_b2_20261105-180345/best.pt): greedy, grammar, drop-audio, drop-visual ===
+Decoding with greedy
+clean dB: 3998 utterances, WER 0.1819, CER 0.1065
+   10 dB: 3998 utterances, WER 0.1820, CER 0.1074
+    5 dB: 3998 utterances, WER 0.1853, CER 0.1087
+    0 dB: 3998 utterances, WER 0.1893, CER 0.1118
+   -5 dB: 3998 utterances, WER 0.1985, CER 0.1178
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 305, in <module>
+    main()
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 294, in main
+    save_metrics(report_dir / "test_metrics.csv", details)
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 163, in save_metrics
+    writer.writerows(details)
+  File "/home/Lipscribe-team/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/csv.py", line 157, in writerows
+    return self.writer.writerows(map(self._dict_to_list, rowdicts))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Lipscribe-team/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/csv.py", line 149, in _dict_to_list
+    raise ValueError("dict contains fields not in fieldnames: "
+ValueError: dict contains fields not in fieldnames: 'gate_mean'
+Decoding with grammar
+clean dB: 3998 utterances, WER 0.1538, CER 0.1019
+   10 dB: 3998 utterances, WER 0.1548, CER 0.1027
+    5 dB: 3998 utterances, WER 0.1567, CER 0.1038
+    0 dB: 3998 utterances, WER 0.1616, CER 0.1072
+   -5 dB: 3998 utterances, WER 0.1701, CER 0.1135
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 305, in <module>
+    main()
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 294, in main
+    save_metrics(report_dir / "test_metrics.csv", details)
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 163, in save_metrics
+    writer.writerows(details)
+  File "/home/Lipscribe-team/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/csv.py", line 157, in writerows
+    return self.writer.writerows(map(self._dict_to_list, rowdicts))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Lipscribe-team/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/csv.py", line 149, in _dict_to_list
+    raise ValueError("dict contains fields not in fieldnames: "
+ValueError: dict contains fields not in fieldnames: 'gate_mean'
+Decoding with greedy
+clean dB: 3998 utterances, WER 0.2378, CER 0.1465
+   10 dB: same as clean (no audio input)
+    5 dB: same as clean (no audio input)
+    0 dB: same as clean (no audio input)
+   -5 dB: same as clean (no audio input)
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 305, in <module>
+    main()
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 294, in main
+    save_metrics(report_dir / "test_metrics.csv", details)
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 163, in save_metrics
+    writer.writerows(details)
+  File "/home/Lipscribe-team/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/csv.py", line 157, in writerows
+    return self.writer.writerows(map(self._dict_to_list, rowdicts))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Lipscribe-team/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/csv.py", line 149, in _dict_to_list
+    raise ValueError("dict contains fields not in fieldnames: "
+ValueError: dict contains fields not in fieldnames: 'gate_mean'
+Decoding with greedy
+clean dB: 3998 utterances, WER 0.2882, CER 0.1110
+   10 dB: 3998 utterances, WER 0.3105, CER 0.1268
+    5 dB: 3998 utterances, WER 0.3325, CER 0.1414
+    0 dB: 3998 utterances, WER 0.3815, CER 0.1733
+   -5 dB: 3998 utterances, WER 0.4693, CER 0.2405
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 305, in <module>
+    main()
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 294, in main
+    save_metrics(report_dir / "test_metrics.csv", details)
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 163, in save_metrics
+    writer.writerows(details)
+  File "/home/Lipscribe-team/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/csv.py", line 157, in writerows
+    return self.writer.writerows(map(self._dict_to_list, rowdicts))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Lipscribe-team/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/csv.py", line 149, in _dict_to_list
+    raise ValueError("dict contains fields not in fieldnames: "
+ValueError: dict contains fields not in fieldnames: 'gate_mean'
+
+[18:36:18 | +94m] === Training p_scratch (configs/p_scratch.yaml) for 30 min on full dataset ===
+Run directory: /home/Lipscribe-team/Desktop/cv_project_LipScribe/runs/p_scratch_20261105-183620
+epoch   0  train 2.0792  val 1.2160  WER 0.6538  CER 0.4201  [clean:0.654  10:0.654  5:0.653  0:0.654  -5:0.654]  160s  *best (saved best.pt)*
+  time budget 30 min, 2.7 min/epoch: training shortened to 11 epochs (cosine compressed)
+epoch   1  train 0.7119  val 1.2997  WER 0.5894  CER 0.3631  [clean:0.582  10:0.588  5:0.590  0:0.592  -5:0.596]  162s  *best (saved best.pt)*
+epoch   2  train 0.4115  val 0.9512  WER 0.4485  CER 0.2548  [clean:0.439  10:0.443  5:0.448  0:0.454  -5:0.459]  151s  *best (saved best.pt)*
+epoch   3  train 0.3197  val 0.8895  WER 0.4008  CER 0.2249  [clean:0.390  10:0.395  5:0.399  0:0.407  -5:0.413]  160s  *best (saved best.pt)*
+epoch   4  train 0.2539  val 0.7745  WER 0.3641  CER 0.2035  [clean:0.348  10:0.353  5:0.362  0:0.372  -5:0.385]  163s  *best (saved best.pt)*
+epoch   5  train 0.2070  val 0.6271  WER 0.3326  CER 0.1804  [clean:0.304  10:0.319  5:0.329  0:0.345  -5:0.367]  154s  *best (saved best.pt)*
+epoch   6  train 0.1681  val 0.5515  WER 0.2934  CER 0.1587  [clean:0.265  10:0.279  5:0.290  0:0.306  -5:0.327]  157s  *best (saved best.pt)*
+epoch   7  train 0.1370  val 0.5814  WER 0.3033  CER 0.1644  [clean:0.279  10:0.288  5:0.299  0:0.313  -5:0.337]  158s
+epoch   8  train 0.1182  val 0.5595  WER 0.2868  CER 0.1585  [clean:0.261  10:0.272  5:0.282  0:0.298  -5:0.321]  161s  *best (saved best.pt)*
+epoch   9  train 0.1032  val 0.5254  WER 0.2813  CER 0.1526  [clean:0.256  10:0.268  5:0.276  0:0.292  -5:0.315]  157s  *best (saved best.pt)*
+epoch  10  train 0.0973  val 0.5364  WER 0.2835  CER 0.1545  [clean:0.259  10:0.269  5:0.278  0:0.295  -5:0.316]  160s
+Time budget reached.
+
+============================================================
+Training finished! Best epoch: 9 (Mean Val WER: 0.2813, CER: 0.1526)
+Best model checkpoint saved at: /home/Lipscribe-team/Desktop/cv_project_LipScribe/runs/p_scratch_20261105-183620/best.pt
+Convenience copy saved at:      /home/Lipscribe-team/Desktop/cv_project_LipScribe/checkpoints/p_scratch_best.pt
+============================================================
+
+
+[19:05:27 | +123m] === Evaluating p_scratch (runs/p_scratch_20261105-183620/best.pt): greedy, grammar, drop-audio, drop-visual ===
+Decoding with greedy
+clean dB: 3998 utterances, WER 0.1258, CER 0.0641
+   10 dB: 3998 utterances, WER 0.1305, CER 0.0664
+    5 dB: 3998 utterances, WER 0.1355, CER 0.0698
+    0 dB: 3998 utterances, WER 0.1449, CER 0.0762
+   -5 dB: 3998 utterances, WER 0.1628, CER 0.0864
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 305, in <module>
+    main()
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 294, in main
+    save_metrics(report_dir / "test_metrics.csv", details)
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 163, in save_metrics
+    writer.writerows(details)
+  File "/home/Lipscribe-team/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/csv.py", line 157, in writerows
+    return self.writer.writerows(map(self._dict_to_list, rowdicts))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Lipscribe-team/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/csv.py", line 149, in _dict_to_list
+    raise ValueError("dict contains fields not in fieldnames: "
+ValueError: dict contains fields not in fieldnames: 'gate_mean'
+Decoding with grammar
+clean dB: 3998 utterances, WER 0.0940, CER 0.0595
+   10 dB: 3998 utterances, WER 0.0984, CER 0.0619
+    5 dB: 3998 utterances, WER 0.1030, CER 0.0653
+    0 dB: 3998 utterances, WER 0.1132, CER 0.0720
+   -5 dB: 3998 utterances, WER 0.1316, CER 0.0832
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 305, in <module>
+    main()
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 294, in main
+    save_metrics(report_dir / "test_metrics.csv", details)
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 163, in save_metrics
+    writer.writerows(details)
+  File "/home/Lipscribe-team/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/csv.py", line 157, in writerows
+    return self.writer.writerows(map(self._dict_to_list, rowdicts))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Lipscribe-team/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/csv.py", line 149, in _dict_to_list
+    raise ValueError("dict contains fields not in fieldnames: "
+ValueError: dict contains fields not in fieldnames: 'gate_mean'
+Decoding with greedy
+clean dB: 3998 utterances, WER 0.2503, CER 0.1387
+   10 dB: same as clean (no audio input)
+    5 dB: same as clean (no audio input)
+    0 dB: same as clean (no audio input)
+   -5 dB: same as clean (no audio input)
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 305, in <module>
+    main()
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 294, in main
+    save_metrics(report_dir / "test_metrics.csv", details)
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 163, in save_metrics
+    writer.writerows(details)
+  File "/home/Lipscribe-team/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/csv.py", line 157, in writerows
+    return self.writer.writerows(map(self._dict_to_list, rowdicts))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Lipscribe-team/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/csv.py", line 149, in _dict_to_list
+    raise ValueError("dict contains fields not in fieldnames: "
+ValueError: dict contains fields not in fieldnames: 'gate_mean'
+Decoding with greedy
+clean dB: 3998 utterances, WER 0.3241, CER 0.1396
+   10 dB: 3998 utterances, WER 0.3415, CER 0.1488
+    5 dB: 3998 utterances, WER 0.3607, CER 0.1590
+    0 dB: 3998 utterances, WER 0.4103, CER 0.1895
+   -5 dB: 3998 utterances, WER 0.4957, CER 0.2464
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 305, in <module>
+    main()
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 294, in main
+    save_metrics(report_dir / "test_metrics.csv", details)
+  File "/home/Lipscribe-team/Desktop/cv_project_LipScribe/scripts/evaluate.py", line 163, in save_metrics
+    writer.writerows(details)
+  File "/home/Lipscribe-team/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/csv.py", line 157, in writerows
+    return self.writer.writerows(map(self._dict_to_list, rowdicts))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Lipscribe-team/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/csv.py", line 149, in _dict_to_list
+    raise ValueError("dict contains fields not in fieldnames: "
+ValueError: dict contains fields not in fieldnames: 'gate_mean'
+
+[19:08:22 | +126m] === All 4 full Model P training + evaluation runs finished! ===
