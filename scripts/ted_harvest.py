@@ -150,6 +150,7 @@ def main() -> None:
     talks: dict[str, dict] = {}          # slug -> {'left': n, 'rows': [], 'talk': r}
     pending: dict = {}
     t0 = dt.datetime.now(); n_talks = n_skip = 0
+    stalled = False
 
     def finish(slug):
         nonlocal n_talks
@@ -193,7 +194,7 @@ def main() -> None:
             break
         fin, _ = wait(list(pending), timeout=900, return_when=FIRST_COMPLETED)
         if not fin:
-            print("no cue finished in 15 min, stopping", flush=True); break
+            print("no cue finished in 15 min, stopping", flush=True); stalled = True; break
         for f in fin:
             slug = pending.pop(f)
             try:
@@ -218,6 +219,8 @@ def main() -> None:
     ex.shutdown(wait=False, cancel_futures=True)
     mfh.close()
     print(f"DONE: {n_talks} talks, {kept_s / 3600:.2f} h of clips", flush=True)
+    if not stalled:          # list exhausted or target reached: tell flix_chain_run.sh TED is complete
+        (a.out / ".harvest_done").write_text(f"{dt.datetime.now():%F %T} {kept_s / 3600:.2f} h\n")
 
 
 if __name__ == "__main__":
