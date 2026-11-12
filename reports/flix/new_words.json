@@ -1,0 +1,29 @@
+{
+  "base_flix": {
+    "tokens_right": 2,
+    "tokens": 223,
+    "distinct_right": [
+      "it"
+    ]
+  },
+  "base_flix_lips_only": {
+    "tokens_right": 1,
+    "tokens": 223,
+    "distinct_right": [
+      "it"
+    ]
+  },
+  "tuned_flix": {
+    "tokens_right": 2,
+    "tokens": 223,
+    "distinct_right": [
+      "the",
+      "you"
+    ]
+  },
+  "tuned_flix_lips_only": {
+    "tokens_right": 0,
+    "tokens": 223,
+    "distinct_right": []
+  }
+}
