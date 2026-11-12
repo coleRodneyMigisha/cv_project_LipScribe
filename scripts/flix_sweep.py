@@ -49,7 +49,28 @@ ANCHORS = {
     "from_p4": dict(init="from_p4", lr=1e-4, freeze="none", dropout=0.3, weight_decay=1e-2,
                     audio_dropout=0.25, batch_size=16, snrs="all"),
 }
-FIELDS = ["trial", "seed", *SPACE, "best_epoch", "epochs", "val_cer", "val_wer", "run_dir"]
+RES_KEYS = {"eyes": str, "spatial_dropout": float, "aug": str, "vis_dropout": float}
+# ResNet (eyes) variations tried by --resnet, each applied on top of the best setting so far
+RESNET = {
+    "r00_frozen": {"eyes": "frozen"},
+    "r01_ft0.1": {"eyes": "ft_0.1"},
+    "r02_ft0.3": {"eyes": "ft_0.3"},
+    "r03_top0.3": {"eyes": "top_0.3"},
+    "r04_lstm": {"eyes": "lstm_only"},
+    "r05_ft0.1_sd0.4": {"eyes": "ft_0.1", "spatial_dropout": 0.4},
+    "r06_ft0.1_aug": {"eyes": "ft_0.1", "aug": "strong"},
+    "r07_ft0.1_vd0.3": {"eyes": "ft_0.1", "vis_dropout": 0.3},
+    "r08_top0.3_aug": {"eyes": "top_0.3", "aug": "strong"},
+    "r09_ft0.3_aug_sd0.4": {"eyes": "ft_0.3", "aug": "strong", "spatial_dropout": 0.4},
+    "r10_frozen_vd0.3": {"eyes": "frozen", "vis_dropout": 0.3},
+}
+FIELDS = ["trial", "seed", *SPACE, *RES_KEYS, "best_epoch", "epochs", "val_cer", "val_wer", "run_dir"]
+
+
+def hparams_of(row: dict) -> dict:
+    h = {k: type(SPACE[k][0])(row[k]) for k in SPACE}
+    h.update({k: f(row[k]) for k, f in RES_KEYS.items() if row.get(k) not in (None, "")})
+    return h
 
 
 def make_cfg(h: dict, seed: int, data: Path, max_epochs: int, patience: int = 15) -> dict:
@@ -71,6 +92,28 @@ def make_cfg(h: dict, seed: int, data: Path, max_epochs: int, patience: int = 15
     if h["freeze"] != "none":
         m["freeze"] = [h["freeze"]]
     t = cfg["train"]
+    # optional ResNet (eyes) settings, used by scripts/flix_resnet_sweep.py
+    trunk = [f"visual_encoder.trunk.{i}" for i in range(8)]
+    eyes = h.get("eyes")
+    if eyes:
+        m.pop("freeze", None)
+        if eyes == "frozen":
+            m["freeze"] = ["visual_encoder"]
+        elif eyes.startswith("ft_"):                       # whole ResNet trained, at a lower lr
+            t["lr_mult"] = {"visual_encoder": float(eyes[3:])}
+        elif eyes.startswith("top_"):                      # stem + stages 1-2 frozen, stages 3-4 + LSTM trained
+            m["freeze"] = ["visual_encoder.frontend", *trunk[:4]]
+            t["lr_mult"] = {"visual_encoder": float(eyes[4:])}
+        elif eyes == "lstm_only":                          # CNN frozen, temporal BiLSTM trained
+            m["freeze"] = ["visual_encoder.frontend", "visual_encoder.trunk"]
+        else:
+            raise ValueError(f"unknown eyes mode {eyes!r}")
+    if "spatial_dropout" in h:
+        m["spatial_dropout"] = float(h["spatial_dropout"])
+    if "vis_dropout" in h:
+        m["modality_dropout"]["visual"] = float(h["vis_dropout"])
+    if h.get("aug") == "strong":
+        d["visual_aug"].update(max_jitter=6, max_scale=0.15, p_erase=0.7, max_erase_area=0.2, time_masks=3)
     t.update(lr=h["lr"], weight_decay=h["weight_decay"], batch_size=h["batch_size"],
              max_epochs=max_epochs, patience=patience, select_metric="cer")
     return cfg
@@ -120,6 +163,10 @@ def main() -> None:
     ap.add_argument("--from-sweep", type=Path, default=None,
                     help="re-run only the --top best seed-1 trials of an earlier sweep.csv (bigger data)")
     ap.add_argument("--top", type=int, default=5)
+    ap.add_argument("--resnet", action="store_true",
+                    help="tune the ResNet eyes: the RESNET variations on top of best.json of --from-sweep")
+    ap.add_argument("--finals-only", action="store_true",
+                    help="skip tuning: run the finals with best.json of the --from-sweep folder")
     ap.add_argument("--final-epochs", type=int, default=150,
                     help="final runs: best config, seeds 1-3, no early stopping")
     a = ap.parse_args()
@@ -146,7 +193,13 @@ def main() -> None:
     anchors = list(ANCHORS.values())
     picks = [g for g in grid if g not in anchors][: a.trials]
     trials = list(ANCHORS.items()) + [(f"t{i:02d}", g) for i, g in enumerate(picks)]
-    if a.from_sweep:
+    if a.finals_only:
+        trials = []
+    elif a.resnet:
+        base = json.loads((a.from_sweep.parent / "best.json").read_text())["hparams"]
+        base = {k: v for k, v in base.items() if k not in RES_KEYS}
+        trials = [(n, {**base, **delta}) for n, delta in RESNET.items()]
+    elif a.from_sweep:
         with open(a.from_sweep, newline="") as fh:
             prev = [r for r in csv.DictReader(fh) if r["seed"] == "1" and r["val_cer"] != "nan"
                     and not r["trial"].startswith("final")]
@@ -159,9 +212,14 @@ def main() -> None:
 
     # stage 2: final runs = best configuration, seeds 1-3, --final-epochs with no early
     # stopping (best.pt is still the epoch with the lowest val CER)
-    stage1 = [r for r in done if r["seed"] == "1" and r["val_cer"] != "nan" and not r["trial"].startswith("final")]
-    best = min(stage1, key=lambda r: float(r["val_cer"]))
-    h_best = {k: type(SPACE[k][0])(best[k]) for k in SPACE}
+    if a.finals_only:
+        bj = json.loads((a.from_sweep.parent / "best.json").read_text())
+        best = {"trial": bj.get("from_trial", bj["trial"]).replace("final_", ""), "val_cer": "(from earlier sweep)"}
+        h_best = bj["hparams"]
+    else:
+        stage1 = [r for r in done if r["seed"] == "1" and r["val_cer"] != "nan" and not r["trial"].startswith("final")]
+        best = min(stage1, key=lambda r: float(r["val_cer"]))
+        h_best = hparams_of(best)
     final = f"final_{best['trial']}"
     print(f"\nBest stage-1 trial: {best['trial']} val CER {best['val_cer']} {h_best}", flush=True)
     for seed in (1, 2, 3):

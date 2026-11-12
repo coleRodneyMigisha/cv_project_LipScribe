@@ -113,6 +113,9 @@ def clean_text(lines):
 def load_cues(video: Path, sub, tmp: Path):
     if isinstance(sub, tuple):
         hint = sub[1]
+        out = tmp / (re.sub(r"\W+", "_", video.stem) + ".srt")
+        if out.exists():                       # extracted earlier (or shipped from another machine)
+            return parse_srt(out.read_text(errors="ignore"))
         if hint == "eng":
             probe = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "s", "-show_entries",
                                     "stream_tags=language,title", "-of", "csv=p=0", str(video)],
@@ -168,7 +171,7 @@ def _aperture(f):
 def mine_cue(job):
     import cv2
     from lipscribe.preprocessing.crop import detect_lip_box, get_lip_indices, process_frames
-    key, video, a, b, text, out_dir, uid = job
+    key, video, a, b, text, out_dir, uid, audio = job
     try:
         cap = cv2.VideoCapture(str(video))
         cap.set(cv2.CAP_PROP_POS_MSEC, max(0.0, a - 0.2) * 1000)
@@ -221,8 +224,15 @@ def mine_cue(job):
             valid = np.concatenate([valid, np.zeros(pad, bool)])
         crops, valid = crops[:T_GRID], valid[:T_GRID]
         np.savez_compressed(out_dir / "clips" / f"{uid}.npz", crops=crops.astype(np.uint8), valid=valid)
-        subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", f"{a:.3f}", "-t", f"{b - a:.3f}", "-i", str(video),
-                        "-vn", "-ac", "1", "-ar", "16000", str(out_dir / "clips" / f"{uid}.wav")], check=True)
+        wav = out_dir / "clips" / f"{uid}.wav"
+        if audio:                              # pre-extracted 16 kHz mono FLAC: no ffmpeg needed
+            import soundfile as sf
+            with sf.SoundFile(audio) as fh:
+                fh.seek(int(round(a * fh.samplerate)))
+                sf.write(str(wav), fh.read(int(round((b - a) * fh.samplerate)), dtype="int16"), fh.samplerate)
+        else:
+            subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", f"{a:.3f}", "-t", f"{b - a:.3f}", "-i", str(video),
+                            "-vn", "-ac", "1", "-ar", "16000", str(wav)], check=True)
         return {"utt_id": uid, "speaker": group_of(key), "title": key, "transcript": text,
                 "start_s": f"{a:.3f}", "dur_s": f"{b - a:.3f}", "n_frames": n,
                 "mouth_valid_frac": f"{valid_frac:.3f}", "partition": partition_of(key)}
@@ -240,6 +250,10 @@ def main():
     ap.add_argument("--per-episode", type=int, default=45)
     ap.add_argument("--videos", type=Path, default=V,
                     help="root holding movies/, series/, 'b & m/' (default ~/Videos/entertainment)")
+    ap.add_argument("--audio-dir", type=Path, default=None,
+                    help="per-video 16 kHz mono FLACs named <video stem with non-word chars as _>.flac")
+    ap.add_argument("--uid-by-time", action="store_true",
+                    help="name clips <title>_t<start ms> and skip cues already in the manifest by (title, start)")
     ap.add_argument("--stall-min", type=float, default=15,
                     help="stop if no cue finishes for this long (a killed worker hangs multiprocessing.Pool)")
     args = ap.parse_args()
@@ -265,7 +279,13 @@ def main():
                     cand.append((a, b, t))
         rng.shuffle(cand)
         cap = args.per_episode if "/" in key else args.per_movie
-        per_title.append([(key, str(video), a, b, t, out, f"{re.sub(r'[^a-z0-9]+', '_', key)}_{i:04d}")
+        aud = ""
+        if args.audio_dir:
+            f = args.audio_dir / (re.sub(r"\W+", "_", Path(video).stem) + ".flac")
+            aud = str(f) if f.exists() else ""
+        safe = re.sub(r'[^a-z0-9]+', '_', key)
+        per_title.append([(key, str(video), a, b, t, out,
+                           f"{safe}_t{int(round(a * 1000)):08d}" if args.uid_by_time else f"{safe}_{i:04d}", aud)
                           for i, (a, b, t) in enumerate(cand[:cap])])
         print(f"{key}: {len(cues)} cues, {len(cand)} candidates, using {min(cap, len(cand))}", flush=True)
     # interleave titles so an early stop still covers every title
@@ -280,31 +300,51 @@ def main():
         with open(mf, newline="") as fh:
             prev = [r for r in csv.DictReader(fh) if (out / "clips" / f"{r['utt_id']}.npz").exists()]
     have = {r["utt_id"] for r in prev}
-    jobs = [j for j in jobs if j[-1] not in have]
+    have_t = {(r["title"], f"{float(r['start_s']):.3f}") for r in prev}
+    jobs = [j for j in jobs if j[6] not in have and (j[0], f"{j[2]:.3f}") not in have_t]
     if prev:
         print(f"resuming: {len(prev)} clips already kept, {len(jobs)} cues left", flush=True)
     kept = len(prev); done = 0
-    # maxtasksperchild: recycle workers so decoder memory cannot build up (OOM on 7 GB laptop)
-    with open(mf, "w", newline="") as fh, mp.Pool(args.workers, maxtasksperchild=40) as pool:
+    # concurrent.futures: a dead worker raises BrokenProcessPool instead of hanging the pool;
+    # max_tasks_per_child recycles workers so decoder memory cannot build up (OOM on 7 GB laptop).
+    # At most 4 * workers cues are in flight, so stopping early wastes little.
+    from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, wait
+    from concurrent.futures.process import BrokenProcessPool
+    ex = ProcessPoolExecutor(args.workers, mp_context=mp.get_context("forkserver"), max_tasks_per_child=40)
+    todo = iter(jobs); pending = set(); stop = None
+    with open(mf, "w", newline="") as fh:
         wr = csv.DictWriter(fh, fieldnames=fields); wr.writeheader()
         wr.writerows(prev); fh.flush()
-        it = pool.imap_unordered(mine_cue, jobs, chunksize=2)
-        while True:
-            try:
-                r = it.next(timeout=args.stall_min * 60)
-            except StopIteration:
-                break
-            except mp.TimeoutError:
-                print(f"no cue finished in {args.stall_min:.0f} min (worker died?), stopping", flush=True)
-                pool.terminate(); break
-            done += 1
-            if r:
-                kept += 1; wr.writerow(r); fh.flush()
-            if done % 100 == 0:
-                print(f"{dt.datetime.now():%H:%M:%S} {done}/{len(jobs)} processed, {kept} kept", flush=True)
-            if dt.datetime.now() >= deadline:
-                print("deadline reached, stopping", flush=True)
-                pool.terminate(); break
+        try:
+            while True:
+                while stop is None and len(pending) < 4 * args.workers:
+                    j = next(todo, None)
+                    if j is None:
+                        break
+                    pending.add(ex.submit(mine_cue, j))
+                if not pending:
+                    break
+                fin, pending = wait(pending, timeout=args.stall_min * 60, return_when=FIRST_COMPLETED)
+                if not fin:
+                    stop = f"no cue finished in {args.stall_min:.0f} min"; break
+                for f in fin:
+                    r = f.result()
+                    done += 1
+                    if r:
+                        kept += 1; wr.writerow(r); fh.flush()
+                    if done % 100 == 0:
+                        print(f"{dt.datetime.now():%H:%M:%S} {done}/{len(jobs)} processed, {kept} kept", flush=True)
+                if stop is None and dt.datetime.now() >= deadline:
+                    stop = "deadline reached"
+        except BrokenProcessPool:
+            stop = "a worker process died (out of memory?)"
+        finally:
+            if stop:
+                print(f"{stop}, stopping", flush=True)
+            for p_ in list(getattr(ex, "_processes", {}).values()):
+                if stop:
+                    p_.terminate()
+            ex.shutdown(wait=not stop, cancel_futures=True)
     with open(out / "splits.csv", "w", newline="") as fh:
         w = csv.writer(fh); w.writerow(["speaker", "partition"])
         for g in sorted({group_of(j[0]) for grp in per_title for j in grp}):
