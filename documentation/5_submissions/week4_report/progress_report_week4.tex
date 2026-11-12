@@ -294,14 +294,30 @@ best validation CER came at round 46. We keep that checkpoint, not the last one.
 \label{fig:curve}
 \end{figure}
 
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.80\textwidth]{figures/slide-20.png}
-\caption{The same run in our presentation, with lines from the real training log on the
-Alienware: practice (training) error keeps falling, error on unseen films rises, and the best
-round (46) is starred.}
-\label{fig:log}
-\end{figure}
+\begin{table}[htbp]
+\centering\small
+\caption{Excerpt from the real training log of the same run (Alienware). ``Error'' is the CTC
+loss; letters wrong is the validation CER on unseen films.}
+\label{tab:log}
+\rowcolors{2}{lsrow}{white}
+\begin{tabular}{@{}rccc@{}}
+\toprule
+\rowcolor{white}\sffamily\bfseries Round & \sffamily\bfseries Practice error & \sffamily\bfseries Unseen-film error & \sffamily\bfseries Letters wrong \\
+\midrule
+1   & 5.19 & 3.35 & 100.0\,\% \\
+10  & 3.05 & 3.10 & 100.0\,\% \\
+30  & 2.66 & 3.19 & 86.4\,\% \\
+\textbf{46} & 2.18 & 3.58 & \textbf{75.3\,\%} (best, kept) \\
+100 & 1.10 & 5.24 & 78.3\,\% \\
+150 & 1.05 & 5.53 & 78.5\,\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Two things stand out in Table~\ref{tab:log}. For the first $\sim$30 rounds the letters-wrong
+column stays at 100\,\%. That is the new CTC head writing only gaps, the behaviour that forced us
+to raise the early-stopping patience. After round 46 the practice error keeps falling while the
+model gets worse on unseen films: the textbook signature of overfitting.
 
 \keyidea{overfitting}{When a model has many more parameters than examples, it can memorise the
 training set. Figure~\ref{fig:curve} shows the signature: training error falls while error on
@@ -324,37 +340,44 @@ Both were built from \textbf{every subtitle line of the training films only}: 23
 stays honest. 95\,\% of the words actually spoken in the test films are in the lexicon. The LM
 weight and a word bonus were tuned on validation, and the test was scored once. The word
 grammar roughly tripled the number of correct non-GRID words and gave the first sub-100\,\% WER.
-Table~\ref{tab:scenes} shows what this looks like.
+Figure~\ref{fig:scenes} shows what this looks like.
 
-\begin{table}[htbp]
-\centering\small
-\caption{Three test scenes (two best, one typical) for the retrained model, seed 1.}
-\label{tab:scenes}
-\rowcolors{2}{lsrow}{white}
-\begin{tabularx}{\textwidth}{@{}L{3.9cm}L{3.2cm}L{3.3cm}X@{}}
-\toprule
-\rowcolor{white}\sffamily\bfseries Subtitle (film) & \sffamily\bfseries P4 as is & \sffamily\bfseries Retrained & \sffamily\bfseries Retrained + word grammar \\
-\midrule
-``you know like uh'' (\emph{The Drama}) & bn ne now & you nt a ne & \textbf{you dont and} \\
-``i used to be'' (\emph{Little Women}) & lian whe win b eight sgon & wha ma ne & \textbf{i am} \\
-``oh i thought you were a novelist not a screenwriter'' (\emph{Little Women}) & lay reten bi v iro soon & iond tao u maes srs sne te & and to me sense \\
-\bottomrule
-\end{tabularx}
-\end{table}
+\begin{figure}[htbp]
+\centering
+\noindent\begin{minipage}[c]{0.43\textwidth}\includegraphics[width=\linewidth]{figures/strip_1.png}\end{minipage}\hfill
+\begin{minipage}[c]{0.54\textwidth}\footnotesize
+{\sffamily\bfseries\color{lsblue}Best result} \textcolor{lsgrey}{(\emph{The Drama})}\\[1pt]
+\textbf{Subtitle:} ``you know like uh''\\
+\textcolor{lsgrey}{P4 as is:} \texttt{bn ne now}\quad \textcolor{lsgrey}{Retrained:} \texttt{you nt a ne}\\
+\textcolor{lsgrey}{Retrained + word grammar:} \textbf{\texttt{you dont and}}
+\end{minipage}
+\par\medskip
+\noindent\begin{minipage}[c]{0.43\textwidth}\includegraphics[width=\linewidth]{figures/strip_2.png}\end{minipage}\hfill
+\begin{minipage}[c]{0.54\textwidth}\footnotesize
+{\sffamily\bfseries\color{lsblue}Best result} \textcolor{lsgrey}{(\emph{Little Women})}\\[1pt]
+\textbf{Subtitle:} ``i used to be''\\
+\textcolor{lsgrey}{P4 as is:} \texttt{lian whe win b eight sgon}\quad \textcolor{lsgrey}{Retrained:} \texttt{wha ma ne}\\
+\textcolor{lsgrey}{Retrained + word grammar:} \textbf{\texttt{i am}}
+\end{minipage}
+\par\medskip
+\noindent\begin{minipage}[c]{0.43\textwidth}\includegraphics[width=\linewidth]{figures/strip_3.png}\end{minipage}\hfill
+\begin{minipage}[c]{0.54\textwidth}\footnotesize
+{\sffamily\bfseries\color{lsblue}Typical result} \textcolor{lsgrey}{(\emph{Little Women})}\\[1pt]
+\textbf{Subtitle:} ``oh i thought you were a novelist not a screenwriter''\\
+\textcolor{lsgrey}{P4 as is:} \texttt{lay reten bi v iro soon}\quad \textcolor{lsgrey}{Retrained:} \texttt{iond tao u maes srs sne te}\\
+\textcolor{lsgrey}{Retrained + word grammar:} \textbf{\texttt{and to me sense}}
+\end{minipage}
+\caption{Captions generated on the unseen test films. On the left are the mouth crops the model
+actually read for the line (7 of its frames); on the right, the real subtitle and the captions of
+P4, the retrained model, and the retrained model with the word grammar (seed 1). Two are the best
+of the 43 test clips and one is typical.}
+\label{fig:scenes}
+\end{figure}
 
 The original model forces every film line into a GRID sentence (``\ldots eight soon''). The
 retrained model writes English-like fragments, and the word grammar turns some of those into
 real words. It is progress, but not yet captioning.
 
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.86\textwidth]{figures/slide-21.png}
-\caption{Captions generated on the unseen test films, as shown in our progress presentation.
-Each still is the frame in the middle of the spoken line; under it are the real subtitle and the
-captions of P4, the retrained model and the retrained model with the word grammar. Two scenes are
-the best of the 43 test clips, and one is typical (labelled).}
-\label{fig:scenes}
-\end{figure}
 
 \subsection{Tuning the eyes: 11 ways of training the ResNet}
 \keyidea{adopted architecture vs transfer learning}{B2~v2's eyes use the published ResNet-18
