@@ -9,7 +9,8 @@ padding) so the clips drop straight into GridDataset.
 Output (out_dir): clips/<utt_id>.npz (crops, valid), clips/<utt_id>.wav,
 manifest_local.csv, splits.csv (title -> train/val/test).
 
-Usage: python -m scripts.mine_flix --out <dir> --deadline 03:17 --workers 4
+Usage: python -m scripts.mine_flix --out <dir> --deadline 03:17 --workers 4 [--videos <root>]
+       (all cues: --per-movie 100000 --per-episode 100000)
 """
 from __future__ import annotations
 
@@ -230,13 +231,19 @@ def mine_cue(job):
 
 
 def main():
+    global V
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True, type=Path)
     ap.add_argument("--deadline", default="03:17", help="local HH:MM to stop mining")
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--per-movie", type=int, default=220)
     ap.add_argument("--per-episode", type=int, default=45)
+    ap.add_argument("--videos", type=Path, default=V,
+                    help="root holding movies/, series/, 'b & m/' (default ~/Videos/entertainment)")
+    ap.add_argument("--stall-min", type=float, default=15,
+                    help="stop if no cue finishes for this long (a killed worker hangs multiprocessing.Pool)")
     args = ap.parse_args()
+    V = args.videos
     out = args.out; (out / "clips").mkdir(parents=True, exist_ok=True); (out / "subs").mkdir(exist_ok=True)
     now = dt.datetime.now()
     hh, mm = map(int, args.deadline.split(":"))
@@ -281,7 +288,15 @@ def main():
     with open(mf, "w", newline="") as fh, mp.Pool(args.workers, maxtasksperchild=40) as pool:
         wr = csv.DictWriter(fh, fieldnames=fields); wr.writeheader()
         wr.writerows(prev); fh.flush()
-        for r in pool.imap_unordered(mine_cue, jobs, chunksize=2):
+        it = pool.imap_unordered(mine_cue, jobs, chunksize=2)
+        while True:
+            try:
+                r = it.next(timeout=args.stall_min * 60)
+            except StopIteration:
+                break
+            except mp.TimeoutError:
+                print(f"no cue finished in {args.stall_min:.0f} min (worker died?), stopping", flush=True)
+                pool.terminate(); break
             done += 1
             if r:
                 kept += 1; wr.writerow(r); fh.flush()

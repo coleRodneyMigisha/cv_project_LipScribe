@@ -21,7 +21,7 @@ from scripts.flix_report import new_words
 
 SETS = [("flix", "Films: lips + sound"), ("flix_lips_only", "Films: lips only"),
         ("flix_sound_only", "Films: sound only"), ("grid", "GRID test")]
-C = ["#2a78d6", "#eb6834", "#1baf7a"]      # validated default categorical slots 1-3
+C = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100"]   # validated default categorical slots 1-4
 INK, INK2, SURF = "#1f1f1e", "#5c5b55", "#fcfcfb"
 
 
@@ -35,6 +35,8 @@ def main() -> None:
     ap.add_argument("--out", type=Path, default=Path("reports/flix_sweep"))
     ap.add_argument("--first", type=Path, default=Path("reports/flix"))
     ap.add_argument("--stats", type=Path, default=Path("data/flix_only/stats.json"))
+    ap.add_argument("--prev", type=Path, default=None, help="an earlier sweep dir, shown as its own row")
+    ap.add_argument("--prev-label", default="Retrained on the first 305 clips")
     a = ap.parse_args()
     with open(a.out / "sweep.csv", newline="") as fh:
         rows = list(csv.DictReader(fh))
@@ -45,6 +47,7 @@ def main() -> None:
 
     models = {"Original P4 (no film training)": [(a.first, "base")],
               "First fine-tune (P4 + GRID mix)": [(a.first, "tuned")],
+              **({f"{a.prev_label} (3 seeds)": [(a.prev, f"sweep_s{s}") for s in (1, 2, 3)]} if a.prev else {}),
               f"Retrained on Flix, best of sweep ({len(seeds)} seeds, {best.get('final_epochs', '?')} epochs)": [(a.out, f"sweep_s{s}") for s in seeds]}
     table, chart = {}, {}
     for mname, srcs in models.items():
@@ -107,9 +110,9 @@ def main() -> None:
     print("\n".join(L))
 
     fig, ax = plt.subplots(figsize=(9, 4.2), dpi=200, facecolor=SURF); ax.set_facecolor(SURF)
-    keys = [s for s, _ in SETS]; w = 0.26
+    keys = [s for s, _ in SETS]; n = len(chart); w = 0.8 / max(n, 1) - 0.02
     for i, (mname, vals) in enumerate(chart.items()):
-        xs = [j + (i - 1) * (w + 0.02) for j, k in enumerate(keys) if k in vals]
+        xs = [j + (i - (n - 1) / 2) * (w + 0.02) for j, k in enumerate(keys) if k in vals]
         ys = [vals[k] for k in keys if k in vals]
         bars = ax.bar(xs, ys, width=w, color=C[i], label=mname, zorder=2)
         for bb, y in zip(bars, ys):
@@ -121,7 +124,7 @@ def main() -> None:
     for s in ("top", "right", "left"):
         ax.spines[s].set_visible(False)
     ax.spines["bottom"].set_color("#c9c8c2"); ax.tick_params(length=0, colors=INK2, labelsize=8.5)
-    ax.legend(frameon=False, fontsize=8.5, loc="lower left", bbox_to_anchor=(0, 1.0), ncol=3, labelcolor=INK)
+    ax.legend(frameon=False, fontsize=8.5, loc="lower left", bbox_to_anchor=(0, 1.0), ncol=2, labelcolor=INK)
     fig.tight_layout(); fig.savefig(a.out / "flix_sweep_wer.png", facecolor=SURF); plt.close(fig)
 
 
