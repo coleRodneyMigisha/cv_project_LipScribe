@@ -66,9 +66,9 @@ def main() -> None:
             dropped["empty"] += 1; continue
         if not (npz.exists() and wav.exists()):
             dropped["missing file"] += 1; continue
-        if ctc_min_frames(encode(t)) > T_GRID:
+        if ctc_min_frames(encode(t)) > max(T_GRID, int(float(r.get("n_frames") or 0))):
             dropped["too many letters for 3 s"] += 1; continue
-        part = r["partition"]
+        part = r["partition"]          # "ted_test": held-out TED talks, scored separately
         if r["speaker"] in args.extra_val:
             if part == "test":
                 raise SystemExit(f"--extra-val {r['speaker']} is a test title")
@@ -105,6 +105,13 @@ def main() -> None:
     f_train = [r for r in flix if r["partition"] == "train"]
     f_val = [r for r in flix if r["partition"] == "val"]
     f_test = [r for r in flix if r["partition"] == "test"]
+    ted_test = [r for r in flix if r["partition"] == "ted_test"]
+    for r in ted_test:
+        r["partition"] = "test"; splits[r["speaker"]] = "test"
+    if ted_test:
+        write_csv(args.out / "ted_test.csv", ted_test)
+        write_csv(args.out / "splits.csv", [{"speaker": s_, "partition": p_} for s_, p_ in sorted(splits.items())],
+                  fields=["speaker", "partition"])
     train_mix = (f_train * args.flix_repeat + f_val + grid["train"][:args.grid_train]
                  + grid["val"][:args.grid_val])          # --grid-train 0 --grid-val 0 -> Flix only
     write_csv(args.out / "train_mix.csv", train_mix)
@@ -118,6 +125,7 @@ def main() -> None:
     stats = {
         "flix_clips": len(flix), "dropped": dict(dropped),
         "by_partition": {p: sum(r["partition"] == p for r in flix) for p in ("train", "val", "test")},
+        "ted_test_clips": len(ted_test),
         "by_title": dict(Counter(r["speaker"] for r in flix).most_common()),
         "titles_by_partition": {p: sorted({r["speaker"] for r in flix if r["partition"] == p})
                                 for p in ("train", "val", "test")},

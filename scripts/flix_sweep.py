@@ -167,6 +167,7 @@ def main() -> None:
                     help="tune the ResNet eyes: the RESNET variations on top of best.json of --from-sweep")
     ap.add_argument("--finals-only", action="store_true",
                     help="skip tuning: run the finals with best.json of the --from-sweep folder")
+    ap.add_argument("--seeds", type=int, nargs="+", default=[1, 2, 3], help="seeds of the final runs")
     ap.add_argument("--final-epochs", type=int, default=150,
                     help="final runs: best config, seeds 1-3, no early stopping")
     a = ap.parse_args()
@@ -227,7 +228,7 @@ def main() -> None:
                                                      "final_epochs": 0, "hparams": h_best}, indent=2))
         print("tuning only (--final-epochs 0): best.json written", flush=True)
         return
-    for seed in (1, 2, 3):
+    for seed in a.seeds:
         if (final, str(seed)) not in have:
             record(run_trial(final, h_best, seed, a, a.out, max_epochs=a.final_epochs,
                              patience=a.final_epochs))
