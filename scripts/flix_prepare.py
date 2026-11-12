@@ -51,6 +51,8 @@ def main() -> None:
     ap.add_argument("--grid-test", type=int, default=600)
     ap.add_argument("--flix-repeat", type=int, default=8)
     ap.add_argument("--seed", type=int, default=1)
+    ap.add_argument("--extra-val", nargs="*", default=[],
+                    help="train titles to move into val (a bigger val set for tuning); test is never touched")
     args = ap.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     rng = random.Random(args.seed)
@@ -66,8 +68,13 @@ def main() -> None:
             dropped["missing file"] += 1; continue
         if ctc_min_frames(encode(t)) > T_GRID:
             dropped["too many letters for 3 s"] += 1; continue
+        part = r["partition"]
+        if r["speaker"] in args.extra_val:
+            if part == "test":
+                raise SystemExit(f"--extra-val {r['speaker']} is a test title")
+            part = "val"
         flix.append({"utt_id": f"flix_{r['utt_id']}", "speaker": r["speaker"],
-                     "partition": r["partition"], "transcript": t, "usable": "True",
+                     "partition": part, "transcript": t, "usable": "True",
                      "mouths_path": str(npz), "valid_path": "", "audio_path": str(wav),
                      "speech_start_s": "", "source": "flix", "dur_s": r.get("dur_s", "")})
 
@@ -98,7 +105,8 @@ def main() -> None:
     f_train = [r for r in flix if r["partition"] == "train"]
     f_val = [r for r in flix if r["partition"] == "val"]
     f_test = [r for r in flix if r["partition"] == "test"]
-    train_mix = f_train * args.flix_repeat + f_val + grid["train"][:args.grid_train] + grid["val"][:args.grid_val]
+    train_mix = (f_train * args.flix_repeat + f_val + grid["train"][:args.grid_train]
+                 + grid["val"][:args.grid_val])          # --grid-train 0 --grid-val 0 -> Flix only
     write_csv(args.out / "train_mix.csv", train_mix)
     write_csv(args.out / "flix_test.csv", f_test)
     write_csv(args.out / "grid_test.csv", grid["test"][:args.grid_test])
