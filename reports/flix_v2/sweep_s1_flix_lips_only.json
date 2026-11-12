@@ -1,0 +1,19 @@
+{
+  "checkpoint": "/home/Lipscribe-team/Desktop/lipscribe_flix/runs/flix_v2/flix_p_20261112-133903/best.pt",
+  "manifest": "data/flix_v2/flix_test.csv",
+  "drop_modality": "audio",
+  "results": {
+    "clean": {
+      "n_utts": 43,
+      "wer": 0.9718875502008032,
+      "cer": 0.8975481611208407,
+      "gate_mean": 0.0011856921042889617
+    },
+    "0": {
+      "n_utts": 43,
+      "wer": 0.9718875502008032,
+      "cer": 0.8975481611208407,
+      "gate_mean": 0.0011856921042889617
+    }
+  }
+}
