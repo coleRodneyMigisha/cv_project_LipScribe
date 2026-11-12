@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LipScribe Demo</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --ink: #1f2937; --muted: #5b6472; --line: #e3e6eb;
+    --navy: #0b3d91; --red: #d7014d; --yellow: #ffd932; --ok: #1b7f4b;
+    --ears: #2a78d6; --lips: #eb6834;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #121315; --card: #1c1d20; --ink: #ecedef; --muted: #a3a8b3; --line: #2c2e33;
+            --navy: #6f9be8; --red: #ff5a8a; --ok: #46b97c; --ears: #3987e5; --lips: #d95926; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 18px 16px 6px; max-width: 980px; margin: 0 auto; }
+  header h1 { margin: 0; font-size: 24px; color: var(--navy); }
+  header p { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+  main { max-width: 980px; margin: 0 auto; padding: 10px 16px 32px; display: grid; gap: 16px;
+         grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+  @media (max-width: 760px) { main { grid-template-columns: 1fr; } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+  .cam { position: relative; aspect-ratio: 4 / 3; background: #000; border-radius: 10px; overflow: hidden; }
+  video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+  .rec { position: absolute; top: 10px; left: 10px; display: none; align-items: center; gap: 6px;
+         background: rgba(0,0,0,.55); color: #fff; padding: 3px 10px; border-radius: 99px; font-size: 13px; }
+  .rec i { width: 9px; height: 9px; border-radius: 50%; background: #ff3b3b; animation: blink 1s infinite; }
+  @keyframes blink { 50% { opacity: .2; } }
+  .controls { display: flex; gap: 10px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+  button.big { flex: 1 1 180px; border: 0; border-radius: 12px; padding: 14px 18px; font-size: 17px;
+               font-weight: 600; background: var(--red); color: #fff; cursor: pointer; }
+  button.big[data-state="recording"] { background: var(--ink); color: var(--bg); }
+  button.big:disabled { opacity: .55; cursor: default; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .seg button { border: 0; background: transparent; color: var(--muted); padding: 9px 12px; font-size: 14px; cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--navy); color: #fff; }
+  .hint { color: var(--muted); font-size: 14px; margin: 10px 0 0; }
+  .hint b { color: var(--ink); }
+  .label { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 4px; }
+  .caption { font-size: 30px; line-height: 1.25; font-weight: 650; min-height: 76px; margin: 2px 0 12px;
+             overflow-wrap: anywhere; }
+  .caption.empty { color: var(--muted); font-weight: 400; font-size: 18px; }
+  .meter { height: 14px; display: flex; border-radius: 99px; overflow: hidden; background: var(--line); }
+  .meter span { display: block; height: 100%; }
+  .legend { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .legend b { color: var(--ink); }
+  .strip { width: 100%; border-radius: 8px; image-rendering: pixelated; margin-top: 6px; display: none; }
+  .meta { font-size: 13px; color: var(--muted); margin-top: 10px; }
+  .warn { color: var(--red); font-size: 14px; margin-top: 6px; }
+  details { margin-top: 14px; font-size: 14px; color: var(--muted); }
+  details input { width: 100%; padding: 8px; margin: 4px 0 8px; border: 1px solid var(--line); border-radius: 8px;
+                  background: var(--bg); color: var(--ink); font-size: 14px; }
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--line); border-top-color: var(--navy);
+             border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -3px; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<header>
+  <h1>LipScribe</h1>
+  <p>Captions from your voice <i>and</i> your lips — the model leans on the lips when the sound gets bad.</p>
+</header>
+<main>
+  <section class="card">
+    <div class="cam"><video id="cam" autoplay muted playsinline></video>
+      <div class="rec" id="rec"><i></i><span id="timer">0.0 s</span></div></div>
+    <div class="controls">
+      <button class="big" id="go" disabled>Starting camera…</button>
+      <div class="seg" role="group" aria-label="Model">
+        <button id="m-grid" aria-pressed="true">GRID sentences</button>
+        <button id="m-films" aria-pressed="false">Any speech (experimental)</button>
+      </div>
+    </div>
+    <p class="hint" id="hint">Face the camera, press record and say a GRID sentence, e.g.
+      <b>“place blue at f two now”</b> or <b>“bin red by g nine soon”</b>. Stops after 6 s.</p>
+  </section>
+  <section class="card" aria-live="polite">
+    <p class="label">Caption</p>
+    <div class="caption empty" id="caption">Your caption will appear here.</div>
+    <p class="label">How much the model trusted each sense</p>
+    <div class="meter"><span id="m-ears" style="width:50%;background:var(--ears)"></span><span id="m-lips" style="width:50%;background:var(--lips)"></span></div>
+    <div class="legend"><span>Sound <b id="v-ears">–</b></span><span>Lips <b id="v-lips">–</b></span></div>
+    <p class="label" style="margin-top:14px">What the model saw (mouth crops)</p>
+    <img class="strip" id="strip" alt="Mouth crops from your clip">
+    <div class="meta" id="meta"></div>
+    <div class="warn" id="warn"></div>
+    <details><summary>Settings</summary>
+      Server <input id="api" placeholder="https://…">
+      Access code <input id="code" type="password" autocomplete="off">
+    </details>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const store = { get: (k) => { try { return localStorage.getItem(k) || ""; } catch { return ""; } },
+                set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
+const q = new URLSearchParams(location.search);
+$("api").value = q.get("api") || store.get("api") || (location.protocol.startsWith("http") ? location.origin : "");
+$("code").value = q.get("code") || store.get("code");
+["api", "code"].forEach((k) => $(k).addEventListener("change", () => store.set(k, $(k).value.trim())));
+
+let model = "grid", stream, rec, chunks = [], t0 = 0, tick, stopTimer;
+const MAX_S = 6;
+const hints = {
+  grid: 'Face the camera, press record and say a GRID sentence, e.g. <b>“place blue at f two now”</b> or <b>“bin red by g nine soon”</b>. Stops after 6 s.',
+  films: 'Experimental: a model retrained on film and TV clips, with a word list. Try a short everyday phrase — expect rough results; it has seen far less speech than it needs.'
+};
+for (const m of ["grid", "films"]) $("m-" + m).onclick = () => {
+  model = m; ["grid", "films"].forEach((x) => $("m-" + x).setAttribute("aria-pressed", x === m));
+  $("hint").innerHTML = hints[m];
+};
+
+async function startCam() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: "user" },
+                                                         audio: { channelCount: 1, echoCancellation: true } });
+    $("cam").srcObject = stream;
+    $("go").disabled = false; $("go").textContent = "● Record";
+  } catch (e) {
+    $("go").textContent = "Camera / mic blocked";
+    $("warn").textContent = "Allow camera and microphone access (the page must be opened over https or localhost).";
+  }
+}
+
+function pickType() {
+  for (const t of ["video/webm;codecs=vp8,opus", "video/webm", "video/mp4"])
+    if (window.MediaRecorder && MediaRecorder.isTypeSupported(t)) return t;
+  return "";
+}
+
+function startRec() {
+  chunks = []; const type = pickType();
+  rec = new MediaRecorder(stream, type ? { mimeType: type } : undefined);
+  rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+  rec.onstop = upload;
+  rec.start(); t0 = performance.now();
+  $("go").dataset.state = "recording"; $("go").textContent = "■ Stop";
+  $("rec").style.display = "flex";
+  tick = setInterval(() => $("timer").textContent = ((performance.now() - t0) / 1000).toFixed(1) + " s", 100);
+  stopTimer = setTimeout(stopRec, MAX_S * 1000);
+}
+
+function stopRec() {
+  if (!rec || rec.state !== "recording") return;
+  clearInterval(tick); clearTimeout(stopTimer); rec.stop();
+  $("rec").style.display = "none"; $("go").dataset.state = ""; $("go").disabled = true;
+  $("go").innerHTML = '<span class="spinner"></span>Captioning…';
+}
+
+async function upload() {
+  const blob = new Blob(chunks, { type: rec.mimeType || "video/webm" });
+  const fd = new FormData();
+  fd.append("clip", blob, blob.type.includes("mp4") ? "clip.mp4" : "clip.webm");
+  fd.append("model", model);
+  $("warn").textContent = "";
+  try {
+    const r = await fetch($("api").value.replace(/\/$/, "") + "/caption",
+                          { method: "POST", body: fd, headers: { "X-Demo-Code": $("code").value.trim() } });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.detail || `server error ${r.status}`);
+    show(j);
+  } catch (e) {
+    $("warn").textContent = e.message.includes("Failed to fetch") ? "Could not reach the server (check Settings)." : e.message;
+  } finally {
+    $("go").disabled = false; $("go").textContent = "● Record";
+  }
+}
+
+function show(j) {
+  const c = $("caption");
+  c.textContent = j.caption || "(nothing recognised)"; c.classList.toggle("empty", !j.caption);
+  if (j.lips_trust != null) {
+    const lips = Math.round(j.lips_trust * 100), ears = 100 - lips;
+    $("m-ears").style.width = ears + "%"; $("m-lips").style.width = lips + "%";
+    $("v-ears").textContent = ears + "%"; $("v-lips").textContent = lips + "%";
+  }
+  $("strip").style.display = j.mouth_strip ? "block" : "none";
+  if (j.mouth_strip) $("strip").src = j.mouth_strip;
+  const face = j.face_fraction == null ? "" : ` · face found in ${Math.round(j.face_fraction * 100)}% of frames`;
+  $("meta").textContent = `${j.model} · ${j.seconds} s${face}`;
+  $("warn").textContent = (j.warnings || []).join(" ");
+}
+
+$("go").onclick = () => ($("go").dataset.state === "recording" ? stopRec() : startRec());
+startCam();
+</script>
+</body>
+</html>
