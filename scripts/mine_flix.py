@@ -23,6 +23,7 @@ import os
 import random
 import re
 import subprocess
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -173,6 +174,11 @@ def _frontal_ok(f, w, h):
 def _aperture(f):
     return abs(f[13].y - f[14].y) / (abs(f[152].y - f[10].y) + 1e-6)
 
+def _rej(reason: str):
+    """None normally; with FLIX_DEBUG=1 a dict naming the filter that rejected the cue."""
+    return {"_rej": reason} if os.environ.get("FLIX_DEBUG") else None
+
+
 def mine_cue(job):
     import cv2
     from lipscribe.preprocessing.crop import detect_lip_box, get_lip_indices, process_frames
@@ -194,20 +200,20 @@ def mine_cue(job):
                 frames.append(fr); ti += 1
         cap.release()
         if len(frames) < n * 0.95 or n < 20:
-            return None
+            return _rej("frames")
         h0, w0 = frames[0].shape[:2]
         sc = 640.0 / w0 if w0 > 640 else 1.0
         rgbs = [cv2.cvtColor(cv2.resize(f, (int(w0 * sc), int(h0 * sc)), interpolation=cv2.INTER_AREA), cv2.COLOR_BGR2RGB) for f in frames]
         h, w = rgbs[0].shape[:2]
         small = [cv2.resize(cv2.cvtColor(r, cv2.COLOR_RGB2GRAY), (64, 36)).astype(np.float32) for r in rgbs]
         if max(float(np.mean(np.abs(x - y))) for x, y in zip(small, small[1:])) > 25:
-            return None                  # camera cut inside the cue
+            return _rej("camera cut")
         mid = _faces(rgbs[len(rgbs) // 2])
         if len(mid) != 1:
-            return None
+            return _rej(f"faces={len(mid)}")
         ok, width = _frontal_ok(mid[0], w, h)
         if not ok or width < 0.12 * w:
-            return None
+            return _rej("not frontal" if not ok else "face too small")
         lips = get_lip_indices()
         boxes, aps, multi = [], [], 0
         for rgb in rgbs:
@@ -220,14 +226,15 @@ def mine_cue(job):
                 boxes.append(None)
         valid_frac = sum(bx is not None for bx in boxes) / len(boxes)
         if valid_frac < 0.9 or multi > 0.1 * len(boxes) or len(aps) < 5 or np.std(aps) < 0.01:
-            return None
+            return _rej("face lost" if valid_frac < 0.9 else "2nd face" if multi > 0.1 * len(boxes) else "lips still")
         res = process_frames(rgbs, boxes, target_frame_count=n)
         crops, valid = res.crops, res.valid
-        if crops.shape[0] < T_GRID:
-            pad = T_GRID - crops.shape[0]
+        T = max(T_GRID, n)                    # cues > 3 s (TED, --max-dur) keep their own length
+        if crops.shape[0] < T:
+            pad = T - crops.shape[0]
             crops = np.concatenate([crops, np.repeat(crops[-1:], pad, 0)])
             valid = np.concatenate([valid, np.zeros(pad, bool)])
-        crops, valid = crops[:T_GRID], valid[:T_GRID]
+        crops, valid = crops[:T], valid[:T]
         np.savez_compressed(out_dir / "clips" / f"{uid}.npz", crops=crops.astype(np.uint8), valid=valid)
         wav = out_dir / "clips" / f"{uid}.wav"
         if audio:                              # pre-extracted 16 kHz mono FLAC: no ffmpeg needed
@@ -242,7 +249,7 @@ def mine_cue(job):
                 "start_s": f"{a:.3f}", "dur_s": f"{b - a:.3f}", "n_frames": n,
                 "mouth_valid_frac": f"{valid_frac:.3f}", "partition": partition_of(key)}
     except Exception as e:  # never kill the pool on one bad cue
-        return None
+        return _rej(f"error {type(e).__name__}: {e}"[:120])
 
 
 def main():
@@ -326,7 +333,10 @@ def main():
     # At most 4 * workers cues are in flight, so stopping early wastes little.
     from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, wait
     from concurrent.futures.process import BrokenProcessPool
-    ex = ProcessPoolExecutor(args.workers, mp_context=mp.get_context("forkserver"), max_tasks_per_child=40)
+    # worker recycling only on Python >= 3.13: ProcessPoolExecutor(max_tasks_per_child=...) can deadlock
+    # when it replaces workers on 3.11/3.12 (seen on the Alienware, Python 3.11)
+    _recycle = {"max_tasks_per_child": 40} if sys.version_info >= (3, 13) else {}
+    ex = ProcessPoolExecutor(args.workers, mp_context=mp.get_context("forkserver"), **_recycle)
     todo = iter(jobs); pending = set(); stop = None
     with open(mf, "w", newline="") as fh:
         wr = csv.DictWriter(fh, fieldnames=fields); wr.writeheader()
