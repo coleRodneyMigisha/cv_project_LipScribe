@@ -61,6 +61,9 @@ $PY -m scripts.flix_sweep --data data/flix_full --out "$OUT" --from-sweep report
     --top "${TOP:-5}" --max-epochs "${MAX_EPOCHS:-80}" --final-epochs "${FINAL_EPOCHS:-150}"
 $PY -m scripts.flix_sweep_report --out "$OUT" --first "$OUT/first" --stats data/flix_full/stats.json \
     --prev "$OUT/prev" --prev-label "Retrained on the first 305 clips"
+touch "$OUT/DONE"   # sweep part finished (flix_lm_run waits on it)
+# 6. film "grammar": lexicon + bigram LM decoding of the full-set models
+SWEEP="$OUT" DATA=data/flix_full OUT="$OUT/lm" bash scripts/flix_lm_run.sh
 md5sum ../cv_project_LipScribe/checkpoints/p_proposed_best.pt | tee "$OUT/main_model_md5.txt"
 touch "$OUT/DONE"
 echo "== $(date +%T) done"
