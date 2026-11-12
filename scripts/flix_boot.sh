@@ -17,14 +17,14 @@ if [ ! -f reports/flix_v3/ALL_DONE ] && ! pgrep -f "^bash scripts/flix_chain_run
   (setsid nohup bash scripts/flix_chain_run.sh >> logs/flix_chain.log 2>&1 < /dev/null &)
   echo "started flix chain"
 fi
-# web demo: backend on localhost + Cloudflare quick tunnel (a new https://*.trycloudflare.com
-# address each start; it is written to .demo_url)
-if [ -f .demo_code ] && ! pgrep -f "uvicorn scripts.demo_server:app" > /dev/null; then
-  (DEMO_CODE="$(cat .demo_code)" PYTHONPATH=asr_pkgs setsid nohup .venv/bin/python -m uvicorn scripts.demo_server:app \
+# web demo (demo/README.md): backend on localhost; the public Cloudflare quick tunnel only if
+# opted in with `touch .demo_tunnel` (a new https://*.trycloudflare.com address each start -> .demo_url)
+if [ -f .demo_code ] && ! pgrep -f "uvicorn demo.server:app" > /dev/null; then
+  (DEMO_CODE="$(cat .demo_code)" PYTHONPATH=asr_pkgs setsid nohup .venv/bin/python -m uvicorn demo.server:app \
       --host 127.0.0.1 --port 8800 >> logs/demo_server.log 2>&1 < /dev/null &)
   echo "started demo server"
 fi
-if [ -x "$HOME/bin/cloudflared" ] && ! pgrep -f "cloudflared tunnel --no-autoupdate --url http://127.0.0.1:8800" > /dev/null; then
+if [ -f .demo_tunnel ] && [ -x "$HOME/bin/cloudflared" ] && ! pgrep -f "cloudflared tunnel --no-autoupdate --url http://127.0.0.1:8800" > /dev/null; then
   (setsid nohup "$HOME/bin/cloudflared" tunnel --no-autoupdate --url http://127.0.0.1:8800 > logs/cloudflared.log 2>&1 < /dev/null &)
   for i in $(seq 30); do u=$(grep -oE "https://[a-z0-9-]+\.trycloudflare\.com" logs/cloudflared.log | head -1); [ -n "$u" ] && break; sleep 2; done
   echo "$u" > .demo_url; echo "started demo tunnel: $u"
