@@ -2,7 +2,7 @@
 # X6 'Flix' chain on the Alienware (val/test clips never change, so every stage compares):
 #  v2      v1 clips + laptop-mined batch-1 clips -> retrain (t03, 3 seeds x 150) -> word grammar
 #  ResNet  11 ways of training the eyes, tuned on the v2 data (no finals)
-#  v3      v2 + Whisper-labelled films + TED snapshot -> retrain with the best ResNet setting
+#  v3      v2 + Whisper-labelled films + the full TED harvest -> retrain with the best ResNet setting
 #          (1 seed x 30 epochs: ~100x more data) -> TED test -> word grammar
 #   nohup setsid bash scripts/flix_chain_run.sh > logs/flix_chain.log 2>&1 &
 set -euo pipefail
@@ -44,6 +44,8 @@ if [ ! -f "$V2/lm/DONE" ]; then
 fi
 
 # ---- ResNet tuning on v2 (winner only, no finals)
+# (if a tuning run from an earlier start of this chain is still going, wait for it, never run two)
+while pgrep -f "^$PY -m scripts.flix_sweep --data data/flix_v2 --out $RN" > /dev/null; do sleep 60; done
 if [ ! -f "$RN/best.json" ]; then
   echo "== $(date +%T) ResNet tuning"
   $PY -m scripts.flix_sweep --data data/flix_v2 --out "$RN" --from-sweep "$V2/sweep.csv" --resnet \
@@ -53,6 +55,8 @@ fi
 # ---- v3
 echo "== $(date +%T) v3: waiting for the laptop's Whisper-labelled clips"
 until [ -f flix_v3/.mined_done ]; do sleep 60; done
+echo "== $(date +%T) v3: waiting for the TED harvester to finish (full TED set in v3)"
+while pgrep -f "^$PY -u -m scripts.ted_harvest" > /dev/null; do sleep 300; done
 cp -n flix_v2/clips/* flix_v3/clips/
 merge flix_v2/manifest_local.csv flix_v3/manifest_laptop.csv flix_v3/manifest_v2w.csv
 # TED: snapshot of what the harvester has mined so far (it keeps running for a later v4)
