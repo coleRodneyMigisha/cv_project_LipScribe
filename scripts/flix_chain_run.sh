@@ -2,14 +2,13 @@
 # X6 'Flix' chain on the Alienware (val/test clips never change, so every stage compares):
 #  v2      v1 clips + laptop-mined batch-1 clips -> retrain (t03, 3 seeds x 150) -> word grammar
 #  ResNet  11 ways of training the eyes, tuned on the v2 data (no finals)
-#  v3      v2 + Whisper-labelled films + the full TED harvest -> retrain with the best ResNet setting
-#          (1 seed x 30 epochs: ~100x more data) -> TED test -> word grammar
-#  v3b     same data, best ResNet variation of the other family (frozen vs trained eyes)
+#  v3      v2 + Whisper-labelled films + the full TED harvest: all 11 ResNet variations (10 epochs
+#          each), winner to 30 epochs -> film test, TED test -> word grammar
 #   nohup setsid bash scripts/flix_chain_run.sh > logs/flix_chain.log 2>&1 &
 set -euo pipefail
 cd "$(dirname "$0")/.."
 PY=.venv/bin/python
-V2=reports/flix_v2; RN=reports/flix_resnet; V3=reports/flix_v3; V3B=reports/flix_v3b; RNB=reports/flix_resnet_alt
+V2=reports/flix_v2; RN=reports/flix_resnet; V3=reports/flix_v3
 mkdir -p "$V2" "$RN" "$V3" logs flix_v2/clips flix_v3/clips
 rm -f "$V3/ALL_DONE" "$V3/FAILED"
 trap 'echo "FAILED at line $LINENO" | tee "$V3/FAILED"' ERR
@@ -71,9 +70,12 @@ PYEOF
 cut -d, -f1 flix_v3/manifest_ted.csv | tail -n +2 | while read -r u; do ln -f "flix_ted/clips/$u.npz" "flix_ted/clips/$u.wav" flix_v3/clips/ 2>/dev/null; done
 merge flix_v3/manifest_v2w.csv flix_v3/manifest_ted.csv flix_v3/manifest_local.csv
 prep flix_v3 data/flix_v3
-# ~100x more data than v1: far fewer epochs needed (each epoch already sees every clip once)
-$PY -m scripts.flix_sweep --data data/flix_v3 --out "$V3" --from-sweep "$RN/sweep.csv" \
-    --finals-only --final-epochs "${V3_EPOCHS:-30}" --seeds ${V3_SEEDS:-1}
+# ---- v3: all 11 ResNet (eyes) variations on the full data (v2 + Whisper films + TED), each
+# V3_TUNE_EPOCHS (10) epochs - already more clip-updates per run than the v2 tuning had - then the
+# winner trained on to V3_EPOCHS (30); test titles scored once. Compare with $RN (same 11 on v2 data).
+$PY -m scripts.flix_sweep --data data/flix_v3 --out "$V3" --from-sweep "$V2/sweep.csv" --resnet \
+    --max-epochs "${V3_TUNE_EPOCHS:-10}" --patience "${V3_TUNE_EPOCHS:-10}" \
+    --final-epochs "${V3_EPOCHS:-30}" --seeds ${V3_SEEDS:-1}
 touch "$V3/DONE"
 # held-out TED talks, scored on their own (in-domain: clean, frontal speakers)
 if [ -f data/flix_v3/ted_test.csv ]; then
@@ -83,31 +85,5 @@ if [ -f data/flix_v3/ted_test.csv ]; then
   done < <($PY -c "import csv; [print(r['seed']+','+r['run_dir']) for r in csv.DictReader(open('$V3/sweep.csv')) if r['trial'].startswith('final') and r['run_dir']]")
 fi
 SWEEP="$V3" DATA=data/flix_v3 OUT="$V3/lm" bash scripts/flix_lm_run.sh
-
-# ---- v3b: the best ResNet variation of the OTHER family (frozen eyes vs trained eyes). With
-# ~100x more data, fine-tuning the eyes may beat the small-data winner, so test it on the full set.
-mkdir -p "$RNB" "$V3B"
-$PY - "$RN" "$RNB" <<'PYEOF'
-import csv, json, sys
-from scripts.flix_sweep import hparams_of
-rn, out = sys.argv[1:]
-rows = [r for r in csv.DictReader(open(f"{rn}/sweep.csv")) if r["seed"] == "1" and r["val_cer"] != "nan"
-        and not r["trial"].startswith("final")]
-win = json.load(open(f"{rn}/best.json"))["hparams"]
-frozen = lambda h: h.get("eyes", "frozen") == "frozen"
-alt = sorted((r for r in rows if frozen(hparams_of(r)) != frozen(win)), key=lambda r: float(r["val_cer"]))[0]
-json.dump({"trial": alt["trial"], "from_trial": alt["trial"], "hparams": hparams_of(alt)}, open(f"{out}/best.json", "w"), indent=2)
-print(f"v3b uses {alt['trial']} (val CER {alt['val_cer']}) against the winner {win.get('eyes')}")
-PYEOF
-$PY -m scripts.flix_sweep --data data/flix_v3 --out "$V3B" --from-sweep "$RNB/sweep.csv" \
-    --finals-only --final-epochs "${V3_EPOCHS:-30}" --seeds ${V3_SEEDS:-1}
-touch "$V3B/DONE"
-if [ -f data/flix_v3/ted_test.csv ]; then
-  while IFS=, read -r seed run; do
-    $PY -m scripts.flix_eval --checkpoint "$run/best.pt" --manifest data/flix_v3/ted_test.csv \
-        --splits data/flix_v3/splits.csv --out "$V3B" --tag "v3b_s${seed}_ted_test"
-  done < <($PY -c "import csv; [print(r['seed']+','+r['run_dir']) for r in csv.DictReader(open('$V3B/sweep.csv')) if r['trial'].startswith('final') and r['run_dir']]")
-fi
-SWEEP="$V3B" DATA=data/flix_v3 OUT="$V3B/lm" bash scripts/flix_lm_run.sh
 md5sum ../cv_project_LipScribe/checkpoints/p_proposed_best.pt | tee "$V3/main_model_md5.txt"
 touch "$V3/ALL_DONE"; echo "== $(date +%T) all done"
