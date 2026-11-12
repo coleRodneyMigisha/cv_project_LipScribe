@@ -254,6 +254,9 @@ def main():
                     help="per-video 16 kHz mono FLACs named <video stem with non-word chars as _>.flac")
     ap.add_argument("--uid-by-time", action="store_true",
                     help="name clips <title>_t<start ms> and skip cues already in the manifest by (title, start)")
+    ap.add_argument("--only", nargs="*", default=None, help="mine only these title groups (e.g. the_chosen his_hers)")
+    ap.add_argument("--skip-manifest", type=Path, nargs="*", default=[],
+                    help="manifests whose cues (title, start) are skipped even if their clip files are elsewhere")
     ap.add_argument("--stall-min", type=float, default=15,
                     help="stop if no cue finishes for this long (a killed worker hangs multiprocessing.Pool)")
     args = ap.parse_args()
@@ -268,7 +271,7 @@ def main():
     rng = random.Random(2026)
     per_title = []
     for key, video, sub in _titles():
-        if not Path(video).exists():
+        if not Path(video).exists() or (args.only is not None and group_of(key) not in args.only):
             continue
         cues = load_cues(Path(video), sub, out / "subs")
         cand = []
@@ -301,6 +304,10 @@ def main():
             prev = [r for r in csv.DictReader(fh) if (out / "clips" / f"{r['utt_id']}.npz").exists()]
     have = {r["utt_id"] for r in prev}
     have_t = {(r["title"], f"{float(r['start_s']):.3f}") for r in prev}
+    for sm in args.skip_manifest:
+        if sm.exists():
+            with open(sm, newline="") as fh:
+                have_t |= {(r["title"], f"{float(r['start_s']):.3f}") for r in csv.DictReader(fh)}
     jobs = [j for j in jobs if j[6] not in have and (j[0], f"{j[2]:.3f}") not in have_t]
     if prev:
         print(f"resuming: {len(prev)} clips already kept, {len(jobs)} cues left", flush=True)
