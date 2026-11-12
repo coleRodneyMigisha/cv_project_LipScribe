@@ -1,0 +1,10 @@
+{
+  "checkpoint": "checkpoints/flix_finetuned_p4.pt",
+  "results": {
+    "clean": {
+      "n_utts": 43,
+      "wer": 1.0120481927710843,
+      "cer": 0.8345008756567426
+    }
+  }
+}
