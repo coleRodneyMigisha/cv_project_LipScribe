@@ -1,0 +1,329 @@
+{
+  "results": {
+    "base_flix": {
+      "clean": {
+        "n_utts": 43,
+        "wer": 1.0923694779116466,
+        "cer": 0.8152364273204904,
+        "gate_mean": 0.6956069608067357
+      },
+      "0": {
+        "n_utts": 43,
+        "wer": 1.144578313253012,
+        "cer": 0.8248686514886164,
+        "gate_mean": 0.641388758670452
+      }
+    },
+    "base_flix_lips_only": {
+      "clean": {
+        "n_utts": 43,
+        "wer": 1.0441767068273093,
+        "cer": 0.8213660245183888,
+        "gate_mean": 0.04313795641064644
+      },
+      "0": {
+        "n_utts": 43,
+        "wer": 1.0441767068273093,
+        "cer": 0.8213660245183888,
+        "gate_mean": 0.04313795641064644
+      }
+    },
+    "base_flix_sound_only": {
+      "clean": {
+        "n_utts": 43,
+        "wer": 1.0843373493975903,
+        "cer": 0.8099824868651488,
+        "gate_mean": 0.9009413067684617
+      },
+      "0": {
+        "n_utts": 43,
+        "wer": 1.140562248995984,
+        "cer": 0.8371278458844134,
+        "gate_mean": 0.8745365669560987
+      }
+    },
+    "base_grid": {
+      "clean": {
+        "n_utts": 600,
+        "wer": 0.0077777777777777776,
+        "cer": 0.003430416358377615,
+        "gate_mean": 0.8052870358030001
+      },
+      "0": {
+        "n_utts": 600,
+        "wer": 0.025555555555555557,
+        "cer": 0.011367458128741507,
+        "gate_mean": 0.7402076894044876
+      }
+    },
+    "tuned_flix": {
+      "clean": {
+        "n_utts": 43,
+        "wer": 1.0200803212851406,
+        "cer": 0.7793345008756567,
+        "gate_mean": 0.45002889771794163
+      },
+      "0": {
+        "n_utts": 43,
+        "wer": 1.0120481927710843,
+        "cer": 0.7924693520140105,
+        "gate_mean": 0.4218254796294279
+      }
+    },
+    "tuned_flix_lips_only": {
+      "clean": {
+        "n_utts": 43,
+        "wer": 1.0120481927710843,
+        "cer": 0.8345008756567426,
+        "gate_mean": 0.1704722786712092
+      },
+      "0": {
+        "n_utts": 43,
+        "wer": 1.0120481927710843,
+        "cer": 0.8345008756567426,
+        "gate_mean": 0.1704722786712092
+      }
+    },
+    "tuned_flix_sound_only": {
+      "clean": {
+        "n_utts": 43,
+        "wer": 1.0120481927710843,
+        "cer": 0.8038528896672504,
+        "gate_mean": 0.5603553978509681
+      },
+      "0": {
+        "n_utts": 43,
+        "wer": 1.0040160642570282,
+        "cer": 0.8178633975481612,
+        "gate_mean": 0.5369554695694946
+      }
+    },
+    "tuned_grid": {
+      "clean": {
+        "n_utts": 600,
+        "wer": 0.027777777777777776,
+        "cer": 0.009954933745880138,
+        "gate_mean": 0.7321875348687172
+      },
+      "0": {
+        "n_utts": 600,
+        "wer": 0.0625,
+        "cer": 0.024618282101298176,
+        "gate_mean": 0.6826261511445045
+      }
+    }
+  },
+  "stats": {
+    "flix_clips": 305,
+    "dropped": {},
+    "by_partition": {
+      "train": 244,
+      "val": 18,
+      "test": 43
+    },
+    "by_title": {
+      "the_chosen": 56,
+      "a_haunting_in_venice": 44,
+      "it_derry": 36,
+      "i_robot": 31,
+      "the_drama": 21,
+      "skyfall": 20,
+      "malcolm_marie": 20,
+      "casino_royale": 14,
+      "little_women": 12,
+      "challengers": 10,
+      "quantum": 10,
+      "vision_quest": 9,
+      "the_devil_all_the_time": 9,
+      "his_hers": 7,
+      "project_hail_mary": 6
+    },
+    "titles_by_partition": {
+      "train": [
+        "a_haunting_in_venice",
+        "casino_royale",
+        "his_hers",
+        "i_robot",
+        "it_derry",
+        "malcolm_marie",
+        "project_hail_mary",
+        "quantum",
+        "skyfall",
+        "the_chosen"
+      ],
+      "val": [
+        "the_devil_all_the_time",
+        "vision_quest"
+      ],
+      "test": [
+        "challengers",
+        "little_women",
+        "the_drama"
+      ]
+    },
+    "minutes": 9.7,
+    "distinct_words": 651,
+    "word_tokens": 1782,
+    "distinct_words_in_grid": 16,
+    "grid_vocab": 51,
+    "grid_words": [
+      "a",
+      "again",
+      "at",
+      "b",
+      "bin",
+      "blue",
+      "by",
+      "c",
+      "d",
+      "e",
+      "eight",
+      "f",
+      "five",
+      "four",
+      "g",
+      "green",
+      "h",
+      "i",
+      "in",
+      "j",
+      "k",
+      "l",
+      "lay",
+      "m",
+      "n",
+      "nine",
+      "now",
+      "o",
+      "one",
+      "p",
+      "place",
+      "please",
+      "q",
+      "r",
+      "red",
+      "s",
+      "set",
+      "seven",
+      "six",
+      "soon",
+      "t",
+      "three",
+      "two",
+      "u",
+      "v",
+      "white",
+      "with",
+      "x",
+      "y",
+      "z",
+      "zero"
+    ],
+    "test_tokens_seen_in_flix_train": 194,
+    "test_tokens": 249,
+    "top_words": [
+      [
+        "you",
+        98
+      ],
+      [
+        "i",
+        64
+      ],
+      [
+        "the",
+        57
+      ],
+      [
+        "to",
+        43
+      ],
+      [
+        "a",
+        35
+      ],
+      [
+        "me",
+        30
+      ],
+      [
+        "and",
+        29
+      ],
+      [
+        "it",
+        28
+      ],
+      [
+        "what",
+        24
+      ],
+      [
+        "that",
+        24
+      ],
+      [
+        "of",
+        21
+      ],
+      [
+        "was",
+        20
+      ],
+      [
+        "is",
+        18
+      ],
+      [
+        "your",
+        17
+      ],
+      [
+        "not",
+        16
+      ],
+      [
+        "my",
+        16
+      ],
+      [
+        "no",
+        16
+      ],
+      [
+        "we",
+        16
+      ],
+      [
+        "in",
+        16
+      ],
+      [
+        "for",
+        15
+      ],
+      [
+        "this",
+        15
+      ],
+      [
+        "know",
+        14
+      ],
+      [
+        "have",
+        13
+      ],
+      [
+        "im",
+        13
+      ],
+      [
+        "dont",
+        13
+      ]
+    ],
+    "train_mix_rows": 3030,
+    "grid_test_rows": 600
+  }
+}
