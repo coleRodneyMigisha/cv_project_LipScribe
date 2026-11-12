@@ -2,8 +2,8 @@
 # X6 'Flix' chain on the Alienware (val/test clips never change, so every stage compares):
 #  v2      v1 clips + laptop-mined batch-1 clips -> retrain (t03, 3 seeds x 150) -> word grammar
 #  ResNet  11 ways of training the eyes, tuned on the v2 data (no finals)
-#  v3      v2 + Whisper-labelled films + the full TED harvest: all 11 ResNet variations (10 epochs
-#          each), winner to 30 epochs -> film test, TED test -> word grammar
+#  v3      v2 + Whisper-labelled films + the full TED harvest: all 11 ResNet variations (60 epochs,
+#          patience 20), winner x 3 seeds x 60 epochs -> film test, TED test -> word grammar
 #   nohup setsid bash scripts/flix_chain_run.sh > logs/flix_chain.log 2>&1 &
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -70,12 +70,13 @@ PYEOF
 cut -d, -f1 flix_v3/manifest_ted.csv | tail -n +2 | while read -r u; do ln -f "flix_ted/clips/$u.npz" "flix_ted/clips/$u.wav" flix_v3/clips/ 2>/dev/null; done
 merge flix_v3/manifest_v2w.csv flix_v3/manifest_ted.csv flix_v3/manifest_local.csv
 prep flix_v3 data/flix_v3
-# ---- v3: all 11 ResNet (eyes) variations on the full data (v2 + Whisper films + TED), each
-# V3_TUNE_EPOCHS (10) epochs - already more clip-updates per run than the v2 tuning had - then the
-# winner trained on to V3_EPOCHS (30); test titles scored once. Compare with $RN (same 11 on v2 data).
+# ---- v3: all 11 ResNet (eyes) variations on the full data (v2 + Whisper films + TED), 60 epochs
+# each like the GRID models, patience 20; then the winner 3 times (seeds 1-3) x 60 epochs with no
+# early stopping; test titles scored once. Compare with $RN (the same 11 on the v2 data).
+# Runs for days (no rush): ~5-7 h per variation on ~42k clips.
 $PY -m scripts.flix_sweep --data data/flix_v3 --out "$V3" --from-sweep "$V2/sweep.csv" --resnet \
-    --max-epochs "${V3_TUNE_EPOCHS:-10}" --patience "${V3_TUNE_EPOCHS:-10}" \
-    --final-epochs "${V3_EPOCHS:-30}" --seeds ${V3_SEEDS:-1}
+    --max-epochs "${V3_TUNE_EPOCHS:-60}" --patience "${V3_PATIENCE:-20}" \
+    --final-epochs "${V3_EPOCHS:-60}" --seeds ${V3_SEEDS:-1 2 3}
 touch "$V3/DONE"
 # held-out TED talks, scored on their own (in-domain: clean, frontal speakers)
 if [ -f data/flix_v3/ted_test.csv ]; then
