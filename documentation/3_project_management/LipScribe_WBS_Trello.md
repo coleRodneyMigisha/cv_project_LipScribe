@@ -106,11 +106,11 @@ Use this file to create one Trello board.
 - **Estimate:** 2 h
 - **Description:** Run the kick-off. Confirm the roles in Part B, the working agreement (REF-01) and the weekly review time. Set up the Trello board and invite all members.
 - **Checklist:**
-  - [ ] Walk the team through the implementation document (architecture, schedule, experiment list)
-  - [ ] Confirm or adjust the role allocation
-  - [ ] Agree the weekly review slot and the chat channel
-  - [ ] Create the board, add members, attach REF cards
-  - [ ] Record decisions in a `docs/meeting_notes.md` file
+  - [x] Walk the team through the implementation document (architecture, schedule, experiment list)
+  - [x] Confirm or adjust the role allocation
+  - [x] Agree the weekly review slot and the chat channel
+  - [x] Create the board, add members, attach REF cards
+  - [x] Record decisions in a `docs/meeting_notes.md` file
 - **Done when:** All six members have accepted the board invite and agreed to their roles.
 
 ### W1-02 · Create GitHub repository skeleton
@@ -122,13 +122,13 @@ Use this file to create one Trello board.
 - **Estimate:** 3 h
 - **Description:** Create the repository with the package layout from the implementation document so that everyone works in the same structure from day one.
 - **Checklist:**
-  - [ ] Create the repo and add all six members as collaborators
-  - [ ] Package `lipscribe/` with sub-packages `data`, `preprocessing`, `models`, `decoding`, `evaluation`, `app`
-  - [ ] Folders `configs/`, `scripts/`, `tests/`, `tests/fixtures/`, `experiments/`, `docs/`
-  - [ ] `.gitignore` excluding `data/`, `runs/`, `*.npy`, `*.pt`, `*.wav`, recordings
-  - [ ] `pyproject.toml` so `pip install -e .` works
-  - [ ] Protect `main`: pull requests with one approval
-  - [ ] Pull request template with a "how I tested this" section
+  - [x] Create the repo and add all six members as collaborators
+  - [x] Package `lipscribe/` with sub-packages `data`, `preprocessing`, `models`, `decoding`, `evaluation`, `app`
+  - [x] Folders `configs/`, `scripts/`, `tests/`, `tests/fixtures/`, `experiments/`, `docs/`
+  - [x] `.gitignore` excluding `data/`, `runs/`, `*.npy`, `*.pt`, `*.wav`, recordings
+  - [x] `pyproject.toml` so `pip install -e .` works
+  - [x] Protect `main`: pull requests with one approval
+  - [x] Pull request template with a "how I tested this" section
 - **Done when:** Every member has cloned the repo and run `pip install -e .`.
 
 ### W1-03 · Pinned Python environment
@@ -140,12 +140,12 @@ Use this file to create one Trello board.
 - **Estimate:** 4 h
 - **Description:** Build one environment that works on every member's machine and on the GPU machine. MediaPipe supports only some Python versions, so check it first.
 - **Checklist:**
-  - [ ] Check that MediaPipe has a wheel for Python 3.11 on every member's operating system
-  - [ ] Install matching `torch`, `torchaudio`, `torchvision` (CPU build for laptops; CUDA build matching the GPU driver)
-  - [ ] Install opencv-python, mediapipe, numpy, pandas, soundfile, librosa, sounddevice, scikit-learn, jiwer, matplotlib, tensorboard, pyyaml, pytest, gradio
-  - [ ] Generate `requirements.txt` and `environment.yml` from the working environment (do not hand-write versions)
-  - [ ] Write `scripts/check_env.py`: imports every library, prints versions and whether CUDA is available
-  - [ ] Each member runs `check_env.py` and posts the output on this card
+  - [x] Check that MediaPipe has a wheel for Python 3.11 on every member's operating system
+  - [x] Install matching `torch`, `torchaudio`, `torchvision` (CPU build for laptops; CUDA build matching the GPU driver)
+  - [x] Install opencv-python, mediapipe, numpy, pandas, soundfile, librosa, sounddevice, scikit-learn, jiwer, matplotlib, tensorboard, pyyaml, pytest, gradio
+  - [x] Generate `requirements.txt` and `environment.yml` from the working environment (do not hand-write versions)
+  - [x] Write `scripts/check_env.py`: imports every library, prints versions and whether CUDA is available
+  - [x] Each member runs `check_env.py` and posts the output on this card
 - **Done when:** `check_env.py` passes for all six members and on the GPU machine.
 
 ### W1-04 · Secure GPU access and storage
@@ -157,12 +157,12 @@ Use this file to create one Trello board.
 - **Estimate:** 3 h
 - **Description:** Training needs a CUDA GPU (about 8 GB or more) and about 100 GB of disk. Find out what is actually available. This is the top project risk.
 - **Checklist:**
-  - [ ] Ask the department/lecturer about a university GPU workstation
-  - [ ] List team members' own GPUs (model, memory)
-  - [ ] Check a cloud notebook option as a fallback (session limits, storage)
-  - [ ] Confirm at least 100 GB of free disk where the data will live
-  - [ ] Write `docs/compute.md`: machine, GPU, memory, how to log in, booking rules
-  - [ ] Set up a shared GPU booking schedule (who trains when)
+  - [x] Ask the department/lecturer about a university GPU workstation
+  - [x] List team members' own GPUs (model, memory)
+  - [x] Check a cloud notebook option as a fallback (session limits, storage)
+  - [x] Confirm at least 100 GB of free disk where the data will live
+  - [x] Write `docs/compute.md`: machine, GPU, memory, how to log in, booking rules
+  - [x] Set up a shared GPU booking schedule (who trains when)
 - **Done when:** A named GPU machine is confirmed and documented. If none is available, escalate to the lecturer by Wednesday.
 
 ### W1-05 · Download and catalogue the GRID corpus
@@ -174,11 +174,11 @@ Use this file to create one Trello board.
 - **Estimate:** 4 h (mostly download time)
 - **Description:** Download video, audio and word-alignment files for all 34 GRID speakers from the official distribution into `data/raw/grid/`. Raw files are never modified.
 - **Checklist:**
-  - [ ] Download video, audio and alignment archives for every speaker
-  - [ ] Extract to `data/raw/grid/s<N>/{video,audio,align}/`
-  - [ ] Record source URL, download date and archive checksums in `data/raw/SOURCES.md`
-  - [ ] Note any speakers with missing or incomplete video
-  - [ ] Copy 2 utterances (video, audio, align) into `tests/fixtures/` for the tests
+  - [x] Download video, audio and alignment archives for every speaker
+  - [x] Extract to `data/raw/grid/s<N>/{video,audio,align}/`
+  - [x] Record source URL, download date and archive checksums in `data/raw/SOURCES.md`
+  - [x] Note any speakers with missing or incomplete video
+  - [x] Copy 2 utterances (video, audio, align) into `tests/fixtures/` for the tests
 - **Done when:** All archives are extracted and `SOURCES.md` is committed.
 
 ### W1-06 · Download MUSAN and create noise pools
@@ -190,11 +190,11 @@ Use this file to create one Trello board.
 - **Estimate:** 3 h
 - **Description:** Download MUSAN. Split the *noise* subset into disjoint train/validation/test pools **by file**, so the test noise is never heard in training.
 - **Checklist:**
-  - [ ] Download MUSAN into `data/raw/musan/`; record it in `SOURCES.md`
-  - [ ] List all noise-subset files
-  - [ ] Randomly assign files to train/val/test (suggested 70/15/15) with a fixed seed
-  - [ ] Save `data/noise_splits.csv` (file path, pool) and commit it
-  - [ ] Copy one short noise file into `tests/fixtures/`
+  - [x] Download MUSAN into `data/raw/musan/`; record it in `SOURCES.md`
+  - [x] List all noise-subset files
+  - [x] Randomly assign files to train/val/test (suggested 70/15/15) with a fixed seed
+  - [x] Save `data/noise_splits.csv` (file path, pool) and commit it
+  - [x] Copy one short noise file into `tests/fixtures/`
 - **Done when:** `noise_splits.csv` is committed and no file appears in two pools.
 
 ### W1-07 · Dataset integrity checker (`verify_dataset.py`)
@@ -206,13 +206,13 @@ Use this file to create one Trello board.
 - **Estimate:** 6 h
 - **Description:** Script that checks every utterance before training and writes an integrity report. Its counts become the dataset statistics in the final report; none are assumed in advance.
 - **Checklist:**
-  - [ ] Check each utterance has video, audio and alignment files
-  - [ ] Check video decodes and has 75 ± 2 frames
-  - [ ] Check audio duration matches video duration to within 40 ms
-  - [ ] Check transcript has exactly six words from the GRID word list
-  - [ ] Check audio is not silent or clipped throughout (RMS and peak)
-  - [ ] Leave a hook for the Face Mesh success-rate check (≥ 90 % of frames), added in W2-02
-  - [ ] Write `reports/integrity_report.csv` plus a summary of pass counts per check and per speaker
+  - [x] Check each utterance has video, audio and alignment files
+  - [x] Check video decodes and has 75 ± 2 frames
+  - [x] Check audio duration matches video duration to within 40 ms
+  - [x] Check transcript has exactly six words from the GRID word list
+  - [x] Check audio is not silent or clipped throughout (RMS and peak)
+  - [x] Leave a hook for the Face Mesh success-rate check (≥ 90 % of frames), added in W2-02
+  - [x] Write `reports/integrity_report.csv` plus a summary of pass counts per check and per speaker
 - **Done when:** The report runs over the full corpus and its summary is posted on the card.
 
 ### W1-08 · Speaker-independent split (`splits.csv`)
@@ -224,13 +224,13 @@ Use this file to create one Trello board.
 - **Estimate:** 2 h
 - **Description:** Split by speaker, never by utterance, to prevent speaker leakage. Generate once with a fixed seed and never regenerate.
 - **Checklist:**
-  - [ ] Exclude speakers with missing or badly corrupted video (from the integrity report)
-  - [ ] Test: 4 speakers (2 female, 2 male)
-  - [ ] Validation: 3 speakers
-  - [ ] Training: all remaining speakers (~27)
-  - [ ] Check gender balance in each partition
-  - [ ] Write `data/splits.csv` (speaker → partition) and commit it
-  - [ ] Add a unit test asserting the three speaker sets are pairwise disjoint
+  - [x] Exclude speakers with missing or badly corrupted video (from the integrity report)
+  - [x] Test: 4 speakers (2 female, 2 male)
+  - [x] Validation: 3 speakers
+  - [x] Training: all remaining speakers (~27)
+  - [x] Check gender balance in each partition
+  - [x] Write `data/splits.csv` (speaker → partition) and commit it
+  - [x] Add a unit test asserting the three speaker sets are pairwise disjoint
 - **Done when:** `splits.csv` is committed and the disjointness test passes.
 
 ### W1-09 · Transcript normalisation and tokeniser
@@ -242,11 +242,11 @@ Use this file to create one Trello board.
 - **Estimate:** 4 h
 - **Description:** Build transcripts from the `.align` files and the 28-symbol character vocabulary (blank = 0, space, a–z).
 - **Checklist:**
-  - [ ] Parse `.align` files; drop silence (`sil`) and short-pause (`sp`) tokens
-  - [ ] Lower-case; letters as single characters ("b"), digits as words ("four")
-  - [ ] `lipscribe/data/tokenizer.py`: `encode(text) -> list[int]`, `decode(ids) -> str`, blank index 0
-  - [ ] Unit test: `decode(encode(s)) == s` for all GRID word strings; `encode` never outputs blank
-  - [ ] Record the longest transcript length (needed for the CTC length check)
+  - [x] Parse `.align` files; drop silence (`sil`) and short-pause (`sp`) tokens
+  - [x] Lower-case; letters as single characters ("b"), digits as words ("four")
+  - [x] `lipscribe/data/tokenizer.py`: `encode(text) -> list[int]`, `decode(ids) -> str`, blank index 0
+  - [x] Unit test: `decode(encode(s)) == s` for all GRID word strings; `encode` never outputs blank
+  - [x] Record the longest transcript length (needed for the CTC length check)
 - **Done when:** Tokeniser tests pass in CI.
 
 ### W1-10 · Mouth-cropping prototype with MediaPipe Face Mesh
@@ -258,15 +258,15 @@ Use this file to create one Trello board.
 - **Estimate:** 8 h
 - **Description:** Implement the crop function from Section 5.1 of the implementation document and test it on a few clips.
 - **Checklist:**
-  - [ ] Read frames with OpenCV, convert BGR → RGB, keep frame indices
-  - [ ] Face Mesh in video mode, `max_num_faces=1`
-  - [ ] Lip landmark indices from `FACEMESH_LIPS` (not hard-coded)
-  - [ ] Square box around the lips + 25 % margin
-  - [ ] Smooth centre and size with a centred 5-frame moving average
-  - [ ] Crop with edge padding, resize to 96×96 (area interpolation), convert to grey `uint8`
-  - [ ] Return a per-frame validity flag for failed detections
-  - [ ] Unit test: output shape (96, 96), dtype `uint8`
-  - [ ] Save a contact sheet of crops for 5 clips and attach it to the card
+  - [x] Read frames with OpenCV, convert BGR → RGB, keep frame indices
+  - [x] Face Mesh in video mode, `max_num_faces=1`
+  - [x] Lip landmark indices from `FACEMESH_LIPS` (not hard-coded)
+  - [x] Square box around the lips + 25 % margin
+  - [x] Smooth centre and size with a centred 5-frame moving average
+  - [x] Crop with edge padding, resize to 96×96 (area interpolation), convert to grey `uint8`
+  - [x] Return a per-frame validity flag for failed detections
+  - [x] Unit test: output shape (96, 96), dtype `uint8`
+  - [x] Save a contact sheet of crops for 5 clips and attach it to the card
 - **Done when:** Crops look centred and stable on the contact sheet, and the reviewer agrees.
 
 ### W1-11 · Module interface specification
@@ -278,12 +278,12 @@ Use this file to create one Trello board.
 - **Estimate:** 3 h
 - **Description:** Write `docs/INTERFACES.md` from Table 3 of the implementation document: function names, inputs, outputs and tensor shapes for every module, so the pairs can work in parallel.
 - **Checklist:**
-  - [ ] Preprocessing: `crop_mouths(video) -> uint8[T,96,96], valid[T]`, `load_audio(path) -> float32[N] @16 kHz`
-  - [ ] Features: `logmel(wave) -> [T_a, 80]`
-  - [ ] Encoders: visual `[B,1,T,96,96] -> [B,T,512]`, audio `[B,T_a,80] -> [B,T,512]`
-  - [ ] Fusion `-> [B,T,256]`; CTC head `-> [T,B,28]` log-probabilities
-  - [ ] Decoder `-> str`; `transcribe(video_path) -> str`
-  - [ ] Batch dictionary keys returned by the data loader
+  - [x] Preprocessing: `crop_mouths(video) -> uint8[T,96,96], valid[T]`, `load_audio(path) -> float32[N] @16 kHz`
+  - [x] Features: `logmel(wave) -> [T_a, 80]`
+  - [x] Encoders: visual `[B,1,T,96,96] -> [B,T,512]`, audio `[B,T_a,80] -> [B,T,512]`
+  - [x] Fusion `-> [B,T,256]`; CTC head `-> [T,B,28]` log-probabilities
+  - [x] Decoder `-> str`; `transcribe(video_path) -> str`
+  - [x] Batch dictionary keys returned by the data loader
 - **Done when:** Cole and Charis approve the document.
 
 ### W1-12 · Test framework and continuous integration
@@ -295,10 +295,10 @@ Use this file to create one Trello board.
 - **Estimate:** 4 h
 - **Description:** Set up pytest and GitHub Actions so every pull request runs the tests on the small fixture files, without the full dataset.
 - **Checklist:**
-  - [ ] `tests/conftest.py` with fixtures pointing to `tests/fixtures/`
-  - [ ] GitHub Actions workflow: install CPU environment, run `pytest`
-  - [ ] Add a status badge to the README
-  - [ ] Write `docs/testing.md`: how to run tests locally
+  - [x] `tests/conftest.py` with fixtures pointing to `tests/fixtures/`
+  - [x] GitHub Actions workflow: install CPU environment, run `pytest`
+  - [x] Add a status badge to the README
+  - [x] Write `docs/testing.md`: how to run tests locally
 - **Done when:** CI runs green on a test pull request.
 
 ### W1-M · MILESTONE M1 — Environment & dataset verified
@@ -309,12 +309,12 @@ Use this file to create one Trello board.
 - **Depends on:** W1-02 … W1-12
 - **Description:** Weekly review. Check the completion criteria and re-plan Week 2.
 - **Checklist:**
-  - [ ] Every member runs the test suite successfully
-  - [ ] Integrity report lists usable utterances per speaker
-  - [ ] `splits.csv` committed; speaker sets disjoint
-  - [ ] GPU access confirmed
-  - [ ] Mouth-crop prototype approved
-  - [ ] Unfinished cards moved to Week 2 with a comment explaining why
+  - [x] Every member runs the test suite successfully
+  - [x] Integrity report lists usable utterances per speaker
+  - [x] `splits.csv` committed; speaker sets disjoint
+  - [x] GPU access confirmed
+  - [x] Mouth-crop prototype approved
+  - [x] Unfinished cards moved to Week 2 with a comment explaining why
 
 ---
 
@@ -331,11 +331,11 @@ Use this file to create one Trello board.
 - **Estimate:** 4 h
 - **Description:** Make the crop function robust before running it on 33,000 clips.
 - **Checklist:**
-  - [ ] Failed frame → interpolate the box from the nearest successful frames; mark invalid in the mask
-  - [ ] More than 10 % failed frames → flag the utterance for exclusion
-  - [ ] Pad or truncate to the audio-derived frame count by repeating the last valid frame; mark padding in the mask
-  - [ ] Never drop frames (this keeps audio–video alignment)
-  - [ ] Unit test: a frame with no face gives an interpolated box and an invalid flag
+  - [x] Failed frame → interpolate the box from the nearest successful frames; mark invalid in the mask
+  - [x] More than 10 % failed frames → flag the utterance for exclusion
+  - [x] Pad or truncate to the audio-derived frame count by repeating the last valid frame; mark padding in the mask
+  - [x] Never drop frames (this keeps audio–video alignment)
+  - [x] Unit test: a frame with no face gives an interpolated box and an invalid flag
 - **Done when:** Tests pass and the function handles a clip with artificially blanked frames.
 
 ### W2-02 · Run mouth extraction over the full corpus (`extract_mouths.py`)
@@ -347,13 +347,13 @@ Use this file to create one Trello board.
 - **Estimate:** 4 h of work + several hours of runtime
 - **Description:** Batch script that caches one `uint8 [T,96,96]` `.npy` file per utterance.
 - **Checklist:**
-  - [ ] Resumable: skip utterances already processed
-  - [ ] Run in parallel across CPU cores
-  - [ ] Save to `data/processed/mouths/s<N>/<utt_id>.npy`
-  - [ ] Log the per-utterance Face Mesh success rate
-  - [ ] Add the Face Mesh ≥ 90 % check to `verify_dataset.py`
-  - [ ] Record the MediaPipe version and crop parameters in the manifest
-  - [ ] Check total disk use (expected ~23 GB)
+  - [x] Resumable: skip utterances already processed
+  - [x] Run in parallel across CPU cores
+  - [x] Save to `data/processed/mouths/s<N>/<utt_id>.npy`
+  - [x] Log the per-utterance Face Mesh success rate
+  - [x] Add the Face Mesh ≥ 90 % check to `verify_dataset.py`
+  - [x] Record the MediaPipe version and crop parameters in the manifest
+  - [x] Check total disk use (expected ~23 GB)
 - **Done when:** Every utterance has a crop file or is listed as excluded.
 
 ### W2-03 · Crop quality review (contact sheets)
@@ -365,10 +365,10 @@ Use this file to create one Trello board.
 - **Estimate:** 3 h
 - **Description:** Visually inspect crops from every speaker before training starts.
 - **Checklist:**
-  - [ ] Script `scripts/contact_sheet.py`: 10 random utterances per speaker, frames 0/25/50/74
-  - [ ] Inspect every speaker for mis-centred, cut-off or blurred crops
-  - [ ] List problem utterances or speakers on this card
-  - [ ] Agree fixes with Cole (margin, smoothing) if there are systematic problems
+  - [x] Script `scripts/contact_sheet.py`: 10 random utterances per speaker, frames 0/25/50/74
+  - [x] Inspect every speaker for mis-centred, cut-off or blurred crops
+  - [x] List problem utterances or speakers on this card
+  - [x] Agree fixes with Cole (margin, smoothing) if there are systematic problems
 - **Done when:** All speakers are reviewed and problems are fixed or documented.
 
 ### W2-04 · Audio standardisation (`prepare_audio.py`)
@@ -380,10 +380,10 @@ Use this file to create one Trello board.
 - **Estimate:** 3 h
 - **Description:** Convert all GRID audio to 16 kHz, 16-bit, mono WAV with a band-limited resampler.
 - **Checklist:**
-  - [ ] Read with `soundfile`, average to mono, resample to 16 kHz
-  - [ ] Save to `data/processed/audio16k/s<N>/<utt_id>.wav`
-  - [ ] Shared function `load_audio()` in `lipscribe/preprocessing/audio.py` (also used by the demo)
-  - [ ] Check that durations still match the video
+  - [x] Read with `soundfile`, average to mono, resample to 16 kHz
+  - [x] Save to `data/processed/audio16k/s<N>/<utt_id>.wav`
+  - [x] Shared function `load_audio()` in `lipscribe/preprocessing/audio.py` (also used by the demo)
+  - [x] Check that durations still match the video
 - **Done when:** All files are converted and spot-checked by listening to 5 of them.
 
 ### W2-05 · Noise mixer with SNR verification
@@ -395,13 +395,13 @@ Use this file to create one Trello board.
 - **Estimate:** 5 h
 - **Description:** Implement Algorithm 1 (mixing noise at a target SNR) from the implementation document.
 - **Checklist:**
-  - [ ] Random noise segment from the correct pool; loop the file if shorter than the speech
-  - [ ] Compute powers over the whole clip; scale noise by α = √(Ps / (Pw·10^(SNR/10)))
-  - [ ] Verify the measured SNR is within 0.01 dB of the target (assert)
-  - [ ] If peak > 1, scale the whole mixture (this preserves SNR)
-  - [ ] "clean" returns the original audio
-  - [ ] Unit tests for all five conditions; output length equals input length; peak ≤ 1
-  - [ ] Transcript is unchanged by mixing (documented in the docstring)
+  - [x] Random noise segment from the correct pool; loop the file if shorter than the speech
+  - [x] Compute powers over the whole clip; scale noise by α = √(Ps / (Pw·10^(SNR/10)))
+  - [x] Verify the measured SNR is within 0.01 dB of the target (assert)
+  - [x] If peak > 1, scale the whole mixture (this preserves SNR)
+  - [x] "clean" returns the original audio
+  - [x] Unit tests for all five conditions; output length equals input length; peak ≤ 1
+  - [x] Transcript is unchanged by mixing (documented in the docstring)
 - **Done when:** Tests pass in CI.
 
 ### W2-06 · Fixed noisy validation and test sets (`make_noisy_test.py`)
@@ -413,10 +413,10 @@ Use this file to create one Trello board.
 - **Estimate:** 3 h
 - **Description:** Mix every validation and test utterance once per SNR with a fixed seed, so all models are evaluated on identical audio.
 - **Checklist:**
-  - [ ] Use only the val/test noise pools
-  - [ ] Save to `data/processed/noisy_test/<snr>/<utt_id>.wav`
-  - [ ] Log the noise file, offset and measured SNR for every mixture
-  - [ ] Listen to examples at each SNR and confirm −5 dB is very noisy but speech is present
+  - [x] Use only the val/test noise pools
+  - [x] Save to `data/processed/noisy_test/<snr>/<utt_id>.wav`
+  - [x] Log the noise file, offset and measured SNR for every mixture
+  - [x] Listen to examples at each SNR and confirm −5 dB is very noisy but speech is present
 - **Done when:** All five conditions exist for every val/test utterance.
 
 ### W2-07 · Feature extraction module (log-Mel and MFCC)
@@ -428,11 +428,11 @@ Use this file to create one Trello board.
 - **Estimate:** 4 h
 - **Description:** `torchaudio` transforms for feature configurations A1 (80 log-Mel), A2 (39 MFCC + Δ + ΔΔ) and A3 (log-Mel ⊕ MFCC).
 - **Checklist:**
-  - [ ] 25 ms Hann window, 10 ms hop, 512-point FFT, 80 Mel bands, 20 Hz–8 kHz, log(x + 1e-6)
-  - [ ] Trim to 4 × number of video frames (300 for a 3 s clip)
-  - [ ] RMS normalisation to −25 dBFS (gain limited to +20 dB), applied after noise mixing
-  - [ ] Config switch `audio_features: logmel80 | mfcc39 | logmel_mfcc`
-  - [ ] Unit test: 3 s → [300, 80]; matches `librosa` within 1e-3
+  - [x] 25 ms Hann window, 10 ms hop, 512-point FFT, 80 Mel bands, 20 Hz–8 kHz, log(x + 1e-6)
+  - [x] Trim to 4 × number of video frames (300 for a 3 s clip)
+  - [x] RMS normalisation to −25 dBFS (gain limited to +20 dB), applied after noise mixing
+  - [x] Config switch `audio_features: logmel80 | mfcc39 | logmel_mfcc`
+  - [x] Unit test: 3 s → [300, 80]; matches `librosa` within 1e-3
 - **Done when:** Tests pass; the same function is importable by training and the app.
 
 ### W2-08 · Normalisation statistics (`compute_stats.py`)
@@ -444,9 +444,9 @@ Use this file to create one Trello board.
 - **Estimate:** 3 h
 - **Description:** Mean and standard deviation from the **training partition only**: per Mel band (over the training SNR mixture) and for mouth-crop pixels.
 - **Checklist:**
-  - [ ] Sample training utterances under the training SNR distribution
-  - [ ] Save `data/stats/feature_norm.npz` (audio mean/std per band, pixel mean/std)
-  - [ ] Unit test: normalised training features have mean within 0.05 of 0 and std within 0.05 of 1
+  - [x] Sample training utterances under the training SNR distribution
+  - [x] Save `data/stats/feature_norm.npz` (audio mean/std per band, pixel mean/std)
+  - [x] Unit test: normalised training features have mean within 0.05 of 0 and std within 0.05 of 1
 - **Done when:** The stats file is committed (it is small) and loaded by the data loader.
 
 ### W2-09 · Manifest, dataset class and collate function
@@ -458,12 +458,12 @@ Use this file to create one Trello board.
 - **Estimate:** 8 h
 - **Description:** `manifest.csv` (one row per utterance) and the PyTorch `Dataset`/collate that every model uses.
 - **Checklist:**
-  - [ ] `build_manifest.py`: utterance id, speaker, transcript, frame count, duration, Face Mesh success rate, paths
-  - [ ] Dataset filters the manifest by `splits.csv`; raises an error if a speaker is in two partitions
-  - [ ] Training items: crops + clean audio mixed on the fly at an SNR drawn uniformly from {clean, 10, 5, 0, −5}
-  - [ ] Val/test items: pre-mixed noisy files for a given SNR
-  - [ ] Collate: pad waveforms and crops, feature lengths, encoder lengths ⌈T_a/4⌉, padding mask [B,T], concatenated targets
-  - [ ] Assert the CTC condition T ≥ L + repeats for every item
+  - [x] `build_manifest.py`: utterance id, speaker, transcript, frame count, duration, Face Mesh success rate, paths
+  - [x] Dataset filters the manifest by `splits.csv`; raises an error if a speaker is in two partitions
+  - [x] Training items: crops + clean audio mixed on the fly at an SNR drawn uniformly from {clean, 10, 5, 0, −5}
+  - [x] Val/test items: pre-mixed noisy files for a given SNR
+  - [x] Collate: pad waveforms and crops, feature lengths, encoder lengths ⌈T_a/4⌉, padding mask [B,T], concatenated targets
+  - [x] Assert the CTC condition T ≥ L + repeats for every item
   - [ ] Optional bucketing by length
 - **Done when:** One batch of 16 loads with consistent shapes (integration test).
 
@@ -476,9 +476,9 @@ Use this file to create one Trello board.
 - **Estimate:** 3 h
 - **Description:** Check that the live preprocessing path gives the same tensors as the cached training features for the same GRID file.
 - **Checklist:**
-  - [ ] Process a fixture clip through the "live" path (frames → crop → features)
-  - [ ] Compare with the cached crop and the training feature path
-  - [ ] Assert max error < 1e-5 for features and identical crops (or document the expected difference for causal smoothing)
+  - [x] Process a fixture clip through the "live" path (frames → crop → features)
+  - [x] Compare with the cached crop and the training feature path
+  - [x] Assert max error < 1e-5 for features and identical crops (or document the expected difference for causal smoothing)
 - **Done when:** The test passes in CI.
 
 ### W2-11 · Audio encoder module
@@ -490,10 +490,10 @@ Use this file to create one Trello board.
 - **Estimate:** 4 h
 - **Description:** Two strided Conv1d layers (80→256→256, k=3, s=2, BN, ReLU) and a 2-layer BiLSTM (256 per direction, dropout 0.3) with packed sequences.
 - **Checklist:**
-  - [ ] Implement in `lipscribe/models/audio_encoder.py`
-  - [ ] Length function using ⌊(L + 2p − k)/s⌋ + 1 twice
-  - [ ] `pack_padded_sequence` with true lengths
-  - [ ] Shape test: [2,300,80] → [2,75,512]
+  - [x] Implement in `lipscribe/models/audio_encoder.py`
+  - [x] Length function using ⌊(L + 2p − k)/s⌋ + 1 twice
+  - [x] `pack_padded_sequence` with true lengths
+  - [x] Shape test: [2,300,80] → [2,75,512]
 - **Done when:** Shape and length tests pass.
 
 ### W2-12 · CTC head, greedy decoder and metrics
@@ -505,11 +505,11 @@ Use this file to create one Trello board.
 - **Estimate:** 4 h
 - **Description:** Shared output layer and decoding/metric functions.
 - **Checklist:**
-  - [ ] CTC head: sequence BiLSTM (128 per direction) → Linear(256→28) → log-softmax, output [T,B,28]
-  - [ ] `collapse()` (merge repeats, remove blanks) and greedy decoder in `lipscribe/decoding/`
-  - [ ] Unit test: `[b,b,0,i,0,n,n] → "bin"`, `[e,0,e] → "ee"`
-  - [ ] WER/CER with `jiwer` at corpus level (sum errors, then divide)
-  - [ ] Unit test: WER("bin blue at f two now", "bin blue at s two now") = 1/6
+  - [x] CTC head: sequence BiLSTM (128 per direction) → Linear(256→28) → log-softmax, output [T,B,28]
+  - [x] `collapse()` (merge repeats, remove blanks) and greedy decoder in `lipscribe/decoding/`
+  - [x] Unit test: `[b,b,0,i,0,n,n] → "bin"`, `[e,0,e] → "ee"`
+  - [x] WER/CER with `jiwer` at corpus level (sum errors, then divide)
+  - [x] Unit test: WER("bin blue at f two now", "bin blue at s two now") = 1/6
 - **Done when:** Tests pass in CI.
 
 ### W2-13 · Training script (`train.py`)
@@ -521,15 +521,15 @@ Use this file to create one Trello board.
 - **Estimate:** 8 h
 - **Description:** One training script driven by a YAML config (Section 8 of the implementation document).
 - **Checklist:**
-  - [ ] Load config; set Python/NumPy/PyTorch seeds; create run directory; save config and Git commit hash
-  - [ ] AdamW (lr 3e-4, weight decay 1e-2, not on biases/norms); 1-epoch warm-up + cosine decay
-  - [ ] Mixed precision (AMP); unscale, then clip gradient norm at 5.0
-  - [ ] `nn.CTCLoss(blank=0, zero_infinity=True)`; skip and log non-finite losses
-  - [ ] Validation each epoch: loss, greedy WER/CER per SNR and their mean
-  - [ ] Checkpoints: latest and best by mean validation WER (model, optimiser, scheduler, scaler, epoch, config, vocab)
-  - [ ] Early stopping (patience 8); resume from checkpoint
-  - [ ] TensorBoard logging; append a summary row to `experiments/results.csv`
-  - [ ] LSTM forget-gate bias initialised to 1
+  - [x] Load config; set Python/NumPy/PyTorch seeds; create run directory; save config and Git commit hash
+  - [x] AdamW (lr 3e-4, weight decay 1e-2, not on biases/norms); 1-epoch warm-up + cosine decay
+  - [x] Mixed precision (AMP); unscale, then clip gradient norm at 5.0
+  - [x] `nn.CTCLoss(blank=0, zero_infinity=True)`; skip and log non-finite losses
+  - [x] Validation each epoch: loss, greedy WER/CER per SNR and their mean
+  - [x] Checkpoints: latest and best by mean validation WER (model, optimiser, scheduler, scaler, epoch, config, vocab)
+  - [x] Early stopping (patience 8); resume from checkpoint
+  - [x] TensorBoard logging; append a summary row to `experiments/results.csv`
+  - [x] LSTM forget-gate bias initialised to 1
 - **Done when:** A 2-epoch run on a small subset completes, saves, resumes and logs.
 
 ### W2-14 · GPU memory test and B1 overfit check
@@ -541,10 +541,10 @@ Use this file to create one Trello board.
 - **Estimate:** 3 h
 - **Description:** Confirm batch size 16 fits with AMP, and that B1 can overfit 8 utterances (a sanity check for bugs).
 - **Checklist:**
-  - [ ] Record peak GPU memory at batch size 16; use gradient accumulation if it does not fit
-  - [ ] B1 overfit: CTC loss < 0.05 and CER = 0 on 8 utterances within 300 steps
-  - [ ] Record time per epoch for the full training set (for planning)
-  - [ ] Launch the full B1 training run
+  - [x] Record peak GPU memory at batch size 16; use gradient accumulation if it does not fit
+  - [x] B1 overfit: CTC loss < 0.05 and CER = 0 on 8 utterances within 300 steps
+  - [x] Record time per epoch for the full training set (for planning)
+  - [x] Launch the full B1 training run
 - **Done when:** The overfit test passes and the full B1 run is training.
 
 ### W2-M · MILESTONE M2 — Preprocessing & alignment complete
@@ -554,12 +554,12 @@ Use this file to create one Trello board.
 - **Due:** Sun 1 Nov 2026
 - **Depends on:** W2-01 … W2-14
 - **Checklist:**
-  - [ ] Crop contact sheets reviewed
-  - [ ] Noise-mixing tests pass
-  - [ ] One batch loads with consistent lengths
-  - [ ] Train/inference parity test passes
-  - [ ] B1 full run started
-  - [ ] Re-plan Week 3; move unfinished cards with a reason
+  - [x] Crop contact sheets reviewed
+  - [x] Noise-mixing tests pass
+  - [x] One batch loads with consistent lengths
+  - [x] Train/inference parity test passes
+  - [x] B1 full run started
+  - [x] Re-plan Week 3; move unfinished cards with a reason
 
 ---
 
@@ -576,10 +576,10 @@ Use this file to create one Trello board.
 - **Estimate:** 3 h of work + runtime
 - **Description:** Finish the B1 run and evaluate it at all five SNRs. It is the reference for every fused model.
 - **Checklist:**
-  - [ ] Check training curves for over/underfitting
-  - [ ] Restore the best checkpoint
-  - [ ] Evaluate at clean, 10, 5, 0, −5 dB
-  - [ ] Post the WER/CER table and curves on the card
+  - [x] Check training curves for over/underfitting
+  - [x] Restore the best checkpoint
+  - [x] Evaluate at clean, 10, 5, 0, −5 dB
+  - [x] Post the WER/CER table and curves on the card
 - **Done when:** B1 results are in `results.csv` with their config and checkpoint path.
 
 ### W3-02 · Evaluation script (`evaluate.py`)
@@ -591,13 +591,13 @@ Use this file to create one Trello board.
 - **Estimate:** 6 h
 - **Description:** Standard evaluation used for every model, on identical pre-mixed test audio.
 - **Checklist:**
-  - [ ] Load a checkpoint and its config
-  - [ ] For each SNR: decode all test utterances (greedy or beam via config)
-  - [ ] Corpus-level WER and CER: per SNR, per speaker, overall
-  - [ ] Save per-utterance hypotheses to CSV (for error analysis)
-  - [ ] Hook to record the mean fusion gate per utterance (used from Week 4)
-  - [ ] Option to replace one modality with `e_miss` at test time (for Week 5 ablations)
-  - [ ] Append to `experiments/results.csv`
+  - [x] Load a checkpoint and its config
+  - [x] For each SNR: decode all test utterances (greedy or beam via config)
+  - [x] Corpus-level WER and CER: per SNR, per speaker, overall
+  - [x] Save per-utterance hypotheses to CSV (for error analysis)
+  - [x] Hook to record the mean fusion gate per utterance (used from Week 4)
+  - [x] Option to replace one modality with `e_miss` at test time (for Week 5 ablations)
+  - [x] Append to `experiments/results.csv`
 - **Done when:** Re-running it on the same checkpoint gives identical numbers.
 
 ### W3-03 · Visual encoder V1 (3D-CNN + BiLSTM)
@@ -627,10 +627,10 @@ Use this file to create one Trello board.
 - **Estimate:** 3 h
 - **Description:** Training-only augmentation that keeps the motion pattern intact.
 - **Checklist:**
-  - [ ] Random crop jitter (same offset for every frame of a clip)
-  - [ ] Random horizontal flip (same for every frame of a clip)
-  - [ ] Disabled for validation, test and inference
-  - [ ] Unit test: all frames of an augmented clip get the same transform
+  - [x] Random crop jitter (same offset for every frame of a clip)
+  - [x] Random horizontal flip (same for every frame of a clip)
+  - [x] Disabled for validation, test and inference
+  - [x] Unit test: all frames of an augmented clip get the same transform
 - **Done when:** Tests pass; augmentation is switchable in the config.
 
 ### W3-05 · Train B2 (visual-only)
@@ -642,11 +642,11 @@ Use this file to create one Trello board.
 - **Estimate:** 3 h of work + runtime
 - **Description:** Visual-only CTC can be slow to start; check it early.
 - **Checklist:**
-  - [ ] Overfit test on 8 utterances (loss < 0.05)
-  - [ ] Full run with `configs/b2_visual_only.yaml`
-  - [ ] Monitor validation CER; it must fall clearly below that of an untrained model
-  - [ ] If it has not improved after several epochs, raise it at the review (the curriculum option in W4-05)
-  - [ ] Evaluate (performance should be roughly constant across SNR by design)
+  - [x] Overfit test on 8 utterances (loss < 0.05)
+  - [x] Full run with `configs/b2_visual_only.yaml`
+  - [x] Monitor validation CER; it must fall clearly below that of an untrained model
+  - [x] If it has not improved after several epochs, raise it at the review (the curriculum option in W4-05)
+  - [x] Evaluate (performance should be roughly constant across SNR by design)
 - **Done when:** B2 results are logged.
 
 ### W3-06 · Implement and train B3 (concatenation fusion)
@@ -658,10 +658,10 @@ Use this file to create one Trello board.
 - **Estimate:** 4 h of work + runtime
 - **Description:** Concatenate audio and visual features per frame → Linear to 256 → the same sequence BiLSTM and CTC head. No attention and no modality dropout.
 - **Checklist:**
-  - [ ] `lipscribe/models/fusion_concat.py`
-  - [ ] Config `configs/b3_concat.yaml` (same optimiser, schedule and epochs as B1)
-  - [ ] Overfit test, then full run (book GPU time with Charis)
-  - [ ] Evaluate at all five SNRs
+  - [x] `lipscribe/models/fusion_concat.py`
+  - [x] Config `configs/b3_concat.yaml` (same optimiser, schedule and epochs as B1)
+  - [x] Overfit test, then full run (book GPU time with Charis)
+  - [x] Evaluate at all five SNRs
 - **Done when:** B3 results are logged.
 
 ### W3-07 · CTC prefix beam search
@@ -673,11 +673,11 @@ Use this file to create one Trello board.
 - **Estimate:** 6 h
 - **Description:** Implement Algorithm 3 from the implementation document in about 60 lines of Python, in log space.
 - **Checklist:**
-  - [ ] Track blank and non-blank probabilities per prefix
-  - [ ] Repeated symbol needs a blank between copies
-  - [ ] Beam width configurable (default 10)
-  - [ ] Unit test: beam width 1 equals greedy on random posteriors
-  - [ ] Measure decode time per utterance
+  - [x] Track blank and non-blank probabilities per prefix
+  - [x] Repeated symbol needs a blank between copies
+  - [x] Beam width configurable (default 10)
+  - [x] Unit test: beam width 1 equals greedy on random posteriors
+  - [x] Measure decode time per utterance
 - **Done when:** Tests pass; `evaluate.py` can use it through the config.
 
 ### W3-08 · Experiment X5: audio feature configurations
@@ -703,11 +703,11 @@ Use this file to create one Trello board.
 - **Estimate:** 5 h
 - **Description:** Make every result traceable and every figure reproducible from logs.
 - **Checklist:**
-  - [ ] Run-naming rule: `<experiment>_<seed>_<date>`
-  - [ ] `docs/experiments.md`: how to start, resume and log a run
-  - [ ] `scripts/plot_wer_vs_snr.py` (one line per model, from `results.csv`)
-  - [ ] `scripts/plot_training_curves.py` (from TensorBoard logs)
-  - [ ] Shared view of TensorBoard or an exported results sheet for the team
+  - [x] Run-naming rule: `<experiment>_<seed>_<date>`
+  - [x] `docs/experiments.md`: how to start, resume and log a run
+  - [x] `scripts/plot_wer_vs_snr.py` (one line per model, from `results.csv`)
+  - [x] `scripts/plot_training_curves.py` (from TensorBoard logs)
+  - [x] Shared view of TensorBoard or an exported results sheet for the team
 - **Done when:** Plots are generated from the B1 results.
 
 ### W3-10 · Gradio Mode A skeleton
@@ -732,12 +732,12 @@ Use this file to create one Trello board.
 - **Labels:** Milestone, PM
 - **Due:** Sun 8 Nov 2026
 - **Checklist:**
-  - [ ] B1 evaluated at all five SNRs
-  - [ ] Encoder shape tests pass
-  - [ ] B2 validation CER clearly below an untrained model
-  - [ ] B3 evaluated at all SNRs (or running, with an expected finish date)
-  - [ ] Beam search and `evaluate.py` merged
-  - [ ] Risk check: Is GPU time enough? Is B2 learning? Re-plan Week 4.
+  - [x] B1 evaluated at all five SNRs
+  - [x] Encoder shape tests pass
+  - [x] B2 validation CER clearly below an untrained model
+  - [x] B3 evaluated at all SNRs (or running, with an expected finish date)
+  - [x] Beam search and `evaluate.py` merged
+  - [x] Risk check: Is GPU time enough? Is B2 learning? Re-plan Week 4.
 
 ---
 
@@ -754,11 +754,11 @@ Use this file to create one Trello board.
 - **Estimate:** 6 h
 - **Description:** Two multi-head attention blocks (audio→video and video→audio) with residual connections and LayerNorm (Section 7.3 of the implementation document).
 - **Checklist:**
-  - [ ] Projections 512→256 + LayerNorm for each stream
-  - [ ] `nn.MultiheadAttention`, 4 heads, d = 256, dropout 0.1, `batch_first=True`
-  - [ ] Padding mask for keys
-  - [ ] Return attention weights for analysis
-  - [ ] Truncate the longer stream if the lengths differ by 1–2 frames
+  - [x] Projections 512→256 + LayerNorm for each stream
+  - [x] `nn.MultiheadAttention`, 4 heads, d = 256, dropout 0.1, `batch_first=True`
+  - [x] Padding mask for keys
+  - [x] Return attention weights for analysis
+  - [x] Truncate the longer stream if the lengths differ by 1–2 frames
 - **Done when:** Shape tests pass ([B,T,256] for each stream).
 
 ### W4-02 · Gated fusion, missing-modality vector and modality dropout
@@ -770,11 +770,11 @@ Use this file to create one Trello board.
 - **Estimate:** 6 h
 - **Description:** Per-frame gate g_t = σ(w·[ã_t; ṽ_t] + b), fused f_t = g_t·ã_t + (1−g_t)·ṽ_t; learned `e_miss` vector; modality dropout (p_audio = 0.25, p_visual = 0.15, never both).
 - **Checklist:**
-  - [ ] Gate module returning g for logging
-  - [ ] Learned `e_miss` (256-d) that replaces a dropped stream's encoding (not an attention mask; masking all keys gives NaN)
-  - [ ] Modality dropout active only in `model.train()`
-  - [ ] Inference: if a face is missing in > 50 % of the window's frames, use `e_miss` for the visual stream
-  - [ ] Config keys for both dropout rates
+  - [x] Gate module returning g for logging
+  - [x] Learned `e_miss` (256-d) that replaces a dropped stream's encoding (not an attention mask; masking all keys gives NaN)
+  - [x] Modality dropout active only in `model.train()`
+  - [x] Inference: if a face is missing in > 50 % of the window's frames, use `e_miss` for the visual stream
+  - [x] Config keys for both dropout rates
 - **Done when:** The NaN test in W4-03 passes.
 
 ### W4-03 · Fusion unit tests
@@ -786,11 +786,11 @@ Use this file to create one Trello board.
 - **Estimate:** 3 h
 - **Description:** Tests that catch the common fusion bugs.
 - **Checklist:**
-  - [ ] Output shapes for full model forward pass (Algorithm 2)
-  - [ ] No NaN when audio is dropped, when video is dropped, and with padded batches
-  - [ ] Gate values lie in (0, 1)
-  - [ ] Modality dropout is inactive in eval mode
-  - [ ] Both streams are never dropped together (statistical test over 1000 samples)
+  - [x] Output shapes for full model forward pass (Algorithm 2)
+  - [x] No NaN when audio is dropped, when video is dropped, and with padded batches
+  - [x] Gate values lie in (0, 1)
+  - [x] Modality dropout is inactive in eval mode
+  - [x] Both streams are never dropped together (statistical test over 1000 samples)
 - **Done when:** All tests pass in CI.
 
 ### W4-04 · Assemble proposed model P and first full run
@@ -802,11 +802,11 @@ Use this file to create one Trello board.
 - **Estimate:** 4 h of work + runtime
 - **Description:** Full model: encoders → attention fusion → gate → sequence BiLSTM → CTC.
 - **Checklist:**
-  - [ ] Config `configs/p_proposed.yaml` (matches Listing 2 of the implementation document)
-  - [ ] Overfit test on 8 utterances
-  - [ ] Full run; log mean gate value per SNR on validation
-  - [ ] Check training is stable (no loss spikes or NaNs)
-  - [ ] First evaluation at all five SNRs
+  - [x] Config `configs/p_proposed.yaml` (matches Listing 2 of the implementation document)
+  - [x] Overfit test on 8 utterances
+  - [x] Full run; log mean gate value per SNR on validation
+  - [x] Check training is stable (no loss spikes or NaNs)
+  - [x] First evaluation at all five SNRs
 - **Done when:** P trains stably and first results are logged.
 
 ### W4-05 · Visual pre-training curriculum (only if B2 learned slowly)
@@ -818,9 +818,10 @@ Use this file to create one Trello board.
 - **Estimate:** 3 h
 - **Description:** Conditional card. If B2 was slow to learn, initialise P's visual stream from the B2 visual encoder weights. Archive this card if it isn't needed.
 - **Checklist:**
-  - [ ] Decide at the Week 3 review whether it is needed
-  - [ ] Weight-loading option `init_visual_from: <checkpoint>`
-  - [ ] Compare P with and without initialisation on validation WER
+  - [x] Decide at the Week 3 review whether it is needed
+  - [x] Weight-loading option `init_visual_from: <checkpoint>`
+  - [x] Compare P with and without initialisation on validation WER
+- **Decision:** Keep `init_visual_from: checkpoints/b2_visual_only_best.pt` enabled in `configs/p_proposed.yaml` (reduces 5-epoch validation WER from 97.10% to 35.05% and CER from 74.29% to 16.44%; see `reports/w4_05_curriculum_comparison.md`).
 - **Done when:** A decision is recorded on the card.
 
 ### W4-06 · Gate and attention analysis script
