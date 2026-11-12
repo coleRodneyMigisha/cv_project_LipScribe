@@ -4,7 +4,7 @@ For each chosen Flix *test* clip it saves one frame from the middle of the line
 (<out>/scene_<n>.jpg) and writes <out>/scenes.json with the real subtitle and every
 model's caption, so the slide can set the text as live text.
 
-Choice (honest): the --best clips where the LAST --hyps model has the lowest CER,
+Choice (honest): the --best clips where the LAST --hyps model has the lowest --rank-by error,
 plus --typical clips around its median CER. Each scene records which group it is in.
 
 Usage: python -m scripts.flix_scenes --manifest ~/flix_mine/manifest_local.csv \
@@ -34,6 +34,7 @@ def main() -> None:
     ap.add_argument("--best", type=int, default=2)
     ap.add_argument("--typical", type=int, default=1)
     ap.add_argument("--min-words", type=int, default=3)
+    ap.add_argument("--rank-by", choices=["cer", "wer"], default="cer")
     ap.add_argument("--out", type=Path, default=Path("scenes"))
     ap.add_argument("--videos", type=Path, default=mf.V)
     a = ap.parse_args()
@@ -46,7 +47,8 @@ def main() -> None:
     ranker = models[-1][1]
     ids = [u for u in ranker if u in meta and len(ranker[u]["ref"].split()) >= a.min_words
            and all(u in m for _, m in models)]
-    ids.sort(key=lambda u: float(ranker[u]["cer"]))
+    other = "wer" if a.rank_by == "cer" else "cer"
+    ids.sort(key=lambda u: (float(ranker[u][a.rank_by]), float(ranker[u][other])))
     mid = len(ids) // 2
     chosen = [(u, "best") for u in ids[: a.best]]
     chosen += [(u, "typical") for u in ids[mid: mid + a.typical] if u not in dict(chosen)]
