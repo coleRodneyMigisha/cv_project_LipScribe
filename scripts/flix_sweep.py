@@ -12,6 +12,8 @@ fresh fusion/CTC head, lr 3e-4) but on Flix; "from_p4" = start from the whole P4
 Resumable: finished trials are read back from <out>/sweep.csv and skipped.
 
 Usage: python -m scripts.flix_sweep --trials 24 [--max-epochs 60]
+       python -m scripts.flix_sweep --data data/flix_full --out reports/flix_full \
+           --from-sweep reports/flix_sweep/sweep.csv --top 5
 """
 from __future__ import annotations
 
@@ -84,13 +86,13 @@ def best_from_history(run_dir: Path) -> dict:
 
 def run_trial(name: str, h: dict, seed: int, a, out: Path, max_epochs: int | None = None,
               patience: int | None = None) -> dict:
-    cfg_dir = REPO / "configs/flix_sweep"; cfg_dir.mkdir(parents=True, exist_ok=True)
+    cfg_dir = REPO / "configs" / out.name; cfg_dir.mkdir(parents=True, exist_ok=True)
     cfg_path = cfg_dir / f"{name}_s{seed}.yaml"
     cfg_path.write_text(yaml.safe_dump(make_cfg(h, seed, a.data, max_epochs or a.max_epochs, patience or a.patience),
                                        sort_keys=False))
     print(f"\n=== {name} seed {seed}: {h}", flush=True)
     proc = subprocess.run([sys.executable, "-m", "scripts.train", "--config", str(cfg_path),
-                           "--no-results", "--runs-root", str(REPO / "runs/flix_sweep")],
+                           "--no-results", "--runs-root", str(REPO / "runs" / out.name)],
                           cwd=REPO, capture_output=True, text=True)
     log = proc.stdout + proc.stderr
     (out / "logs").mkdir(parents=True, exist_ok=True)
@@ -115,6 +117,9 @@ def main() -> None:
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--patience", type=int, default=40,
                     help="tuning runs; a fresh CTC head (p4_recipe) emits only blanks for its first epochs")
+    ap.add_argument("--from-sweep", type=Path, default=None,
+                    help="re-run only the --top best seed-1 trials of an earlier sweep.csv (bigger data)")
+    ap.add_argument("--top", type=int, default=5)
     ap.add_argument("--final-epochs", type=int, default=150,
                     help="final runs: best config, seeds 1-3, no early stopping")
     a = ap.parse_args()
@@ -141,6 +146,13 @@ def main() -> None:
     anchors = list(ANCHORS.values())
     picks = [g for g in grid if g not in anchors][: a.trials]
     trials = list(ANCHORS.items()) + [(f"t{i:02d}", g) for i, g in enumerate(picks)]
+    if a.from_sweep:
+        with open(a.from_sweep, newline="") as fh:
+            prev = [r for r in csv.DictReader(fh) if r["seed"] == "1" and r["val_cer"] != "nan"
+                    and not r["trial"].startswith("final")]
+        prev.sort(key=lambda r: float(r["val_cer"]))
+        trials = [(r["trial"], {k: type(SPACE[k][0])(r[k]) for k in SPACE}) for r in prev[: a.top]]
+        print(f"re-running top {len(trials)} of {a.from_sweep}: {[t for t, _ in trials]}", flush=True)
     for name, h in trials:
         if (name, "1") not in have:
             record(run_trial(name, h, 1, a, a.out))
