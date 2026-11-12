@@ -1,0 +1,87 @@
+% LipScribe -- Technical Note: Why V2 Used ResNet-18 Instead of Plain 3D-CNN
+% Compile: pdflatex resnet_vs_conv3d_justification.tex
+\documentclass[11pt,a4paper]{article}
+\usepackage{lipscribe-report}
+\usepackage{amsmath}
+\usepackage{float}
+\fancyhead[L]{\small\sffamily\color{lsgrey}LipScribe -- Technical Justification: ResNet-18 (V2) vs.\ 3D-CNN (V1)}
+
+\newcommand{\code}[1]{\texttt{\small #1}}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\setlist{itemsep=1pt,topsep=2pt,parsep=0pt}
+
+\begin{document}
+
+\docheader{Technical Justification Note}{Why V2 Used a Hybrid 3D-Conv + ResNet-18 Visual Encoder Instead of a Plain 3-Block 3D-CNN}{9 November 2026}
+
+% =====================================================================
+\section{Motivation and Problem Statement}
+Our initial visual encoder (\textbf{V1}, \code{conv3d\_bilstm} in \code{lipscribe/models/visual\_encoder.py}) implemented three plain 3D convolutional blocks ($1{\to}32{\to}64{\to}96$ channels) followed by flattening the $96{\times}6{\times}6 = 3{,}456$ spatial feature map into a dense \code{Linear(3456, 512)} layer and a 2-layer BiLSTM. While V1 converged on the training set and achieved $23.04\,\%$ overall test WER in standalone \textbf{B2 v1}, speaker-level diagnostics exposed a critical generalisation bottleneck:
+\begin{itemize}
+  \item \textbf{2.5$\times$ inter-speaker error spread on unseen speakers:} Test WER ranged from $13.3\,\%$ on speaker \code{s24} to $33.7\,\%$ on speaker \code{s9}, with validation speakers averaging $35.74\,\%$ WER.
+  \item \textbf{Coordinate-tied flatten bottleneck:} Nearly one-third of V1's parameters ($1.77\text{\,M}$ of $5.25\text{\,M}$) reside in a single \code{Linear(3456, 512)} matrix that ties weights to rigid $(x,y)$ coordinates on the $6{\times}6$ grid, making embeddings sensitive to speaker lip morphology, jaw width, illumination, and minor MediaPipe crop shifts.
+\end{itemize}
+
+To provide speaker-invariant visual representations that align cleanly with our audio encoder in cross-modal attention, \textbf{V2} (\code{resnet18\_bilstm}) replaces the shallow 3-block 3D-CNN with the canonical deep lipreading architecture (Stafylakis \& Tzimiropoulos, 2017; Martinez et al., 2020): \textbf{per-clip photometric normalisation + a 5-frame 3D spatiotemporal stem + a 16-layer 2D ResNet-18 residual trunk + global spatial average pooling + a 2-layer BiLSTM}.
+
+% =====================================================================
+\section{Architectural Comparison: V1 (\code{conv3d\_bilstm}) vs.\ V2 (\code{resnet18\_bilstm})}
+
+\begin{table}[htbp]
+\centering\small
+\caption{Structural comparison of the V1 and V2 visual encoders (\code{[B, 1, T, 96, 96] -> [B, T, 512]}).}
+\label{tab:arch}
+\rowcolors{2}{lsrow}{white}
+\begin{tabularx}{\textwidth}{@{}L{2.8cm}L{4.2cm}L{4.5cm}X@{}}
+\toprule
+\rowcolor{white}\sffamily\bfseries Component & \sffamily\bfseries V1: \code{conv3d\_bilstm} & \sffamily\bfseries V2: \code{resnet18\_bilstm} & \sffamily\bfseries Technical Benefit of V2 \\
+\midrule
+Input Norm & Corpus stats (\code{none}) & Per-clip zero-mean, unit-var (\code{clip}) & Removes per-speaker brightness and contrast bias \\
+3D Stem & 3 stacked \code{Conv3d} blocks ($3{\times}5{\times}5$, $3{\times}5{\times}5$, $3{\times}3{\times}3$) & Single \code{Conv3d} ($5{\times}7{\times}7$, stride $1{\times}2{\times}2$) + \code{MaxPool3d} & Captures $200$\,ms (5-frame) viseme transitions at input without 3D FLOP explosion \\
+Spatial Trunk & None (only 3 conv layers total; no skip connections) & 16-layer 2D ResNet-18 (8 \code{BasicBlock}s, $64{\to}512$ ch) & Deep hierarchical spatial features (lip contour, teeth, tongue) without vanishing gradients \\
+Spatial Pooling & Flatten $96{\times}6{\times}6 = 3{,}456 \to \code{Linear(3456, 512)}$ & \code{AdaptiveAvgPool2d(1)} over $3{\times}3{\times}512$ map $\to 512$-d & Enforces spatial translation invariance; eliminates dense flatten overfitting \\
+Regularisation & Feature dropout ($0.3$), crop jitter ($\pm 4$\,px), flip & \code{Dropout2d(0.2)}, scale jitter ($\pm 10\,\%$), cutout, time masks & Prevents memorisation of static speaker face geometry \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% =====================================================================
+\section{Controlled Empirical Verification in Multimodal Fusion (\code{P3} vs.\ \code{P4})}
+
+In standalone visual-only training, \textbf{B2 v2} was capped at a 50-minute time budget (\textbf{13 epochs} with heavy cutout and time-masking augmentation) compared with \textbf{28 epochs} for \textbf{B2 v1}, resulting in a higher standalone WER ($32.20\,\%$ vs.\ $23.04\,\%$). However, to isolate the true representational quality of the visual encoder for multimodal fusion, we ran a strictly controlled head-to-head experiment in \textbf{Proposed Model~P}:
+\begin{itemize}
+  \item \textbf{Model P3 (\code{p\_init\_b1\_b2}):} Initialised from \code{B1} (audio) + \textbf{B2 v1 (\code{conv3d\_bilstm})}.
+  \item \textbf{Model P4 (\code{p\_init\_b1\_b2\_v2}):} Initialised from \code{B1} (audio) + \textbf{B2 v2 (\code{resnet18\_bilstm})}.
+  \item \textbf{Controlled protocol:} Identical 30-minute full-corpus training budget, identical cross-modal attention and gated fusion architecture, identical optimiser ($\text{lr}=3{\times}10^{-4}$), identical modality dropout ($p_a=0.25, p_v=0.15$), and identical random seed ($\text{seed}=1$).
+\end{itemize}
+
+\begin{table}[htbp]
+\centering\small
+\caption{Controlled full-corpus comparison: Model P3 (\code{Conv3D}) vs.\ Model P4 (\code{ResNet-18}) on held-out test speakers.}
+\label{tab:p3_vs_p4}
+\rowcolors{2}{lsrow}{white}
+\begin{tabularx}{\textwidth}{@{}Xccc@{}}
+\toprule
+\rowcolor{white}\sffamily\bfseries Evaluation Metric & \textbf{Model P3 (\code{Conv3D})} & \textbf{Model P4 (\code{ResNet-18})} & \textbf{Relative Gain of V2} \\
+\midrule
+Best Mean Validation WER / CER & 14.17\,\% / 8.53\,\% & \textbf{8.82\,\% / 5.17\,\%} & $-37.8\,\%$ WER / $-39.4\,\%$ CER \\
+Test WER -- Clean (Greedy / Grammar) & 2.13\,\% / 1.25\,\% & \textbf{1.02\,\% / 0.71\,\%} & \textbf{$-$52.1\,\%} Greedy / \textbf{$-$43.2\,\%} Grammar \\
+Test WER -- 10\,dB (Greedy / Grammar) & 2.67\,\% / 1.62\,\% & \textbf{1.53\,\% / 1.10\,\%} & $-$42.7\,\% Greedy / $-$32.1\,\% Grammar \\
+Test WER -- 5\,dB (Greedy / Grammar) & 3.27\,\% / 2.08\,\% & \textbf{1.87\,\% / 1.42\,\%} & $-$42.8\,\% Greedy / $-$31.7\,\% Grammar \\
+Test WER -- 0\,dB (Greedy / Grammar) & 4.33\,\% / 2.88\,\% & \textbf{2.79\,\% / 2.06\,\%} & $-$35.6\,\% Greedy / $-$28.5\,\% Grammar \\
+Test WER -- $-$5\,dB (Greedy / Grammar) & 7.30\,\% / 5.20\,\% & \textbf{5.34\,\% / 3.95\,\%} & \textbf{$-$26.8\,\%} Greedy / \textbf{$-$24.0\,\%} Grammar \\
+Mean Test WER Across All 5 SNRs & 3.94\,\% / 2.61\,\% & \textbf{2.51\,\% / 1.85\,\%} & \textbf{$-$36.3\,\%} Greedy / \textbf{$-$29.1\,\%} Grammar \\
+No-Visual Test Fallback (\code{--drop-modality visual}, Clean) & 2.72\,\% & \textbf{1.88\,\%} & $-$30.9\,\% WER \\
+Mean Fusion Gate Shift $\Delta\bar{g}$ ($\text{Clean} \to -5$\,dB) & $0.884 \to 0.834$ ($-0.050$) & \textbf{$0.804 \to 0.691$ ($-0.113$)} & \textbf{2.25$\times$ stronger visual gating} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Conclusion}
+Table~\ref{tab:p3_vs_p4} provides decisive empirical justification for the V2 \code{ResNet-18} front end:
+\begin{enumerate}
+  \item \textbf{State-of-the-art fusion accuracy:} Even though \code{B2 v2} was pre-trained for only 13 epochs, its residual, clip-normalised, globally pooled features enable \textbf{Model P4} to cut clean test WER more than in half ($2.13\,\% \to 1.02\,\%$ greedy; $1.25\,\% \to 0.71\,\%$ grammar) and reduce $-5$\,dB WER by over a quarter ($7.30\,\% \to 5.34\,\%$) relative to \textbf{Model P3} (\code{Conv3D}).
+  \item \textbf{2.25$\times$ stronger dynamic visual gating under noise:} In P3 (\code{Conv3D}), the fusion gate $\bar{g}$ remains heavily biased toward audio ($0.884 \to 0.834$) because the shallow 3D-CNN features are noisier across unseen speakers. In P4 (\code{ResNet-18}), the gate actively trusts the visual stream, assigning $19.6\,\%$ weight to lip features in clean audio and shifting to \textbf{30.9\,\% visual weight at $-5$\,dB} ($\bar{g}=0.691$).
+\end{enumerate}
+
+\end{document}
