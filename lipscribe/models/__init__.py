@@ -28,7 +28,7 @@ def build_model(config: dict) -> nn.Module:
     name = config.get("name")
     fusion = config.get("fusion")
     if name == "b1_audio_only":
-        return B1AudioOnly()
+        return B1AudioOnly(in_dim=FEATURE_DIMS[config.get("audio_features", "logmel80")])
     elif name == "b2_visual_only":
         dropout = float(config.get("dropout", 0.3))
         return B2VisualOnly(dropout=dropout, model_cfg=config)
