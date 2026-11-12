@@ -46,10 +46,10 @@ def main() -> None:
     ap.add_argument("--flix", type=Path, default=Path("flix"))
     ap.add_argument("--grid-root", type=Path, default=Path("../cv_project_LipScribe"))
     ap.add_argument("--out", type=Path, default=Path("data/flix"))
-    ap.add_argument("--grid-train", type=int, default=2000)
+    ap.add_argument("--grid-train", type=int, default=1000)
     ap.add_argument("--grid-val", type=int, default=60)
     ap.add_argument("--grid-test", type=int, default=600)
-    ap.add_argument("--flix-repeat", type=int, default=4)
+    ap.add_argument("--flix-repeat", type=int, default=8)
     ap.add_argument("--seed", type=int, default=1)
     args = ap.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
@@ -116,13 +116,14 @@ def main() -> None:
         "minutes": round(sum(float(r["dur_s"] or 0) for r in flix) / 60, 1),
         "distinct_words": len(words), "word_tokens": sum(words.values()),
         "distinct_words_in_grid": len(set(words) & grid_words), "grid_vocab": len(grid_words),
+        "grid_words": sorted(grid_words),
         "test_tokens_seen_in_flix_train": sum(c for w, c in test_words.items() if w in train_words),
         "test_tokens": sum(test_words.values()),
         "top_words": words.most_common(25),
         "train_mix_rows": len(train_mix), "grid_test_rows": len(grid["test"][:args.grid_test]),
     }
     (args.out / "stats.json").write_text(json.dumps(stats, indent=2))
-    print(json.dumps({k: v for k, v in stats.items() if k not in ("by_title", "top_words")}, indent=2))
+    print(json.dumps({k: v for k, v in stats.items() if k not in ("by_title", "top_words", "grid_words")}, indent=2))
     if not f_train or not f_test:
         raise SystemExit("Need Flix clips in both train and test titles")
 

@@ -7,6 +7,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+from collections import Counter
 from pathlib import Path
 
 import matplotlib
@@ -78,6 +79,31 @@ def examples(d: Path, n: int = 10) -> list[tuple[str, str, str]]:
     return [(base[u]["ref"], base[u]["hyp"], tuned[u]["hyp"]) for u in pick]
 
 
+def new_words(d: Path, tag: str, grid_words: set[str]) -> dict | None:
+    """Film words outside GRID's vocabulary that the model wrote correctly (clean sound).
+
+    Bag-of-words match per clip: a reference word counts once for each time it also
+    appears in the hypothesis, so word order and extra words are ignored.
+    """
+    p = d / f"{tag}_hyps.csv"
+    if not p.exists():
+        return None
+    hit_tokens = total = 0
+    hit_types: set[str] = set()
+    with open(p, newline="") as fh:
+        for r in csv.DictReader(fh):
+            if r["snr"] != "clean":
+                continue
+            hyp = Counter(r["hyp"].split())
+            for w in r["ref"].split():
+                if w in grid_words:
+                    continue
+                total += 1
+                if hyp[w] > 0:
+                    hyp[w] -= 1; hit_tokens += 1; hit_types.add(w)
+    return {"tokens_right": hit_tokens, "tokens": total, "distinct_right": sorted(hit_types)}
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dir", type=Path, default=Path("reports/flix"))
@@ -105,7 +131,7 @@ def main() -> None:
               f"{stats['distinct_words_in_grid']} shared)",
               f"- Test words also seen in Flix training: {stats['test_tokens_seen_in_flix_train']}"
               f" / {stats['test_tokens']}",
-              f"- Fine-tuning mix: {stats['train_mix_rows']} rows (Flix train ×4 + a GRID subset so GRID is not forgotten)",
+              f"- Fine-tuning mix: {stats['train_mix_rows']} rows (Flix train ×8 + a GRID subset so GRID is not forgotten)",
               ""]
     L += ["## Results (greedy decoding, WER % / CER %)", "",
           "| Test set | Model | " + " | ".join(f"{s} dB" if s != "clean" else "clean" for s in snrs) + " |",
@@ -121,6 +147,19 @@ def main() -> None:
           "*Lips only* = sound silenced at test time; *sound only* = video blanked. "
           "Comparing them shows which input the model relies on. The GRID row checks "
           "that fine-tuning did not break the original task.", ""]
+    gw = set(stats.get("grid_words", []))
+    nw = {f"{m}_{s}": new_words(a.dir, f"{m}_{s}", gw) for m, _ in MODELS for s in ("flix", "flix_lips_only")}
+    if gw and any(nw.values()):
+        L += ["## New words (not in GRID's vocabulary) written correctly on Flix test, clean sound", "",
+              "| Model | Lips + sound | Lips only | Distinct new words right (lips + sound) |", "|---|---:|---:|---|"]
+        for m, mname in MODELS:
+            a_, v_ = nw.get(f"{m}_flix"), nw.get(f"{m}_flix_lips_only")
+            if not a_:
+                continue
+            cell = lambda x: f"{x['tokens_right']} / {x['tokens']}" if x else "–"
+            L.append(f"| {mname} | {cell(a_)} | {cell(v_)} | {', '.join(a_['distinct_right'][:40]) or '–'} |")
+        L.append("")
+        (a.dir / "new_words.json").write_text(json.dumps(nw, indent=2))
     ex = examples(a.dir)
     if ex:
         L += ["## Example transcripts (Flix test, clean sound)", "",
