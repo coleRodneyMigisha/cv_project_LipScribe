@@ -1,0 +1,30 @@
+| model | test | SNR | WER % | CER % | n |
+|---|---|---|---:|---:|---:|
+| audio | film_test | clean | 32.1 | 19.4 | 43 |
+| audio | film_test | 0 | 41.4 | 25.6 | 43 |
+| audio | film_test | -5 | 53.4 | 35.0 | 43 |
+| audio | ted_test | clean | 16.4 | 8.6 | 1122 |
+| audio | ted_test | 0 | 24.0 | 12.8 | 1122 |
+| audio | ted_test | -5 | 34.3 | 19.4 | 1122 |
+| visual | film_test | clean | 60.6 | 50.4 | 43 |
+| visual | ted_test | clean | 48.2 | 34.3 | 1122 |
+| fusion | film_test | clean | 34.9 | 20.1 | 43 |
+| fusion | film_test | 0 | 42.6 | 23.4 | 43 |
+| fusion | film_test | -5 | 48.6 | 30.0 | 43 |
+| fusion-no_visual | film_test | clean | 33.7 | 20.5 | 43 |
+| fusion-no_visual | film_test | 0 | 43.0 | 24.0 | 43 |
+| fusion-no_visual | film_test | -5 | 51.4 | 32.3 | 43 |
+| fusion-no_audio | film_test | clean | 95.2 | 75.5 | 43 |
+| fusion | ted_test | clean | 18.1 | 9.2 | 1122 |
+| fusion | ted_test | 0 | 26.6 | 13.8 | 1122 |
+| fusion | ted_test | -5 | 36.4 | 19.5 | 1122 |
+| fusion-no_visual | ted_test | clean | 17.9 | 9.2 | 1122 |
+| fusion-no_visual | ted_test | 0 | 26.5 | 13.9 | 1122 |
+| fusion-no_visual | ted_test | -5 | 36.3 | 20.1 | 1122 |
+| fusion-no_audio | ted_test | clean | 93.4 | 65.5 | 1122 |
+| audio_first | film_test | clean | 36.9 | 21.5 | 43 |
+| audio_first | film_test | 0 | 47.0 | 29.7 | 43 |
+| audio_first | film_test | -5 | 54.6 | 35.6 | 43 |
+| audio_first | ted_test | clean | 15.8 | 8.7 | 1122 |
+| audio_first | ted_test | 0 | 24.4 | 13.5 | 1122 |
+| audio_first | ted_test | -5 | 35.2 | 20.1 | 1122 |

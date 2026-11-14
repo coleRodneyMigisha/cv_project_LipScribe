@@ -274,8 +274,14 @@ def ctc_loss_fn() -> nn.CTCLoss:
 
 def compute_loss(criterion: nn.CTCLoss, out: dict, batch: dict) -> torch.Tensor:
     # CTC runs in float32 even under AMP.
-    return criterion(out["log_probs"].float(), batch["targets"],
+    loss = criterion(out["log_probs"].float(), batch["targets"],
                      out["lengths"], batch["target_lengths"])
+    # Optional auxiliary CTC heads (v4_fusion_wp): [(weight, log_probs [T, B, V]), ...] on
+    # the same frames and targets as the main output.
+    for w, lp in out.get("aux_ctc") or []:
+        if w > 0:
+            loss = loss + w * criterion(lp.float(), batch["targets"], out["lengths"], batch["target_lengths"])
+    return loss
 
 
 # ---------------------------------------------------------------------------
@@ -685,6 +691,8 @@ def build_loaders(cfg: dict, limit: int | None = None):
     d, tc = cfg["data"], cfg["train"]
     # Optional data.noise_splits / data.noisy_dir; otherwise the dataset's default locations.
     extra = {k: d[k] for k in ("noise_splits", "noisy_dir") if d.get(k)}
+    if d.get("tokenizer"):                   # "subword": Auto-AVSR word pieces (Flix v4 visual_c)
+        extra["tokenizer"] = d["tokenizer"]
     visual_aug = bool(d.get("visual_augment", False) or cfg.get("augmentation", {}).get("visual", False))
     # Optional data.visual_aug: max_jitter, p_flip, max_scale, time_masks, max_mask_width,
     # p_erase, max_erase_area (lipscribe.data.augmentation.apply_visual_augmentation).

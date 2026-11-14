@@ -13,9 +13,13 @@ if [ ! -f flix_ted/.harvest_done ] && ! pgrep -f "^.venv/bin/python -u -m script
       --hours 400 --workers 12 >> logs/ted_harvest.log 2>&1 < /dev/null &)
   echo "started TED harvester"
 fi
-if [ ! -f reports/flix_v3/ALL_DONE ] && ! pgrep -f "^bash scripts/flix_chain_run.sh" > /dev/null; then
+if [ ! -f reports/flix_v3/ALL_DONE ] && [ ! -f reports/flix_v3/STOPPED ] && ! pgrep -f "^bash scripts/flix_chain_run.sh" > /dev/null; then
   (setsid nohup bash scripts/flix_chain_run.sh >> logs/flix_chain.log 2>&1 < /dev/null &)
   echo "started flix chain"
+fi
+if [ -f reports/flix_v3/STOPPED ] && [ ! -f reports/flix_v4/ALL_DONE ] && ! pgrep -f "^bash scripts/flix_v4_run.sh" > /dev/null; then
+  (setsid nohup bash scripts/flix_v4_run.sh >> logs/flix_v4.log 2>&1 < /dev/null &)
+  echo "started flix v4 pipeline"
 fi
 # web demo (demo/README.md): backend on localhost; the public Cloudflare quick tunnel only if
 # opted in with `touch .demo_tunnel` (a new https://*.trycloudflare.com address each start -> .demo_url)

@@ -234,7 +234,16 @@ class GridDataset(Dataset):
         max_jitter: int = 4,
         p_flip: float = 0.5,
         visual_aug_params: dict | None = None,
+        tokenizer: str = "char",
     ) -> None:
+        # tokenizer: "char" (28 symbols) or "subword" (Auto-AVSR unigram-5000, lipscribe.data.subword)
+        if tokenizer == "subword":
+            from lipscribe.data import subword
+            self._encode = subword.encode
+        elif tokenizer == "char":
+            self._encode = encode
+        else:
+            raise ValueError(f"unknown tokenizer {tokenizer!r}")
         speaker_part = read_splits(splits)
         rows = read_manifest(manifest)
         self.rows = [r for r in rows
@@ -338,7 +347,7 @@ class GridDataset(Dataset):
             "audio": np.asarray(wave, dtype=np.float32),
             "snr_db": float(snr),
             "text": text,
-            "target": np.asarray(encode(text), dtype=np.int64),
+            "target": np.asarray(self._encode(text), dtype=np.int64),
         }
 
 
