@@ -415,7 +415,7 @@ class V4FusionWP(nn.Module):
             f = self.fusion_encoder(f, src_key_padding_mask=~mask)
         out = {"log_probs": self.fused_head(f), "lengths": lengths}
         if self.training or batch.get("return_aux"):
-            out["aux_ctc"] = [(self.aux_w["audio"], self.audio_head(a)),
+            out["aux_ctc"] = [(self.aux_w["audio"], self.audio_head(a_in)),
                               (self.aux_w["visual"], self.visual_head(v))]
         return out
 
@@ -466,16 +466,34 @@ class V4FusionGated(V4FusionWP):
         self.miss_a = nn.Parameter(torch.randn(d) * 0.02)
         self.miss_v = nn.Parameter(torch.randn(d) * 0.02)
 
-        self.proj_a = nn.Sequential(nn.Linear(d, d), nn.LayerNorm(d))
+        # warm start (audio_feature: twin): the audio stream is the audio-only twin's whole path up to
+        # its CTC head, frozen: miss_v + fuse_mlp([a; miss_v]) -> fusion_encoder. With the gate opened
+        # to audio (gate_bias), the new layers at identity and fused_head copied from the twin, the
+        # model starts as the twin and only has to learn where the lips help.
+        self.twin = cfg.get("audio_feature", "pooled") == "twin"
+        if self.twin:
+            self.twin_mlp = nn.Sequential(nn.LayerNorm(2 * d), nn.Linear(2 * d, d), nn.GELU(),
+                                          nn.Dropout(drop), nn.Linear(d, d))
+            self.register_buffer("twin_miss_v", torch.zeros(d))
+            tl = nn.TransformerEncoderLayer(d, nhead=int(cfg.get("twin_heads", 8)), dim_feedforward=4 * d,
+                                            dropout=drop, activation="gelu", batch_first=True, norm_first=True)
+            self.twin_encoder = nn.TransformerEncoder(tl, int(cfg.get("twin_layers", 2)), enable_nested_tensor=False)
+        self.proj_a = nn.Identity() if self.twin else nn.Sequential(nn.Linear(d, d), nn.LayerNorm(d))
         self.proj_v = nn.Sequential(nn.Linear(d, d), nn.LayerNorm(d))
         self.gate = nn.Linear(2 * d + 4, d)
-        nn.init.zeros_(self.gate.bias)
+        nn.init.constant_(self.gate.bias, float(cfg.get("gate_bias", 0.0)))
+        if self.twin:
+            nn.init.zeros_(self.gate.weight)
         self.synergy = nn.Sequential(nn.Linear(2 * d, d), nn.GELU(), nn.Dropout(drop), nn.Linear(d, d))
         nn.init.zeros_(self.synergy[-1].weight); nn.init.zeros_(self.synergy[-1].bias)
         n_layers = int(cfg.get("fusion_layers", 3))
         layer = nn.TransformerEncoderLayer(d, nhead=int(cfg.get("num_heads", 8)), dim_feedforward=4 * d,
                                            dropout=drop, activation="gelu", batch_first=True, norm_first=True)
         self.fusion_encoder = nn.TransformerEncoder(layer, n_layers, enable_nested_tensor=False) if n_layers else None
+        if self.twin and self.fusion_encoder is not None:     # new layers start as the identity
+            for lyr in self.fusion_encoder.layers:
+                for lin in (lyr.self_attn.out_proj, lyr.linear2):
+                    nn.init.zeros_(lin.weight); nn.init.zeros_(lin.bias)
         self.fused_head = LinearCTC(d, drop, vocab_size=V)
 
         src = cfg.get("init_streams_from") or {}
@@ -495,6 +513,14 @@ class V4FusionGated(V4FusionWP):
                 raise ValueError(f"init_streams_from.{side}: {path} lacks {missing[:3]}")
             self.load_state_dict(take, strict=False)
             print(f"Initialised {side} stream ({', '.join(p[:-1] for p in prefixes)}) from {path} ({len(take)} tensors)")
+            if side == "audio" and self.twin:
+                self.twin_mlp.load_state_dict({k[len("fuse_mlp."):]: v for k, v in sd.items() if k.startswith("fuse_mlp.")})
+                self.twin_encoder.load_state_dict({k[len("fusion_encoder."):]: v for k, v in sd.items()
+                                                   if k.startswith("fusion_encoder.")})
+                self.twin_miss_v.copy_(sd["miss_v"])
+                self.fused_head.load_state_dict({k[len("fused_head."):]: v for k, v in sd.items()
+                                                 if k.startswith("fused_head.")})
+                print(f"Warm start: twin fuse_mlp, fusion_encoder, miss_v and fused_head from {path}")
 
     def _reliability(self, head: LinearCTC, x: torch.Tensor, dropped: torch.Tensor):
         with torch.no_grad():
@@ -520,6 +546,10 @@ class V4FusionGated(V4FusionWP):
                                           batch.get("video_valid"), lengths, t)
         lp_a, r_a = self._reliability(self.audio_head, a, drop_a)
         lp_v, r_v = self._reliability(self.visual_head, v, drop_v)
+        a_in = a
+        if self.twin:
+            mv = self.twin_miss_v.to(a.dtype).expand_as(a)
+            a = self.twin_encoder(mv + self.twin_mlp(torch.cat([a, mv], dim=-1)), src_key_padding_mask=~mask)
         af = torch.where(drop_a.view(B, 1, 1), self.miss_a.to(a.dtype).expand_as(a), a)
         vf = torch.where(drop_v.view(B, 1, 1), self.miss_v.to(v.dtype).expand_as(v), v)
         ap, vp = self.proj_a(af), self.proj_v(vf)
@@ -529,6 +559,6 @@ class V4FusionGated(V4FusionWP):
             f = self.fusion_encoder(f, src_key_padding_mask=~mask)
         out = {"log_probs": self.fused_head(f), "lengths": lengths, "gate": g.mean(-1)}
         if self.training and (self.aux_w["audio"] > 0 or self.aux_w["visual"] > 0):
-            out["aux_ctc"] = [(self.aux_w["audio"], self.audio_head(a)),
+            out["aux_ctc"] = [(self.aux_w["audio"], self.audio_head(a_in)),
                               (self.aux_w["visual"], self.visual_head(v))]
         return out
