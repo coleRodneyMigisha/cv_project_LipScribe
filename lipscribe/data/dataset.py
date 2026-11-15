@@ -27,6 +27,7 @@ from __future__ import annotations
 import csv
 import math
 import random
+import re
 import zlib
 from pathlib import Path
 from typing import Callable, Sequence
@@ -235,6 +236,8 @@ class GridDataset(Dataset):
         p_flip: float = 0.5,
         visual_aug_params: dict | None = None,
         tokenizer: str = "char",
+        interference: dict | None = None,
+        condition: str = "none",
     ) -> None:
         # tokenizer: "char" (28 symbols) or "subword" (Auto-AVSR unigram-5000, lipscribe.data.subword)
         if tokenizer == "subword":
@@ -267,6 +270,17 @@ class GridDataset(Dataset):
         self.rng = random.Random(seed)
         self._rng_seed: int | None = None
         self._noise_cache: dict[Path, np.ndarray] = {}
+        # Flix v6: audio that does not belong to the face on screen. Training (data.interference):
+        #   p_silent   the speaker only mouths: silence, or room noise alone at -50..-30 dBFS
+        #   p_replace  the speaker only mouths while someone else talks: another clip's speech alone
+        #   p_talkover someone talks over the speaker: another clip's speech at sir_db (target/other)
+        # The label stays the on-screen speaker's words. Evaluation (condition): "silent" (zeros),
+        # "talkover" (0 dB) or "replace", drawn per utterance with a fixed seed.
+        self.interference = dict(interference or {})
+        self.condition = condition
+        if condition not in ("none", "silent", "talkover", "replace"):
+            raise ValueError(f"unknown condition {condition!r}")
+        self._group = [re.sub(r"_t?\d+$", "", Path(r["mouths_path"]).stem) for r in self.rows]
 
         needs_noise = any(math.isfinite(s) for s in self.snrs) if self.train else math.isfinite(self.snr_db)
         self.noise_files = [Path(p) for p in noise_files] if noise_files is not None \
@@ -301,6 +315,36 @@ class GridDataset(Dataset):
             self._noise_cache[path] = load_wav(path)
         return self._noise_cache[path]
 
+    def _other_speech(self, idx: int, n_samples: int, rng: random.Random) -> np.ndarray:
+        """Speech from other sources (another talk / film), concatenated to n_samples."""
+        parts, have = [], 0
+        for _ in range(20):
+            j = rng.randrange(len(self.rows))
+            if self._group[j] == self._group[idx]:
+                continue
+            w = load_wav(self.rows[j]["audio_path"])
+            parts.append(w); have += len(w)
+            if have >= n_samples:
+                break
+        if not parts:
+            return np.zeros(n_samples, np.float32)
+        return fit_length(np.concatenate(parts).astype(np.float32), n_samples)
+
+    def _interfere(self, idx: int, wave: np.ndarray, mode: str, rng: random.Random, sir_db: float) -> np.ndarray:
+        if mode == "silent":
+            if not self.train or rng.random() < 0.5 or not self.noise_files:
+                return np.zeros_like(wave)
+            n0 = self._noise(rng)
+            w = fit_length(np.tile(n0, 1 + len(wave) // max(1, len(n0))), len(wave))
+            level = 10 ** (rng.uniform(-50.0, -30.0) / 20)
+            return (w * level / (float(np.sqrt(np.mean(w ** 2))) + 1e-9)).astype(np.float32)
+        other = self._other_speech(idx, len(wave), rng)
+        if mode == "replace":
+            return other
+        if mode == "talkover":
+            return self.mixer(wave, other, sir_db, rng)
+        return wave
+
     def _eval_audio(self, r: dict, n_samples: int) -> np.ndarray:
         start = r.get("speech_start_s")
         clean = place_on_video_grid(load_wav(r["audio_path"]), n_samples, start)
@@ -331,11 +375,23 @@ class GridDataset(Dataset):
                 )
             snr = rng.choice(self.snrs)
             wave = place_on_video_grid(load_wav(r["audio_path"]), n_samples, r.get("speech_start_s"))
-            if math.isfinite(snr):
+            mode, u, f = "none", rng.random(), self.interference
+            for m in ("silent", "replace", "talkover"):
+                p = float(f.get(f"p_{m}", 0.0))
+                if u < p:
+                    mode = m; break
+                u -= p
+            if mode != "none":
+                lo, hi = f.get("sir_db", [-5.0, 10.0])
+                wave = self._interfere(idx, wave, mode, rng, rng.uniform(float(lo), float(hi)))
+            if math.isfinite(snr) and mode != "silent":
                 wave = self.mixer(wave, self._noise(rng), snr, rng)
         else:
             snr = self.snr_db
             wave = self._eval_audio(r, n_samples)
+            if self.condition != "none":
+                crng = random.Random(zlib.crc32(f"{r['utt_id']}|{self.condition}".encode()))
+                wave = self._interfere(idx, wave, self.condition, crng, 0.0)
         wave = rms_normalise(np.asarray(wave, dtype=np.float32))
 
         text = r["transcript"]
