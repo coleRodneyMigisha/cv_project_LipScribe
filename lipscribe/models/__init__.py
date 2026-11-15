@@ -14,6 +14,7 @@ from lipscribe.models.fusion_attention import (
 )
 from lipscribe.models.fusion_concat import B3Concat
 from lipscribe.models.visual_encoder import ResNetVisualEncoder, VisualEncoder
+from lipscribe.preprocessing.features import FEATURE_DIMS
 
 
 def _extract_modality_dropout(config: dict, default_audio: float, default_visual: float) -> tuple[float, float]:
