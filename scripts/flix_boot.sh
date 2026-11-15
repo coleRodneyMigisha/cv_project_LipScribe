@@ -21,6 +21,11 @@ if [ -f reports/flix_v3/STOPPED ] && [ ! -f reports/flix_v4/ALL_DONE ] && ! pgre
   (setsid nohup bash scripts/flix_v4_run.sh >> logs/flix_v4.log 2>&1 < /dev/null &)
   echo "started flix v4 pipeline"
 fi
+if [ -f flix_v5/jobs_ted.csv ] && [ ! -f reports/flix_v5/ALL_DONE ] && ! pgrep -f "^bash scripts/flix_v5_run.sh" > /dev/null; then
+  rm -rf ted/tmp_v5/*
+  (setsid nohup bash scripts/flix_v5_run.sh >> logs/flix_v5.log 2>&1 < /dev/null &)
+  echo "started flix v5 pipeline"
+fi
 # web demo (demo/README.md): backend on localhost; the public Cloudflare quick tunnel only if
 # opted in with `touch .demo_tunnel` (a new https://*.trycloudflare.com address each start -> .demo_url)
 if [ -f .demo_code ] && ! pgrep -f "uvicorn demo.server:app" > /dev/null; then
