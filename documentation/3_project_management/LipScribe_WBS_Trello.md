@@ -1008,9 +1008,10 @@ The audio-only twin twin_v5 (`runs/flix_v5/flix_v5_fusion_wp_audio_20261116-0000
   - [x] X2: P4 with concatenation fusion in place of cross-modal attention, keeping modality dropout
   - [x] X3: P4 with a 2D per-frame front-end in place of the 3D one (Cole Rodney Migisha implements it: same channels, kernels 1×k×k)
   - [x] Each config runs 50 steps without error before the overnight run
-  - [ ] Run the three on the Alienware, Mon and Tue nights (the pipeline's retry and watchdog apply)
-  - [ ] Evaluate each at the five SNRs with `scripts/evaluate.py`; rows in `experiments/results.csv`
+  - [x] Run the three on the Alienware, Mon and Tue nights (the pipeline's retry and watchdog apply)
+  - [x] Evaluate each at the five SNRs with `scripts/evaluate.py`; rows in `experiments/results.csv`
 - **Done when:** X1–X3 have test WER/CER at five SNRs beside P4 in `results.csv`.
+- **Status (16 Nov):** Done on 16 Nov, 19:33. All three ran on P4's real budget (6 epochs, one seed). The first X1 run used 40 epochs, so it was stopped and rerun. Test WER %, clean / −5 dB, greedy (grammar): P4 1.02 / 5.34 (0.71 / 3.95); X1 1.57 / 6.33 (1.11 / 4.93); X2 1.23 / 5.89 (0.73 / 3.96); X3 1.40 / 7.50 (0.98 / 5.60). Modality dropout and the 3D front end both help. Gated attention beats concatenation with greedy decoding, but the two tie with the grammar decoder; with one seed, call them comparable. Reports are in `reports/x*_2026111*`, and the tables are in `analysis/01_grid/tables`.
 
 ### F-03 · Final results and fusion analysis (GRID, films, TED)
 - **Owner:** Lisa Lusinga Namugenyi
