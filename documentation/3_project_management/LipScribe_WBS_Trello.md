@@ -689,9 +689,9 @@ Use this file to create one Trello board.
 - **Estimate:** 2 h of work + runtime
 - **Description:** Train B1 with A2 (MFCC) and A3 (log-Mel + MFCC) to decide whether MFCCs add anything. Run only if GPU time allows; otherwise move to Week 4.
 - **Checklist:**
-  - [ ] Configs `b1_mfcc39.yaml`, `b1_logmel_mfcc.yaml`
-  - [ ] Train and evaluate on the same protocol as B1
-  - [ ] Decision on the card: keep A1 unless another configuration improves validation WER
+  - [x] Configs `b1_mfcc39.yaml`, `b1_logmel_mfcc.yaml`
+  - [x] Train and evaluate on the same protocol as B1
+  - [x] Decision on the card: keep A1 unless another configuration improves validation WER
 - **Done when:** The decision is recorded.
 
 ### W3-09 · Experiment tracking conventions and plotting scripts
@@ -719,11 +719,11 @@ Use this file to create one Trello board.
 - **Estimate:** 6 h
 - **Description:** First working web demo using the B1 checkpoint. It is upgraded to the fused model later.
 - **Checklist:**
-  - [ ] Webcam/microphone recorder and file-upload input
-  - [ ] Extract frames (OpenCV) and audio (`ffmpeg`); resample to 25 fps and 16 kHz
-  - [ ] Run the shared preprocessing, the model and beam search
-  - [ ] Show the caption beside the video
-  - [ ] Handle errors (no audio track, no face) with a friendly message
+  - [x] Webcam/microphone recorder and file-upload input
+  - [x] Extract frames (OpenCV) and audio (`ffmpeg`); resample to 25 fps and 16 kHz
+  - [x] Run the shared preprocessing, the model and beam search
+  - [x] Show the caption beside the video
+  - [x] Handle errors (no audio track, no face) with a friendly message
 - **Done when:** A GRID test clip uploaded to the page gives the same caption as `evaluate.py`.
 
 ### W3-M · MILESTONES M3 & M4 — Baselines
@@ -834,7 +834,7 @@ Use this file to create one Trello board.
 - **Description:** Shows whether the fusion actually relies more on the lips when the audio is noisy. This is not guaranteed; the analysis tests it.
 - **Checklist:**
   - [ ] Distribution of mean gate ḡ per utterance at each SNR (box plot)
-  - [ ] Expected if it works: ḡ decreases as SNR falls
+  - [x] Expected if it works: ḡ decreases as SNR falls
   - [ ] Plot of per-frame gate for example utterances
   - [ ] Optional: attention-weight heatmap for one utterance
 - **Done when:** Plots are generated from the first P checkpoint.
@@ -865,9 +865,9 @@ Use this file to create one Trello board.
 - **Description:** The "clean inference script" promised in the proposal.
 - **Checklist:**
   - [ ] CLI: `python transcribe.py --checkpoint X --video clip.mp4 [--snr 0]`
-  - [ ] Uses only the shared preprocessing and stored normalisation statistics
+  - [x] Uses only the shared preprocessing and stored normalisation statistics
   - [ ] Prints the caption and timing (preprocessing, model, decoding)
-  - [ ] Works on CPU and GPU
+  - [x] Works on CPU and GPU
   - [ ] End-to-end test: test clip gives a non-empty lower-case string
 - **Done when:** The test passes and usage is documented.
 
@@ -881,7 +881,7 @@ Use this file to create one Trello board.
 - **Description:** Make the demo show *why* the fused model helps.
 - **Checklist:**
   - [ ] Switch to the P checkpoint (keep a B1 option for comparison)
-  - [ ] Show the mouth-crop strip
+  - [x] Show the mouth-crop strip
   - [ ] Plot the per-frame fusion gate
   - [ ] Noise control: add MUSAN noise at a chosen SNR to the uploaded clip
   - [ ] Side-by-side captions: audio-only vs. audio-visual
@@ -927,11 +927,11 @@ Use this file to create one Trello board.
 - **Labels:** Milestone, PM
 - **Due:** Sun 15 Nov 2026
 - **Checklist:**
-  - [ ] Fusion unit tests pass
-  - [ ] No NaN under full-modality dropout
-  - [ ] P trains stably and has first results
+  - [x] Fusion unit tests pass
+  - [x] No NaN under full-modality dropout
+  - [x] P trains stably and has first results
   - [ ] X1–X3 configs ready
-  - [ ] `transcribe.py` merged
+  - [x] `transcribe.py` merged
   - [ ] Plan GPU time for Week 5 (sweeps + final runs + ablations)
 
 ---
@@ -1007,12 +1007,12 @@ Use this file to create one Trello board.
 - **Estimate:** 6 h
 - **Description:** Evaluate every model with beam search on the fixed test audio of the 4 held-out speakers. No results are reported unless they come from this script.
 - **Checklist:**
-  - [ ] WER and CER table per model × SNR (fills Table 12 of the implementation document)
+  - [x] WER and CER table per model × SNR (fills Table 12 of the implementation document)
   - [ ] Per-speaker breakdown
   - [ ] Mean ± std over seeds where available
   - [ ] Paired bootstrap confidence interval for P vs. B1 at each SNR
-  - [ ] WER-vs-SNR plot (using W3-09 scripts)
-  - [ ] Check whether the clean-condition target (WER < 10 %) is met, and report it either way
+  - [x] WER-vs-SNR plot (using W3-09 scripts)
+  - [x] Check whether the clean-condition target (WER < 10 %) is met, and report it either way
 - **Done when:** Tables and plots are in `experiments/final/`, traceable to configs and checkpoints.
 
 ### W5-06 · Fusion behaviour analysis and test-time modality ablations
@@ -1025,8 +1025,8 @@ Use this file to create one Trello board.
 - **Description:** Shows how P uses each stream.
 - **Checklist:**
   - [ ] Gate distribution per SNR for the final P
-  - [ ] P with video replaced by `e_miss` (audio-only operation) at all SNRs
-  - [ ] P with audio replaced by `e_miss` (visual-only operation) at all SNRs
+  - [x] P with video replaced by `e_miss` (audio-only operation) at all SNRs
+  - [x] P with audio replaced by `e_miss` (visual-only operation) at all SNRs
   - [ ] If P is worse than B1 anywhere, work through the diagnosis checklist in Section 9.3 of the implementation document and write up the findings
 - **Done when:** Analysis notes and plots are attached to the card.
 
@@ -1098,8 +1098,8 @@ Use this file to create one Trello board.
 - **Due:** Sun 22 Nov 2026
 - **Checklist:**
   - [ ] Hyperparameter sweeps logged; final configuration chosen on validation data only
-  - [ ] All core models evaluated on identical test audio
-  - [ ] Every number traceable to a config and checkpoint
+  - [x] All core models evaluated on identical test audio
+  - [x] Every number traceable to a config and checkpoint
   - [ ] Tag the repository `v1.0-core` (core freeze); after this, only bug fixes on core code
   - [ ] Decide which optional extensions (if any) to attempt in Week 6
 
@@ -1307,8 +1307,8 @@ Start these only after W5-M, and only if Week 6 core cards are on track.
 - **Depends on:** W5-05
 - **Description:** Report separately and clearly labelled, never as the headline result, because GRID's fixed grammar inflates accuracy.
 - **Checklist:**
-  - [ ] Restrict beam prefixes to the six-slot GRID grammar
-  - [ ] Evaluate P with it at all SNRs
+  - [x] Restrict beam prefixes to the six-slot GRID grammar
+  - [x] Evaluate P with it at all SNRs
 - **Done when:** Separate labelled table produced.
 
 ### OPT-04 · Emotion detection from facial landmarks
