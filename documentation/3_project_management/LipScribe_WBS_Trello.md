@@ -837,11 +837,11 @@ Use this file to create one Trello board.
 - **Estimate:** 4 h
 - **Description:** Shows whether the fusion actually relies more on the lips when the audio is noisy. This is not guaranteed; the analysis tests it.
 - **Checklist:**
-  - [ ] Distribution of mean gate ḡ per utterance at each SNR (box plot)
+  - [x] Distribution of mean gate ḡ per utterance at each SNR (box plot)
   - [x] Expected if it works: ḡ decreases as SNR falls
-  - [ ] Plot of per-frame gate for example utterances
-  - [ ] Optional: attention-weight heatmap for one utterance
-- **Status (16 Nov):** Mean gate per SNR done (Week 3 report); the box plot and per-frame plots moved to F-03.
+  - [x] Plot of per-frame gate for example utterances
+  - [x] Optional: attention-weight heatmap for one utterance
+- **Status (16 Nov):** Done on 16 Nov: `scripts/analyse_gate.py`; results in `reports/gate_analysis/` (mean gate 0.804 clean → 0.691 at −5 dB, monotonic, Spearman ρ 0.47 over 3,998 test utterances).
 - **Done when:** Plots are generated from the first P checkpoint.
 
 ### W4-07 · Ablation configurations X1–X3
@@ -853,12 +853,12 @@ Use this file to create one Trello board.
 - **Estimate:** 5 h
 - **Description:** Prepare and smoke-test the three required ablations so they can run in Week 5.
 - **Checklist:**
-  - [ ] X1: P with `modality_dropout: {audio: 0, visual: 0}`
-  - [ ] X2: P with concatenation in place of attention, keeping modality dropout
-  - [ ] X3: P with a 2D per-frame CNN in place of the 3D front-end (implement the 2D variant: same channels, kernels 1×k×k)
-  - [ ] Each config runs 50 steps without error
-  - [ ] Everything else identical to P (same data, seeds, schedule)
-- **Status (16 Nov):** Moved to F-02 (configs and runs together).
+  - [x] X1: P with `modality_dropout: {audio: 0, visual: 0}`
+  - [x] X2: P with concatenation in place of attention, keeping modality dropout
+  - [x] X3: P with a 2D per-frame CNN in place of the 3D front-end (implement the 2D variant: same channels, kernels 1×k×k)
+  - [x] Each config runs 50 steps without error
+  - [x] Everything else identical to P (same data, seeds, schedule)
+- **Status (16 Nov):** Done on 16 Nov: `configs/x1_no_modality_dropout.yaml`, `x2_concat_fusion.yaml`, `x3_2d_frontend.yaml`; each ran a 50-step epoch on the Alienware without error. The full runs are F-02.
 - **Done when:** All three configs are merged and smoke-tested.
 
 ### W4-08 · Inference script (`transcribe.py`)
@@ -870,12 +870,12 @@ Use this file to create one Trello board.
 - **Estimate:** 4 h
 - **Description:** The "clean inference script" promised in the proposal.
 - **Checklist:**
-  - [ ] CLI: `python transcribe.py --checkpoint X --video clip.mp4 [--snr 0]`
+  - [x] CLI: `python transcribe.py --checkpoint X --video clip.mp4 [--snr 0]`
   - [x] Uses only the shared preprocessing and stored normalisation statistics
-  - [ ] Prints the caption and timing (preprocessing, model, decoding)
+  - [x] Prints the caption and timing (preprocessing, model, decoding)
   - [x] Works on CPU and GPU
-  - [ ] End-to-end test: test clip gives a non-empty lower-case string
-- **Status (16 Nov):** CLI, shared preprocessing and CPU/GPU done; `--snr`, timing and the CLI test moved to F-07.
+  - [x] End-to-end test: test clip gives a non-empty lower-case string
+- **Status (16 Nov):** Done on 16 Nov: `--snr`, `--noise-splits` and a timing line; end-to-end CLI test in `tests/test_app.py`. `--model grid|real` stays in F-07.
 - **Done when:** The test passes and usage is documented.
 
 ### W4-09 · Gradio Mode A upgrades
@@ -887,12 +887,12 @@ Use this file to create one Trello board.
 - **Estimate:** 5 h
 - **Description:** Make the demo show *why* the fused model helps.
 - **Checklist:**
-  - [ ] Switch to the P checkpoint (keep a B1 option for comparison)
+  - [x] Switch to the P checkpoint (keep a B1 option for comparison)
   - [x] Show the mouth-crop strip
-  - [ ] Plot the per-frame fusion gate
-  - [ ] Noise control: add MUSAN noise at a chosen SNR to the uploaded clip
-  - [ ] Side-by-side captions: audio-only vs. audio-visual
-- **Status (16 Nov):** Mouth-crop strip done; the gate plot, noise control and side-by-side captions moved into the browser demo (F-05 backend, F-06 frontend).
+  - [x] Plot the per-frame fusion gate
+  - [x] Noise control: add MUSAN noise at a chosen SNR to the uploaded clip
+  - [x] Side-by-side captions: audio-only vs. audio-visual
+- **Status (16 Nov):** Done on 16 Nov in the Gradio app (`lipscribe/app/demo.py`): P with an optional B1, side-by-side captions, per-frame gate plot and a noise dropdown. The browser demo's versions are F-05 and F-06.
 - **Done when:** The team can demonstrate clean vs. noisy captions on the same clip.
 
 ### W4-10 · Live Mode B: capture threads and ring buffers
@@ -904,13 +904,13 @@ Use this file to create one Trello board.
 - **Estimate:** 8 h
 - **Description:** Foundations of the live captioning loop (Figure 3 of the implementation document).
 - **Checklist:**
-  - [ ] Camera thread (OpenCV) storing frames with timestamps from one monotonic clock
-  - [ ] `sounddevice` callback at 16 kHz into an audio ring buffer
-  - [ ] Both buffers hold the last 4 s
-  - [ ] Run Face Mesh on each new frame as it arrives (causal EMA smoothing), storing crops not full frames
-  - [ ] Window extraction: 75 frames nearest to 40 ms targets + matching 48,000 samples
-  - [ ] Display window in OpenCV
-- **Status (16 Nov):** Dropped on 16 Nov (REF-03 item 3): the browser demo (`demo/`) replaces live Mode B.
+  - [x] Camera thread (OpenCV) storing frames with timestamps from one monotonic clock
+  - [x] `sounddevice` callback at 16 kHz into an audio ring buffer
+  - [x] Both buffers hold the last 4 s
+  - [x] Run Face Mesh on each new frame as it arrives (causal EMA smoothing), storing crops not full frames
+  - [x] Window extraction: 75 frames nearest to 40 ms targets + matching 48,000 samples
+  - [x] Display window in OpenCV
+- **Status (16 Nov):** Done on 16 Nov: `lipscribe/app/live.py` and `scripts/live_capture.py`, tested with fake camera and microphone sources (`tests/test_live.py`); not yet run on real hardware.
 - **Done when:** The loop runs for 2 minutes and outputs correctly shaped windows.
 
 ### W4-11 · Final report skeleton and methods drafts
@@ -922,13 +922,13 @@ Use this file to create one Trello board.
 - **Estimate:** 4 h (editor) + 2 h per section author
 - **Description:** Start the report early so Week 6 is for results, not writing from scratch. Section authors write their own parts.
 - **Checklist:**
-  - [ ] Report skeleton (reuse the IEEE Access template from the proposal)
-  - [ ] Dataset & noise section — Ainomugisha Faith
-  - [ ] Visual and audio pipelines — Cole Rodney Migisha
-  - [ ] Model and training — Charis Opol
-  - [ ] Application — Wakisa Isabelle
-  - [ ] Testing — Ansasire Nehum Naamaye
-- **Status (16 Nov):** Moved to F-11.
+  - [x] Report skeleton (reuse the IEEE Access template from the proposal)
+  - [x] Dataset & noise section — Ainomugisha Faith
+  - [x] Visual and audio pipelines — Cole Rodney Migisha
+  - [x] Model and training — Charis Opol
+  - [x] Application — Wakisa Isabelle
+  - [x] Testing — Ansasire Nehum Naamaye
+- **Status (16 Nov):** Done on 16 Nov: skeleton in `documentation/5_submissions/final_report/` with first drafts of all five methods sections; each author checks and extends theirs in F-11.
 - **Done when:** All methods sections have a first draft.
 
 ### W4-M · MILESTONE M5 — Multimodal fusion
@@ -936,14 +936,14 @@ Use this file to create one Trello board.
 - **Reviewer:** All
 - **Labels:** Milestone, PM
 - **Due:** Sun 15 Nov 2026
-- **Status (16 Nov):** Closed on 16 Nov except X1–X3 (F-02); the GPU plan is in F-00.
+- **Status (16 Nov):** Closed on 16 Nov: X1–X3 configs ready (W4-07); GPU plan in `documentation/6_compute/compute.md`, Section 4.
 - **Checklist:**
   - [x] Fusion unit tests pass
   - [x] No NaN under full-modality dropout
   - [x] P trains stably and has first results
-  - [ ] X1–X3 configs ready
+  - [x] X1–X3 configs ready
   - [x] `transcribe.py` merged
-  - [ ] Plan GPU time for Week 5 (sweeps + final runs + ablations)
+  - [x] Plan GPU time for Week 5 (sweeps + final runs + ablations)
 
 ---
 
@@ -1004,10 +1004,10 @@ The audio-only twin twin_v5 (`runs/flix_v5/flix_v5_fusion_wp_audio_20261116-0000
 - **Estimate:** 4 h of work + two overnight GPU runs
 - **Description:** The ablations that REF-03 never drops. Each changes one thing in P4's config (P4 = `p_init_b1_b2_v2`) and keeps the data, seed, schedule and initialisation.
 - **Checklist:**
-  - [ ] X1: P4 with `modality_dropout: {audio: 0, visual: 0}`
-  - [ ] X2: P4 with concatenation fusion in place of cross-modal attention, keeping modality dropout
-  - [ ] X3: P4 with a 2D per-frame front-end in place of the 3D one (Cole Rodney Migisha implements it: same channels, kernels 1×k×k)
-  - [ ] Each config runs 50 steps without error before the overnight run
+  - [x] X1: P4 with `modality_dropout: {audio: 0, visual: 0}`
+  - [x] X2: P4 with concatenation fusion in place of cross-modal attention, keeping modality dropout
+  - [x] X3: P4 with a 2D per-frame front-end in place of the 3D one (Cole Rodney Migisha implements it: same channels, kernels 1×k×k)
+  - [x] Each config runs 50 steps without error before the overnight run
   - [ ] Run the three on the Alienware, Mon and Tue nights (the pipeline's retry and watchdog apply)
   - [ ] Evaluate each at the five SNRs with `scripts/evaluate.py`; rows in `experiments/results.csv`
 - **Done when:** X1–X3 have test WER/CER at five SNRs beside P4 in `results.csv`.
@@ -1027,8 +1027,8 @@ The audio-only twin twin_v5 (`runs/flix_v5/flix_v5_fusion_wp_audio_20261116-0000
   - [x] P4 audio-only and video-only with `e_miss` at all SNRs (Week 3 missing-modality table)
   - [ ] Per-speaker WER for the four test speakers (P4, B1, B3 v2)
   - [ ] Paired bootstrap 95 % CI for P4 vs B1 at each SNR (resample sentences)
-  - [ ] Box plot of the mean gate ḡ per utterance at each SNR, for P4
-  - [ ] Per-frame gate plot for three example utterances (clean and −5 dB)
+  - [x] Box plot of the mean gate ḡ per utterance at each SNR, for P4
+  - [x] Per-frame gate plot for three example utterances (clean and −5 dB)
   - [ ] Ablation table: P4 vs X1, X2, X3 at five SNRs
   - [ ] One paragraph per finding for the report
 - **Done when:** Every GRID table and figure for the report is generated from `results.csv` or the evaluation CSVs.
@@ -1095,9 +1095,9 @@ The audio-only twin twin_v5 (`runs/flix_v5/flix_v5_fusion_wp_audio_20261116-0000
 - **Description:** Finishes W4-08.
 - **Checklist:**
   - [ ] `--model grid|real` (P4 + grammar, or ws_v5 + F-04 decoder) besides `--checkpoint`
-  - [ ] `--snr` adds MUSAN noise at that SNR before decoding
-  - [ ] Prints the caption and the time for preprocessing, the model and decoding
-  - [ ] End-to-end CLI test: a test clip gives a non-empty lower-case string on CPU
+  - [x] `--snr` adds MUSAN noise at that SNR before decoding
+  - [x] Prints the caption and the time for preprocessing, the model and decoding
+  - [x] End-to-end CLI test: a test clip gives a non-empty lower-case string on CPU
 - **Done when:** The test passes and the README documents the usage.
 
 ### F-08 · Latency and real-time factor

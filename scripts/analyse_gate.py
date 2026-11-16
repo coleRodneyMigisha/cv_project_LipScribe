@@ -40,6 +40,11 @@ CSV_FIELDS = ("utt_id", "speaker", "snr", "mean_gate", "n_frames")
 # Collection
 # ---------------------------------------------------------------------------
 
+
+def _snr_label(snr) -> str:
+    """"clean" stays as it is; a number gets its unit ("-5 dB")."""
+    return "clean" if str(snr).lower() == "clean" else f"{snr} dB"
+
 def order_snrs(labels: Iterable[str]) -> list[str]:
     """Highest SNR first (clean, 10, 5, 0, -5)."""
     return sorted((str(s) for s in labels), key=snr_value, reverse=True)
@@ -187,7 +192,7 @@ def plot_examples(path: Path, frames: dict, texts: dict, examples: list[str], la
     for axis, utt in zip(axes[:, 0], examples):
         for label, colour in ((hi, "tab:blue"), (lo, "tab:red")):
             g = frames[label][utt]
-            axis.plot(np.arange(len(g)) / fps, g, color=colour, label=f"{label} dB")
+            axis.plot(np.arange(len(g)) / fps, g, color=colour, label=_snr_label(label))
         axis.set_ylim(0, 1)
         axis.set_xlabel("Time (s)")
         axis.set_ylabel("Gate g_t (audio weight)")
@@ -216,7 +221,7 @@ def plot_attention(path: Path, attention: dict, utt: str | None, text: str, snr:
             axis.set_ylabel("Query time (s)")
             axis.set_title(title)
             fig.colorbar(image, ax=axis, label="Attention weight (mean over heads)")
-        fig.suptitle(f"{text}  [{utt}, {snr} dB]")
+        fig.suptitle(f"{text}  [{utt}, {_snr_label(snr)}]")
     fig.savefig(path, dpi=160)
     plt.close(fig)
 
