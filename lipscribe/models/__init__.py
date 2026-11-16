@@ -54,6 +54,7 @@ def build_model(config: dict) -> nn.Module:
             p_audio_drop=p_audio,
             p_visual_drop=p_visual,
             model_cfg=config,
+            fusion="concat" if fusion == "concat" else "cross_attention_gated",
         )
     else:
         raise ValueError(f"Unsupported model: {name!r}")
