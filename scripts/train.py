@@ -274,8 +274,14 @@ def ctc_loss_fn() -> nn.CTCLoss:
 
 def compute_loss(criterion: nn.CTCLoss, out: dict, batch: dict) -> torch.Tensor:
     # CTC runs in float32 even under AMP.
-    return criterion(out["log_probs"].float(), batch["targets"],
+    loss = criterion(out["log_probs"].float(), batch["targets"],
                      out["lengths"], batch["target_lengths"])
+    # Optional auxiliary CTC heads (v4_fusion_wp): [(weight, log_probs [T, B, V]), ...] on
+    # the same frames and targets as the main output.
+    for w, lp in out.get("aux_ctc") or []:
+        if w > 0:
+            loss = loss + w * criterion(lp.float(), batch["targets"], out["lengths"], batch["target_lengths"])
+    return loss
 
 
 # ---------------------------------------------------------------------------
@@ -685,19 +691,38 @@ def build_loaders(cfg: dict, limit: int | None = None):
     d, tc = cfg["data"], cfg["train"]
     # Optional data.noise_splits / data.noisy_dir; otherwise the dataset's default locations.
     extra = {k: d[k] for k in ("noise_splits", "noisy_dir") if d.get(k)}
+    if d.get("tokenizer"):                   # "subword": Auto-AVSR word pieces (Flix v4 visual_c)
+        extra["tokenizer"] = d["tokenizer"]
     visual_aug = bool(d.get("visual_augment", False) or cfg.get("augmentation", {}).get("visual", False))
     # Optional data.visual_aug: max_jitter, p_flip, max_scale, time_masks, max_mask_width,
     # p_erase, max_erase_area (lipscribe.data.augmentation.apply_visual_augmentation).
     aug = dict(d.get("visual_aug") or {})
     aug_base = {k: aug.pop(k) for k in ("max_jitter", "p_flip") if k in aug}
+    # data.interference (Flix v6): p_silent / p_replace / p_talkover / sir_db, see GridDataset.
     train_ds = GridDataset(d["manifest"], d["splits"], "train", seed=int(cfg.get("seed", 1)),
                            snrs=[snr_value(s) for s in d["train_snrs"]],
-                           visual_augment=visual_aug, visual_aug_params=aug, **aug_base, **extra)
+                           visual_augment=visual_aug, visual_aug_params=aug, **aug_base, **extra,
+                           interference=d.get("interference"))
     # data.val_snrs (default eval_snrs): a visual-only model scores the same at
     # every SNR, so validating it once on clean audio is enough.
-    val_sets = {str(s): GridDataset(d["manifest"], d["splits"], "val", snr_db=snr_value(s),
-                                    visual_augment=False, **extra)
-                for s in d.get("val_snrs") or d["eval_snrs"]}
+    # data.val_manifests (optional) {domain: manifest}: one validation set per domain and SNR, so
+    # the mean used for best.pt / early stopping weighs each domain equally (X6: films + TED).
+    vm = d.get("val_manifests") or {}
+    snrs = d.get("val_snrs") or d["eval_snrs"]
+    if vm:
+        val_sets = {f"{name}_{s}": GridDataset(path, d["splits"], "val", snr_db=snr_value(s),
+                                               visual_augment=False, **extra)
+                    for name, path in vm.items() for s in snrs}
+        # data.val_conditions (Flix v6): extra clean-audio val sets per domain, e.g. ted_silent,
+        # ted_replace; they count in the mean that picks best.pt like any other val set.
+        for c in d.get("val_conditions") or []:
+            for name, path in vm.items():
+                val_sets[f"{name}_{c}"] = GridDataset(path, d["splits"], "val", visual_augment=False,
+                                                      condition=c, **extra)
+    else:
+        val_sets = {str(s): GridDataset(d["manifest"], d["splits"], "val", snr_db=snr_value(s),
+                                        visual_augment=False, **extra)
+                    for s in snrs}
     if limit:
         train_ds = Subset(train_ds, range(min(limit, len(train_ds))))
         val_sets = {s: Subset(ds, range(min(limit, len(ds)))) for s, ds in val_sets.items()}

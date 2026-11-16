@@ -28,6 +28,10 @@ def build_model(config: dict) -> nn.Module:
     """Build a model from the ``model`` section of an experiment config."""
     name = config.get("name")
     fusion = config.get("fusion")
+    if name in ("v4_audio", "v4_visual", "v4_fusion", "v4_fusion_wp", "v4_fusion_gated"):   # Flix v4
+        from lipscribe.models.pretrained import V4AudioOnly, V4Fusion, V4FusionGated, V4FusionWP, V4VisualOnly
+        return {"v4_audio": V4AudioOnly, "v4_visual": V4VisualOnly, "v4_fusion": V4Fusion,
+                "v4_fusion_wp": V4FusionWP, "v4_fusion_gated": V4FusionGated}[name](config)
     if name == "b1_audio_only":
         return B1AudioOnly(in_dim=FEATURE_DIMS[config.get("audio_features", "logmel80")])
     elif name == "b2_visual_only":

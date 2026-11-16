@@ -1,0 +1,81 @@
+# Audio-only twin of fusion_wp.yaml: same model, data, noise and schedule, but the lips are
+# always replaced by the learned missing vector (train and test). fusion_wp must beat this.
+experiment: flix_v4_fusion_wp_audio
+seed: 1
+data:
+  manifest: data/flix_v4c/train_mix.csv
+  splits: data/flix_v4c/splits.csv
+  noise_splits: Data/Noise_splits/splits.csv
+  tokenizer: subword
+  val_manifests:
+    film: data/flix_v4c/film_val.csv
+    ted: data/flix_v4c/ted_val.csv
+  visual_augment: false
+  visual_aug:
+    max_jitter: 4
+    p_flip: 0.5
+    max_scale: 0.1
+    p_erase: 0.3
+    max_erase_area: 0.15
+    time_masks: 2
+    max_mask_width: 6
+  train_snrs:
+  - clean
+  - 10
+  - 5
+  - 0
+  - 0
+  - -5
+  - -5
+  - -10
+  - -10
+  eval_snrs:
+  - clean
+  - 0
+  - -5
+model:
+  name: v4_fusion_wp
+  dropout: 0.1
+  num_heads: 8
+  fusion_layers: 2
+  modality_dropout:
+    audio: 0.0
+    visual: 1.0
+  aux_ctc:
+    audio: 0.3
+    visual: 0.0
+  freeze:
+  - audio_encoder
+  - visual_encoder
+  - visual_head
+  audio_encoder_cfg:
+    name: microsoft/wavlm-base-plus
+    cache_dir: pretrained/hf/hub
+    mask_time_prob: 0.05
+    layerdrop: 0.0
+    freeze_feature_encoder: true
+  visual_encoder_cfg:
+    pretrained: false
+    dropout: 0.1
+    zoom: 1.0
+  init_from:
+    audio_encoder: runs/flix_v4/flix_v4_audio_reg_20261113-212724/best.pt
+    visual_encoder: runs/flix_v4/flix_v4_visual_c_20261113-233839/best.pt
+  init_heads_from: runs/flix_v4/flix_v4_visual_c_20261113-233839/best.pt
+train:
+  optimiser: adamw
+  lr: 0.0003
+  lr_mult:
+    visual_encoder: 0.1
+  weight_decay: 0.01
+  batch_size: 8
+  grad_accum: 2
+  max_epochs: 12
+  warmup_epochs: 1
+  patience: 4
+  grad_clip: 5.0
+  amp: true
+  num_workers: 8
+  select_metric: wer
+decode:
+  method: greedy

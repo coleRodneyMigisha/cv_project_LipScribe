@@ -83,6 +83,8 @@ def make_cfg(h: dict, seed: int, data: Path, max_epochs: int, patience: int = 15
              eval_snrs=["clean", "0"],
              train_snrs=["clean", 10, 5, 0, -5] if h["snrs"] == "all" else ["clean", "clean", 10, 5])
     d.pop("noisy_dir", None)
+    if (data / "film_val.csv").exists() and (data / "ted_val.csv").exists():
+        d["val_manifests"] = {"film": str(data / "film_val.csv"), "ted": str(data / "ted_val.csv")}
     m = cfg["model"]
     if h["init"] == "from_p4":
         m.pop("init_audio_from", None); m.pop("init_visual_from", None)
