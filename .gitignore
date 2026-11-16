@@ -153,3 +153,6 @@ __pycache__/
 
 # Models
 /models/
+
+# Local AI-assistant settings
+.claude/

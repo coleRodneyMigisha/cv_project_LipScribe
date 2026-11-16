@@ -7,7 +7,7 @@
 
 ---
 
-## Part A — Instructions for Claude (board setup)
+## Part A — Board setup
 
 Use this file to create one Trello board.
 
