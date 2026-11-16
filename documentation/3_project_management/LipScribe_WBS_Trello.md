@@ -1012,7 +1012,7 @@ The audio-only twin twin_v5 (`runs/flix_v5/flix_v5_fusion_wp_audio_20261116-0000
   - [ ] Evaluate each at the five SNRs with `scripts/evaluate.py`; rows in `experiments/results.csv`
 - **Done when:** X1–X3 have test WER/CER at five SNRs beside P4 in `results.csv`.
 
-### F-03 · GRID final results and fusion analysis
+### F-03 · Final results and fusion analysis (GRID, films, TED)
 - **Owner:** Lisa Lusinga Namugenyi
 - **Reviewer:** Ainomugisha Faith
 - **Labels:** Evaluation
@@ -1031,7 +1031,11 @@ The audio-only twin twin_v5 (`runs/flix_v5/flix_v5_fusion_wp_audio_20261116-0000
   - [x] Per-frame gate plot for three example utterances (clean and −5 dB)
   - [ ] Ablation table: P4 vs X1, X2, X3 at five SNRs
   - [ ] One paragraph per finding for the report
-- **Done when:** Every GRID table and figure for the report is generated from `results.csv` or the evaluation CSVs.
+  - [ ] Films: the analysis listed in `analysis/02_films/README.md` (lip gain with CIs, per-film spread, edge words, wrong audio)
+  - [ ] TED: the analysis listed in `analysis/03_ted/README.md` (the same, per talk)
+  - [ ] Cross-source figure and paragraph (`analysis/04_cross_source/README.md`)
+- **Where to look:** `analysis/README.md`. Tables for GRID, films and TED are already generated (`python analysis/scripts/build_tables.py` rebuilds them), and each section's README lists what is left.
+- **Done when:** Every table and figure for the report (GRID, films, TED) is generated from `analysis/` or the evaluation CSVs.
 
 ### F-04 · Real-world model: decoder and final numbers
 - **Owner:** Cole Rodney Migisha
