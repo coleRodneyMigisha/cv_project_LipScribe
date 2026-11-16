@@ -195,6 +195,13 @@ def load_pretrained(model: nn.Module, init_from: dict, map_location="cpu") -> di
         prefix = module_name + "."
         sub = {k[len(prefix):]: v for k, v in source.items() if k.startswith(prefix)}
         own = target.state_dict()
+        for k in own:   # X3: 3D (5x7x7) front-end checkpoint into a 2D (1x7x7) front-end
+            if (k in sub and own[k].ndim == 5 and sub[k].ndim == 5
+                    and own[k].shape[2] == 1 and sub[k].shape[2] > 1
+                    and own[k].shape[:2] == sub[k].shape[:2] and own[k].shape[3:] == sub[k].shape[3:]):
+                sub[k] = sub[k].sum(dim=2, keepdim=True)
+                print(f"{module_name}.{k}: {tuple(source[prefix + k].shape)} -> {tuple(own[k].shape)} "
+                      "by summing over the temporal axis (static clip gives the same response)")
         missing = [k for k in own if k not in sub]
         bad_shape = [k for k in own if k in sub and sub[k].shape != own[k].shape]
         if missing or bad_shape:
@@ -329,7 +336,7 @@ def train_one_epoch(model, loader, criterion, optimiser, scheduler, scaler, *,
         writer.add_scalar("train/loss", loss.item(), state["step"])
         writer.add_scalar("train/grad_norm", float(grad_norm), state["step"])
         writer.add_scalar("train/lr", scheduler.get_last_lr()[0], state["step"])
-        if "gate" in out:
+        if out.get("gate") is not None:
             writer.add_scalar("train/gate_mean", _masked_gate_mean(out["gate"], batch), state["step"])
 
     return total / max(1, count)
@@ -352,7 +359,7 @@ def validate(model, val_loaders: dict, criterion, *, device, prepare_batch,
                 losses.append(loss.item())
             hyps.extend(decode_fn(out["log_probs"].float(), out["lengths"]))
             refs.extend(batch["texts"])
-            if "gate" in out:
+            if out.get("gate") is not None:
                 gates.append(_masked_gate_mean(out["gate"], batch))
         metrics[snr] = {
             "loss": float(np.mean(losses)) if losses else float("nan"),

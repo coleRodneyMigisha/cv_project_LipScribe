@@ -105,7 +105,7 @@ def score_checkpoint(checkpoint_path: Path, device: torch.device,
 
                 # Gate hook
                 gate_batch = None
-                if "gate" in output:
+                if output.get("gate") is not None:
                     g = output["gate"].float()
                     mask = batch.get("mask")
                     if mask is not None and mask.shape == g.shape:
