@@ -21,12 +21,12 @@ if [ -f reports/flix_v3/STOPPED ] && [ ! -f reports/flix_v4/ALL_DONE ] && ! pgre
   (setsid nohup bash scripts/flix_v4_run.sh >> logs/flix_v4.log 2>&1 < /dev/null &)
   echo "started flix v4 pipeline"
 fi
-if [ -f flix_v5/jobs_ted.csv ] && [ ! -f reports/flix_v5/ALL_DONE ] && ! pgrep -f "^bash scripts/flix_v5_run.sh" > /dev/null; then
+if [ -f flix_v5/jobs_ted.csv ] && [ ! -f reports/flix_v5/ALL_DONE ] && [ ! -f reports/flix_v5/FAILED ] && ! pgrep -f "^bash scripts/flix_v5_run.sh" > /dev/null; then
   rm -rf ted/tmp_v5/*
   (setsid nohup bash scripts/flix_v5_run.sh >> logs/flix_v5.log 2>&1 < /dev/null &)
   echo "started flix v5 pipeline"
 fi
-if [ -f scripts/flix_v6_run.sh ] && [ ! -f reports/flix_v6/ALL_DONE ] && ! pgrep -f "^bash scripts/flix_v6_run.sh" > /dev/null; then
+if [ -f scripts/flix_v6_run.sh ] && [ ! -f reports/flix_v6/ALL_DONE ] && [ ! -f reports/flix_v6/FAILED ] && ! pgrep -f "^bash scripts/flix_v6_run.sh" > /dev/null; then
   (setsid nohup bash scripts/flix_v6_run.sh >> logs/flix_v6.log 2>&1 < /dev/null &)   # waits for v5 itself
   echo "started flix v6 pipeline"
 fi

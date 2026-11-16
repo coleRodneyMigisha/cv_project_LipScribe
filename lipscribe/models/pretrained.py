@@ -415,7 +415,7 @@ class V4FusionWP(nn.Module):
             f = self.fusion_encoder(f, src_key_padding_mask=~mask)
         out = {"log_probs": self.fused_head(f), "lengths": lengths}
         if self.training or batch.get("return_aux"):
-            out["aux_ctc"] = [(self.aux_w["audio"], self.audio_head(a_in)),
+            out["aux_ctc"] = [(self.aux_w["audio"], self.audio_head(a)),
                               (self.aux_w["visual"], self.visual_head(v))]
         return out
 

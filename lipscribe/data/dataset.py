@@ -315,19 +315,31 @@ class GridDataset(Dataset):
             self._noise_cache[path] = load_wav(path)
         return self._noise_cache[path]
 
+    def _pick_other(self, idx: int, rng: random.Random) -> int:
+        """A random row from another source (talk / film) than row idx; never the same source."""
+        g = self._group[idx]
+        for _ in range(50):                 # cheap when no source dominates the set
+            j = rng.randrange(len(self.rows))
+            if self._group[j] != g:
+                return j
+        others = [j for j, gj in enumerate(self._group) if gj != g]   # one source dominates
+        if not others:
+            raise ValueError(f"interference needs speech from another source, but every row of this "
+                             f"{self.partition} set comes from {g!r}")
+        return rng.choice(others)
+
     def _other_speech(self, idx: int, n_samples: int, rng: random.Random) -> np.ndarray:
         """Speech from other sources (another talk / film), concatenated to n_samples."""
         parts, have = [], 0
-        for _ in range(20):
-            j = rng.randrange(len(self.rows))
-            if self._group[j] == self._group[idx]:
-                continue
-            w = load_wav(self.rows[j]["audio_path"])
+        for _ in range(40):
+            w = load_wav(self.rows[self._pick_other(idx, rng)]["audio_path"])
+            if float(np.sqrt(np.mean(np.square(w, dtype=np.float64)))) < 1e-5:
+                continue                     # a silent clip is not speech
             parts.append(w); have += len(w)
             if have >= n_samples:
                 break
         if not parts:
-            return np.zeros(n_samples, np.float32)
+            raise ValueError(f"no non-silent speech from another source for {self.rows[idx]['utt_id']}")
         return fit_length(np.concatenate(parts).astype(np.float32), n_samples)
 
     def _interfere(self, idx: int, wave: np.ndarray, mode: str, rng: random.Random, sir_db: float) -> np.ndarray:
