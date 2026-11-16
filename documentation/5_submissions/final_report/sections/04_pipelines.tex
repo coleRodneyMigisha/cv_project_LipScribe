@@ -1,0 +1,42 @@
+% Author: Cole Rodney Migisha (first draft written 16 Nov from the repository; check and extend).
+\section{Visual and Audio Pipelines}
+\label{sec:pipelines}
+
+\subsection{Mouth crops}
+The visual input is a sequence of grey $96 \times 96$ mouth crops at 25~frames/s
+(\texttt{lipscribe/preprocessing/crop.py}). MediaPipe Face Mesh finds the lip landmarks in every
+frame; a square box around them, enlarged by a 25~\% margin, is smoothed over time with a
+centred moving average, and frames where the face is lost take the box of their neighbours.
+The crop is padded by repeating edge pixels when the box leaves the frame, and a per-frame
+validity mask records where Face Mesh succeeded. The model therefore always receives 75 frames
+per GRID clip, and knows which of them show a real face.
+
+During training the crops are augmented with a random shift of up to 4 pixels, a horizontal
+flip with probability 0.5, a scale change of up to 10~\%, a random erased patch (probability
+0.5, up to 15~\% of the area) and two time masks of up to 6 frames each. Evaluation and the
+application use the crops unchanged.
+
+\subsection{Audio features}
+Audio is resampled to 16~kHz mono and converted on the GPU to 80-band log-Mel features with a
+25~ms window, a 10~ms hop and a 512-point FFT, then standardised with the mean and standard
+deviation of the training set (\texttt{lipscribe/preprocessing/features.py}). Experiment X5
+compared these features with 39 MFCCs and with log-Mel plus MFCC on the audio-only baseline;
+log-Mel plus MFCC lowered the mean validation WER from 7.72~\% to 6.90~\%
+(\texttt{reports/w3\_08\_audio\_features\_decision.md}).
+% TODO (Cole): say whether P4 keeps log-Mel 80 (it does: configs/p_init_b1_b2_v2.yaml) and why.
+
+\subsection{Encoders}
+The audio encoder applies two strided 1-D convolutions ($80 \rightarrow 256 \rightarrow 256$,
+kernel~3, stride~2), which reduce the 100~frames/s features to the video rate of 25~frames/s,
+followed by a two-layer bidirectional LSTM with 256 units per direction. Both visual encoders
+map $[B, 1, T, 96, 96]$ crops to $[B, T, 512]$. V1 stacks three 3-D convolution blocks (32, 64
+and 96 channels) before a linear layer and a two-layer BiLSTM. V2 follows the lip-reading
+front end of Stafylakis and Tzimiropoulos~\cite{stafylakis2017}: one $5 \times 7 \times 7$ 3-D
+convolution, a ResNet-18 trunk applied to each frame, and the same BiLSTM. V2 learned faster
+and generalised better, so model P4 uses it.
+
+\subsection{Real-world pipeline}
+% TODO (Cole, F-11): the v4-v6 pipeline: Auto-AVSR-style mouth crops, WavLM Base+ audio
+% encoder~\cite{chen2022wavlm}, Auto-AVSR visual encoder~\cite{ma2023}, word-piece CTC; the
+% audio-only twin and the reliability-gated warm start (ws_v5); the v5 re-cut with 0.32 s
+% padding and Whisper word-timestamp labels. Sources: reports/flix_v5/decision_log.md.

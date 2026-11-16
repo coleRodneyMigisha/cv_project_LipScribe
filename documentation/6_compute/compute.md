@@ -118,3 +118,17 @@ tmux new -s train
 # Re-attach later from any SSH session:
 tmux attach -t train
 ```
+
+## 4. GPU plan for the final week (16–22 Nov 2026)
+
+The Alienware's RTX 4080 SUPER (16 GB) runs one job at a time. Book a slot in the group chat before starting a run, and say when it ends.
+
+| When | Job | Owner | GPU time |
+|---|---|---|---|
+| Mon 16 Nov, evening | Ablations X1, X2, X3 (`configs/x1_*.yaml`, `x2_*.yaml`, `x3_*.yaml`), one after another; P4 took 27 min | Ainomugisha Faith | ≈ 1.5–2 h |
+| Tue 17 Nov, morning | Evaluate X1–X3 at five SNRs (`scripts/evaluate.py`); gate analysis of P4 (`scripts/analyse_gate.py`) | Ainomugisha Faith, Lisa Lusinga Namugenyi | ≈ 1 h |
+| Tue 17 Nov, day | ws_v5 decoder tuning on validation, then one test pass (F-04) | Cole Rodney Migisha | ≈ 2 h |
+| Wed 18 – Thu 19 Nov | Demo backend and latency measurements (F-05, F-08); the demo server shares the GPU, one clip at a time | Cole Rodney Migisha, Ansasire Nehum Naamaye | short bursts |
+| Fri 20 Nov | Fresh-clone reproduction of P4's test WER (F-09) | Ansasire Nehum Naamaye | ≈ 30 min |
+
+Long runs go in `tmux` (Section 3), so a dropped SSH connection does not stop them.
