@@ -131,8 +131,64 @@ def test_video_without_audio_track_is_friendly(setup):
         engine.transcribe(video)
 
 
+@pytest.fixture
+def noise_csv(tmp_path):
+    rng = np.random.default_rng(1)
+    f = tmp_path / "noise_test.wav"
+    sf.write(f, (0.2 * rng.standard_normal(32000)).astype(np.float32), 16000)
+    csv_path = tmp_path / "noise_splits.csv"
+    csv_path.write_text(f"file,pool\n{f},test\n")
+    return csv_path
+
+
+def test_noise_is_deterministic_and_recorded(setup, noise_csv):
+    engine = LipScribe(setup["ckpt"], device="cpu", decode="greedy")
+    kw = dict(audio_path=setup["wav"], speech_start_s="0.8", n_frames=75, noise_splits=noise_csv)
+    clean, _ = engine.build_item(**kw)
+    a, _ = engine.build_item(snr_db=0.0, **kw)
+    b, _ = engine.build_item(snr_db=0.0, **kw)
+    c, _ = engine.build_item(snr_db=-5.0, **kw)
+    assert clean["snr_db"] == float("inf") and a["snr_db"] == 0.0
+    assert np.array_equal(a["audio"], b["audio"])
+    assert not np.array_equal(a["audio"], clean["audio"])
+    assert not np.array_equal(a["audio"], c["audio"])
+
+
+def test_transcribe_reports_timings(setup, noise_csv):
+    engine = LipScribe(setup["ckpt"], device="cpu", decode="greedy")
+    res = engine.transcribe(audio_path=setup["wav"], snr_db=5.0, noise_splits=noise_csv)
+    assert set(res.timings) == {"preprocess_s", "model_s", "decode_s"}
+    assert res.seconds >= sum(res.timings.values()) - 1e-3
+
+
+def test_missing_noise_pool_is_friendly(setup, tmp_path):
+    engine = LipScribe(setup["ckpt"], device="cpu")
+    with pytest.raises(FriendlyError, match="noise"):
+        engine.transcribe(audio_path=setup["wav"], snr_db=5.0, noise_splits=tmp_path / "none.csv")
+
+
+def test_transcribe_cli_end_to_end(setup, noise_csv, capsys):
+    from scripts.transcribe import main
+    for extra in ([], ["--snr", "0", "--noise-splits", str(noise_csv)]):
+        code = main(["--checkpoint", str(setup["ckpt"]), "--audio", str(setup["wav"]),
+                     "--decode", "greedy", "--device", "cpu", *extra])
+        out = capsys.readouterr()
+        assert code == 0
+        caption = out.out.strip()
+        assert caption and caption == caption.lower()
+        assert out.err.count("timing: preprocess") == 1 and "decode" in out.err and "total" in out.err
+
+
+def test_gate_figure():
+    pytest.importorskip("matplotlib")
+    from lipscribe.app.demo import gate_figure
+    assert gate_figure(np.linspace(0, 1, 50)) is not None
+    assert gate_figure(None) is not None
+
+
 def test_demo_page_builds(setup):
     pytest.importorskip("gradio")
     from lipscribe.app.demo import build_demo
-    demo = build_demo(LipScribe(setup["ckpt"], device="cpu"))
-    assert demo is not None
+    one = LipScribe(setup["ckpt"], device="cpu")
+    assert build_demo(one) is not None                              # P only
+    assert build_demo(one, compare=LipScribe(setup["ckpt"], device="cpu")) is not None   # P + B1
