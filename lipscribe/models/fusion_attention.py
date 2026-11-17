@@ -230,8 +230,12 @@ class AttentionFusion(nn.Module):
         attn_dropout: float = 0.1,
         p_audio_drop: float = 0.25,
         p_visual_drop: float = 0.15,
+        fusion: str = "cross_attention_gated",
     ) -> None:
         super().__init__()
+        if fusion not in ("cross_attention_gated", "concat"):
+            raise ValueError(f"fusion must be 'cross_attention_gated' or 'concat', got {fusion!r}")
+        self.fusion_mode = fusion
         if p_audio_drop < 0.0 or p_visual_drop < 0.0 or (p_audio_drop + p_visual_drop) > 1.0:
             raise ValueError(
                 f"Modality dropout probabilities must be >= 0 and sum to <= 1.0, "
@@ -246,13 +250,29 @@ class AttentionFusion(nn.Module):
         self.e_miss = nn.Parameter(torch.zeros(embed_dim))
         nn.init.normal_(self.e_miss, mean=0.0, std=0.02)
 
-        self.cross_attn = CrossModalAttention(
-            in_dim=in_dim,
-            embed_dim=embed_dim,
-            num_heads=num_heads,
-            attn_dropout=attn_dropout,
-        )
-        self.gate = GatedFusion(embed_dim=embed_dim)
+        if fusion == "concat":
+            # Ablation X2: same projections, e_miss and modality dropout as P, but the
+            # fused frame is Linear(concat(a, v)) with no attention and no gate.
+            self.proj_a = nn.Sequential(nn.Linear(in_dim, embed_dim), nn.LayerNorm(embed_dim))
+            self.proj_v = nn.Sequential(nn.Linear(in_dim, embed_dim), nn.LayerNorm(embed_dim))
+            self.concat_proj = nn.Linear(2 * embed_dim, embed_dim)
+        else:
+            self.cross_attn = CrossModalAttention(
+                in_dim=in_dim,
+                embed_dim=embed_dim,
+                num_heads=num_heads,
+                attn_dropout=attn_dropout,
+            )
+            self.gate = GatedFusion(embed_dim=embed_dim)
+
+    def _project(self, a: torch.Tensor, v: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        if self.fusion_mode != "concat":
+            return self.cross_attn.project(a, v)
+        t = min(a.size(1), v.size(1))
+        a, v = a[:, :t, :], v[:, :t, :]
+        a = self.proj_a(a) if a.size(-1) == self.in_dim else a
+        v = self.proj_v(v) if v.size(-1) == self.in_dim else v
+        return a, v
 
     def sample_modality_dropout(
         self,
@@ -323,7 +343,7 @@ class AttentionFusion(nn.Module):
             drop_modality: optional ``"audio"`` or ``"visual"`` for test-time ablations
             return_weights: if True, also return ``{"a2v": [B, T, T], "v2a": [B, T, T]}``
         """
-        a_proj, v_proj = self.cross_attn.project(a, v)
+        a_proj, v_proj = self._project(a, v)
         B, t, _ = a_proj.shape
         device = a_proj.device
 
@@ -360,6 +380,12 @@ class AttentionFusion(nn.Module):
         if drop_v.any():
             v_proj = torch.where(drop_v.view(B, 1, 1), e_miss_v, v_proj)
 
+        if self.fusion_mode == "concat":
+            fused = self.concat_proj(torch.cat([a_proj, v_proj], dim=-1))
+            if return_weights:
+                return fused, None, None
+            return fused, None
+
         a_tilde, v_tilde, weights = self.cross_attn.attend(a_proj, v_proj, mask=mask)
         fused, gate = self.gate(a_tilde, v_tilde)
 
@@ -385,6 +411,7 @@ class LipScribeModel(nn.Module):
         p_audio_drop: float = 0.25,
         p_visual_drop: float = 0.15,
         model_cfg: dict | None = None,
+        fusion: str = "cross_attention_gated",
     ) -> None:
         super().__init__()
         cfg = model_cfg or {}
@@ -400,6 +427,7 @@ class LipScribeModel(nn.Module):
             attn_dropout=attn_dropout,
             p_audio_drop=p_audio_drop,
             p_visual_drop=p_visual_drop,
+            fusion=fusion,
         )
         self.ctc_head = CTCHead(input_dim=256)
 
@@ -460,6 +488,6 @@ class LipScribeModel(nn.Module):
             "log_probs": log_probs,
             "lengths": lengths,
             "gate": gate,
-            "attn_a2v": attn_weights["a2v"],
-            "attn_v2a": attn_weights["v2a"],
+            "attn_a2v": None if attn_weights is None else attn_weights["a2v"],
+            "attn_v2a": None if attn_weights is None else attn_weights["v2a"],
         }

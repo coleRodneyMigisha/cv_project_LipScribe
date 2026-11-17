@@ -3,17 +3,17 @@
 **Project:** LipScribe: Lip-Assisted Speech Recognition for Robust Live Captioning
 **Course:** Computer Vision and Deep Learning — Group 4, Uganda Christian University
 **Source:** *LipScribe: Technical Implementation and System Development Document*, Section 12 (milestones M1–M9)
-**Duration:** 6 weeks. Dates assume Week 1 starts **Monday 19 October 2026**. If the real start date is different, shift every due date by the same number of days.
+**Duration:** 5 weeks, Mon 19 Oct – Sun 22 Nov 2026. The original plan ran six weeks; on Mon 16 Nov the team re-planned to finish a week early, with **P4** as the GRID benchmark model and **ws_v5** as the real-world model (see Week 5).
 
 ---
 
-## Part A — Instructions for Claude (board setup)
+## Part A — Board setup
 
 Use this file to create one Trello board.
 
 1. **Board name:** `LipScribe — CVDL Group 4`
 2. **Lists, left to right:**
-   `📌 Team & Reference` · `Week 1 — Setup & Data` · `Week 2 — Preprocessing & Pipeline` · `Week 3 — Baselines` · `Week 4 — Multimodal Fusion` · `Week 5 — Tuning, Evaluation & Live Demo` · `Week 6 — Testing, Report & Demo` · `Optional Extensions (after core freeze)` · `In Progress` · `In Review` · `Done`
+   `📌 Team & Reference` · `Week 1 — Setup & Data` · `Week 2 — Preprocessing & Pipeline` · `Week 3 — Baselines` · `Week 4 — Multimodal Fusion` · `Week 5 — Final Week` · `In Progress` · `In Review` · `Done`
 3. **Labels** (create these first, then attach them to cards as listed):
 
    | Label | Colour | Used for |
@@ -48,14 +48,16 @@ Use this file to create one Trello board.
 ## Part B — Team, roles and working agreement
 
 > **Note:** The role allocation below is a *proposal* that balances the workload. It is not based on known skills. Agree on it at the kick-off (card W1-01) and swap names before building the board if needed.
+>
+> **16 Nov re-plan:** Wakisa Isabelle moves to frontend work only. Her `transcribe.py` and demo-video duties pass to Ainomugisha Faith, and the slides to Charis Opol.
 
 | Member | Primary role | Also responsible for |
 |---|---|---|
-| **Charis Opol** | Project coordinator & training lead | Trello board, weekly reviews, `train.py`, training runs, GPU booking, final submission |
+| **Charis Opol** | Project coordinator & training lead | Trello board, weekly reviews, `train.py`, training runs, GPU booking, final submission; from 16 Nov also the slides and the rehearsal |
 | **Cole Rodney Migisha** | Model lead | Mouth cropping, visual encoder, audio encoder, attention fusion, modality dropout |
-| **Ainomugisha Faith** | Data lead | GRID download, integrity checks, speaker splits, manifest, crop extraction, augmentation, ablation runs |
+| **Ainomugisha Faith** | Data lead | GRID download, integrity checks, speaker splits, manifest, crop extraction, augmentation, ablation runs; from 16 Nov also `transcribe.py` and the demo video |
 | **Lisa Lusinga Namugenyi** | Audio & evaluation lead | MUSAN noise pools, noise mixing, transcripts/tokeniser, `evaluate.py`, statistics, final-report editor |
-| **Wakisa Isabelle** | Application lead | Decoding (greedy & beam search), metrics, `transcribe.py`, Gradio Mode A, slides, demo video |
+| **Wakisa Isabelle** | Frontend lead (from 16 Nov; earlier application lead) | The demo page `demo/index.html`: recording, captions, gate plot, noise control. Earlier: decoding, metrics, Gradio Mode A |
 | **Ansasire Nehum Naamaye** | QA & live-systems lead | Repository, environment, CI/tests, plots, live Mode B, latency, README |
 
 **Pairs** (from the implementation document; each pair reviews the other's work first):
@@ -82,10 +84,12 @@ Use this file to create one Trello board.
 ### REF-03 · Drop order if the schedule slips
 - **Labels:** PM
 - **Description:** Drop work in this order: (1) optional extensions, (2) experiments X4–X6, (3) live Mode B (Mode A stays), (4) multiple seeds. **Never dropped:** baselines B1–B3, proposed model P, per-SNR evaluation, ablations X1–X3.
+- **Applied on 16 Nov:** (1), (3) and (4) are dropped, and so are the P sweeps; X6 was done as the Flix experiment instead of the SNR head. See card F-DROP.
 
 ### REF-04 · Experiment IDs
 - **Labels:** Training, Evaluation
-- **Description:** B1 audio-only · B2 visual-only · B3 concatenation fusion · P proposed attention fusion + modality dropout · X1 P without modality dropout · X2 P with concatenation in place of attention (keeping dropout) · X3 P with 2D per-frame CNN in place of 3D front-end · X4 P with EfficientNet-B0 trunk (optional) · X5 B1 with MFCC / log-Mel+MFCC features · X6 P with SNR auxiliary head (optional). SNR conditions: clean, 10, 5, 0, −5 dB.
+- **Description:** B1 audio-only · B2 visual-only · B3 concatenation fusion · P proposed attention fusion + modality dropout · X1 P without modality dropout · X2 P with concatenation in place of attention (keeping dropout) · X3 P with 2D per-frame CNN in place of 3D front-end · X4 P with EfficientNet-B0 trunk (optional) · X5 B1 with MFCC / log-Mel+MFCC features · X6 P with SNR auxiliary head (optional; replaced in Week 4 by **X6 "Flix"**, the out-of-domain test on films and TED). SNR conditions: clean, 10, 5, 0, −5 dB.
+- **Real-world models (Flix v4–v6):** twin_v5, the audio-only twin (WavLM) · **ws_v5**, the warm-start gated fusion of WavLM audio and Auto-AVSR lips, the real-world model · ws_v6, ws_v5 retrained on audio that does not belong to the face (negative result). SNR conditions: clean, 0, −5, −10 dB.
 
 ---
 
@@ -689,9 +693,9 @@ Use this file to create one Trello board.
 - **Estimate:** 2 h of work + runtime
 - **Description:** Train B1 with A2 (MFCC) and A3 (log-Mel + MFCC) to decide whether MFCCs add anything. Run only if GPU time allows; otherwise move to Week 4.
 - **Checklist:**
-  - [ ] Configs `b1_mfcc39.yaml`, `b1_logmel_mfcc.yaml`
-  - [ ] Train and evaluate on the same protocol as B1
-  - [ ] Decision on the card: keep A1 unless another configuration improves validation WER
+  - [x] Configs `b1_mfcc39.yaml`, `b1_logmel_mfcc.yaml`
+  - [x] Train and evaluate on the same protocol as B1
+  - [x] Decision on the card: keep A1 unless another configuration improves validation WER
 - **Done when:** The decision is recorded.
 
 ### W3-09 · Experiment tracking conventions and plotting scripts
@@ -719,11 +723,11 @@ Use this file to create one Trello board.
 - **Estimate:** 6 h
 - **Description:** First working web demo using the B1 checkpoint. It is upgraded to the fused model later.
 - **Checklist:**
-  - [ ] Webcam/microphone recorder and file-upload input
-  - [ ] Extract frames (OpenCV) and audio (`ffmpeg`); resample to 25 fps and 16 kHz
-  - [ ] Run the shared preprocessing, the model and beam search
-  - [ ] Show the caption beside the video
-  - [ ] Handle errors (no audio track, no face) with a friendly message
+  - [x] Webcam/microphone recorder and file-upload input
+  - [x] Extract frames (OpenCV) and audio (`ffmpeg`); resample to 25 fps and 16 kHz
+  - [x] Run the shared preprocessing, the model and beam search
+  - [x] Show the caption beside the video
+  - [x] Handle errors (no audio track, no face) with a friendly message
 - **Done when:** A GRID test clip uploaded to the page gives the same caption as `evaluate.py`.
 
 ### W3-M · MILESTONES M3 & M4 — Baselines
@@ -833,10 +837,11 @@ Use this file to create one Trello board.
 - **Estimate:** 4 h
 - **Description:** Shows whether the fusion actually relies more on the lips when the audio is noisy. This is not guaranteed; the analysis tests it.
 - **Checklist:**
-  - [ ] Distribution of mean gate ḡ per utterance at each SNR (box plot)
-  - [ ] Expected if it works: ḡ decreases as SNR falls
-  - [ ] Plot of per-frame gate for example utterances
-  - [ ] Optional: attention-weight heatmap for one utterance
+  - [x] Distribution of mean gate ḡ per utterance at each SNR (box plot)
+  - [x] Expected if it works: ḡ decreases as SNR falls
+  - [x] Plot of per-frame gate for example utterances
+  - [x] Optional: attention-weight heatmap for one utterance
+- **Status (16 Nov):** Done on 16 Nov: `scripts/analyse_gate.py`; results in `reports/gate_analysis/` (mean gate 0.804 clean → 0.691 at −5 dB, monotonic, Spearman ρ 0.47 over 3,998 test utterances).
 - **Done when:** Plots are generated from the first P checkpoint.
 
 ### W4-07 · Ablation configurations X1–X3
@@ -848,11 +853,12 @@ Use this file to create one Trello board.
 - **Estimate:** 5 h
 - **Description:** Prepare and smoke-test the three required ablations so they can run in Week 5.
 - **Checklist:**
-  - [ ] X1: P with `modality_dropout: {audio: 0, visual: 0}`
-  - [ ] X2: P with concatenation in place of attention, keeping modality dropout
-  - [ ] X3: P with a 2D per-frame CNN in place of the 3D front-end (implement the 2D variant: same channels, kernels 1×k×k)
-  - [ ] Each config runs 50 steps without error
-  - [ ] Everything else identical to P (same data, seeds, schedule)
+  - [x] X1: P with `modality_dropout: {audio: 0, visual: 0}`
+  - [x] X2: P with concatenation in place of attention, keeping modality dropout
+  - [x] X3: P with a 2D per-frame CNN in place of the 3D front-end (implement the 2D variant: same channels, kernels 1×k×k)
+  - [x] Each config runs 50 steps without error
+  - [x] Everything else identical to P (same data, seeds, schedule)
+- **Status (16 Nov):** Done on 16 Nov: `configs/x1_no_modality_dropout.yaml`, `x2_concat_fusion.yaml`, `x3_2d_frontend.yaml`; each ran a 50-step epoch on the Alienware without error. The full runs are F-02.
 - **Done when:** All three configs are merged and smoke-tested.
 
 ### W4-08 · Inference script (`transcribe.py`)
@@ -864,11 +870,12 @@ Use this file to create one Trello board.
 - **Estimate:** 4 h
 - **Description:** The "clean inference script" promised in the proposal.
 - **Checklist:**
-  - [ ] CLI: `python transcribe.py --checkpoint X --video clip.mp4 [--snr 0]`
-  - [ ] Uses only the shared preprocessing and stored normalisation statistics
-  - [ ] Prints the caption and timing (preprocessing, model, decoding)
-  - [ ] Works on CPU and GPU
-  - [ ] End-to-end test: test clip gives a non-empty lower-case string
+  - [x] CLI: `python transcribe.py --checkpoint X --video clip.mp4 [--snr 0]`
+  - [x] Uses only the shared preprocessing and stored normalisation statistics
+  - [x] Prints the caption and timing (preprocessing, model, decoding)
+  - [x] Works on CPU and GPU
+  - [x] End-to-end test: test clip gives a non-empty lower-case string
+- **Status (16 Nov):** Done on 16 Nov: `--snr`, `--noise-splits` and a timing line; end-to-end CLI test in `tests/test_app.py`. `--model grid|real` stays in F-07.
 - **Done when:** The test passes and usage is documented.
 
 ### W4-09 · Gradio Mode A upgrades
@@ -880,11 +887,12 @@ Use this file to create one Trello board.
 - **Estimate:** 5 h
 - **Description:** Make the demo show *why* the fused model helps.
 - **Checklist:**
-  - [ ] Switch to the P checkpoint (keep a B1 option for comparison)
-  - [ ] Show the mouth-crop strip
-  - [ ] Plot the per-frame fusion gate
-  - [ ] Noise control: add MUSAN noise at a chosen SNR to the uploaded clip
-  - [ ] Side-by-side captions: audio-only vs. audio-visual
+  - [x] Switch to the P checkpoint (keep a B1 option for comparison)
+  - [x] Show the mouth-crop strip
+  - [x] Plot the per-frame fusion gate
+  - [x] Noise control: add MUSAN noise at a chosen SNR to the uploaded clip
+  - [x] Side-by-side captions: audio-only vs. audio-visual
+- **Status (16 Nov):** Done on 16 Nov in the Gradio app (`lipscribe/app/demo.py`): P with an optional B1, side-by-side captions, per-frame gate plot and a noise dropdown. The browser demo's versions are F-05 and F-06.
 - **Done when:** The team can demonstrate clean vs. noisy captions on the same clip.
 
 ### W4-10 · Live Mode B: capture threads and ring buffers
@@ -896,12 +904,13 @@ Use this file to create one Trello board.
 - **Estimate:** 8 h
 - **Description:** Foundations of the live captioning loop (Figure 3 of the implementation document).
 - **Checklist:**
-  - [ ] Camera thread (OpenCV) storing frames with timestamps from one monotonic clock
-  - [ ] `sounddevice` callback at 16 kHz into an audio ring buffer
-  - [ ] Both buffers hold the last 4 s
-  - [ ] Run Face Mesh on each new frame as it arrives (causal EMA smoothing), storing crops not full frames
-  - [ ] Window extraction: 75 frames nearest to 40 ms targets + matching 48,000 samples
-  - [ ] Display window in OpenCV
+  - [x] Camera thread (OpenCV) storing frames with timestamps from one monotonic clock
+  - [x] `sounddevice` callback at 16 kHz into an audio ring buffer
+  - [x] Both buffers hold the last 4 s
+  - [x] Run Face Mesh on each new frame as it arrives (causal EMA smoothing), storing crops not full frames
+  - [x] Window extraction: 75 frames nearest to 40 ms targets + matching 48,000 samples
+  - [x] Display window in OpenCV
+- **Status (16 Nov):** Done on 16 Nov: `lipscribe/app/live.py` and `scripts/live_capture.py`, tested with fake camera and microphone sources (`tests/test_live.py`); not yet run on real hardware.
 - **Done when:** The loop runs for 2 minutes and outputs correctly shaped windows.
 
 ### W4-11 · Final report skeleton and methods drafts
@@ -913,12 +922,13 @@ Use this file to create one Trello board.
 - **Estimate:** 4 h (editor) + 2 h per section author
 - **Description:** Start the report early so Week 6 is for results, not writing from scratch. Section authors write their own parts.
 - **Checklist:**
-  - [ ] Report skeleton (reuse the IEEE Access template from the proposal)
-  - [ ] Dataset & noise section — Ainomugisha Faith
-  - [ ] Visual and audio pipelines — Cole Rodney Migisha
-  - [ ] Model and training — Charis Opol
-  - [ ] Application — Wakisa Isabelle
-  - [ ] Testing — Ansasire Nehum Naamaye
+  - [x] Report skeleton (reuse the IEEE Access template from the proposal)
+  - [x] Dataset & noise section — Ainomugisha Faith
+  - [x] Visual and audio pipelines — Cole Rodney Migisha
+  - [x] Model and training — Charis Opol
+  - [x] Application — Wakisa Isabelle
+  - [x] Testing — Ansasire Nehum Naamaye
+- **Status (16 Nov):** Done on 16 Nov: skeleton in `documentation/5_submissions/final_report/` with first drafts of all five methods sections; each author checks and extends theirs in F-11.
 - **Done when:** All methods sections have a first draft.
 
 ### W4-M · MILESTONE M5 — Multimodal fusion
@@ -926,431 +936,357 @@ Use this file to create one Trello board.
 - **Reviewer:** All
 - **Labels:** Milestone, PM
 - **Due:** Sun 15 Nov 2026
+- **Status (16 Nov):** Closed on 16 Nov: X1–X3 configs ready (W4-07); GPU plan in `documentation/6_compute/compute.md`, Section 4.
 - **Checklist:**
-  - [ ] Fusion unit tests pass
-  - [ ] No NaN under full-modality dropout
-  - [ ] P trains stably and has first results
-  - [ ] X1–X3 configs ready
-  - [ ] `transcribe.py` merged
-  - [ ] Plan GPU time for Week 5 (sweeps + final runs + ablations)
+  - [x] Fusion unit tests pass
+  - [x] No NaN under full-modality dropout
+  - [x] P trains stably and has first results
+  - [x] X1–X3 configs ready
+  - [x] `transcribe.py` merged
+  - [x] Plan GPU time for Week 5 (sweeps + final runs + ablations)
 
 ---
 
-## Week 5 — Tuning, Evaluation & Live Demo (Mon 16 Nov – Sun 22 Nov 2026)
-**Milestones:** M6 Training & tuning · M7 Evaluation & ablations · M8 Application integration
-**Week goal:** Final models are trained and evaluated, ablations are run, live mode works, and the core is frozen on Sunday.
+## Week 5 — Final Week: Real-World Model, Report & Submission (Mon 16 Nov – Sun 22 Nov 2026)
 
-### W5-01 · Learning-rate sweep for P
-- **Owner:** Charis Opol
-- **Reviewer:** Cole Rodney Migisha
-- **Labels:** Training, GPU
-- **Due:** Tue 17 Nov 2026
-- **Depends on:** W4-04
-- **Estimate:** 2 h of work + runtime
-- **Description:** Tune the most sensitive hyperparameter on validation data only.
-- **Checklist:**
-  - [ ] Learning rates {1e-4, 3e-4, 1e-3} (shortened runs if time is tight)
-  - [ ] Compare mean validation WER over all five SNRs
-  - [ ] Record the chosen value on the card
-- **Done when:** The learning rate is chosen and committed to the config.
+**Milestones:** M6–M9 combined (evaluation, application, testing and demonstration)
+**Week goal:** Two frozen models, one for each question the project answers, and a submitted report, demo and release by **Sun 22 Nov, 18:00**.
 
-### W5-02 · Modality-dropout rate sweep
-- **Owner:** Cole Rodney Migisha
-- **Reviewer:** Charis Opol
-- **Labels:** Training, GPU
-- **Due:** Wed 18 Nov 2026
-- **Depends on:** W5-01
-- **Estimate:** 2 h of work + runtime
-- **Description:** Tune p_audio and p_visual over {0, 0.1, 0.25, 0.4} with p_audio + p_visual ≤ 0.5, as far as compute allows (prioritise a few combinations).
-- **Checklist:**
-  - [ ] Choose the combinations to run (at least 3)
-  - [ ] Compare mean validation WER, and validation WER at 0 and −5 dB
-  - [ ] Record the chosen rates
-- **Done when:** Rates are chosen and committed.
+The team re-planned on Mon 16 Nov to finish one week early. Two models are now frozen and nothing is retrained except the X1–X3 ablations:
 
-### W5-03 · Final training runs (B1, B2, B3, P)
-- **Owner:** Charis Opol
-- **Reviewer:** Lisa Lusinga Namugenyi
-- **Labels:** Training, GPU
-- **Due:** Sat 21 Nov 2026
-- **Depends on:** W5-01, W5-02
-- **Estimate:** 3 h of work + runtime
-- **Description:** Train final versions of all core models under identical conditions; 3 seeds (1, 2, 3) if compute allows, otherwise 1.
-- **Checklist:**
-  - [ ] Confirm all configs share data, noise, schedule and epochs
-  - [ ] Run B1, B2, B3, P final (seed 1 first)
-  - [ ] Additional seeds if time allows
-  - [ ] Save best checkpoints to the release folder
-- **Done when:** Final checkpoints exist for all four core models.
+| Role | Model | Checkpoint | Test WER (greedy) |
+|---|---|---|---|
+| **GRID benchmark** (core result) | P4: Model P initialised from B1 + B2 v2 | `checkpoints/p_proposed_best.pt` | 1.02 % clean, 5.34 % at −5 dB (0.71 % / 3.95 % with the GRID grammar) |
+| **Real-world model** (films and TED, open vocabulary) | ws_v5: Flix v5 warm start, WavLM + Auto-AVSR lips, reliability-gated fusion | `runs/flix_v5/flix_v5_fusion_gated_ws_20261116-093641/best.pt` (Alienware) | TED 18.2 % clean, 30.6 % at −10 dB; films 30.1 % clean |
 
-### W5-04 · Run ablations X1–X3
-- **Owner:** Ainomugisha Faith
-- **Reviewer:** Charis Opol
-- **Labels:** Training, Evaluation, GPU
-- **Due:** Sat 21 Nov 2026
-- **Depends on:** W4-07, W5-02
-- **Estimate:** 2 h of work + runtime
-- **Description:** Run the three required ablations with the tuned P settings and evaluate them with the same per-SNR protocol.
-- **Checklist:**
-  - [ ] X1 (no modality dropout)
-  - [ ] X2 (concatenation in place of attention, with dropout)
-  - [ ] X3 (2D per-frame CNN in place of 3D)
-  - [ ] Evaluate all at five SNRs; log to `results.csv`
-- **Done when:** Ablation results are logged.
+The audio-only twin twin_v5 (`runs/flix_v5/flix_v5_fusion_wp_audio_20261116-000004/best.pt`) is the real-world model's baseline: it scores 17.3 % on clean TED but 43.8 % at −10 dB, so the lips cut noisy-speech errors by 13 points. Flix v6, which retrained the warm start on audio that does not belong to the face, is reported as a negative result. It stays near lips-only level when the voice is someone else's (TED 44.1 % against ws_v5's 103.3 %) but loses 17 points on clean speech. ws_v5 therefore remains the real-world model, and its weakness with mismatched audio goes into the limitations. Sources: `reports/flix_v5/decision_log.md` and `reports/flix_v6/decision_log.md`.
 
-### W5-05 · Final evaluation and results tables
-- **Owner:** Lisa Lusinga Namugenyi
-- **Reviewer:** Wakisa Isabelle
-- **Labels:** Evaluation
-- **Due:** Sun 22 Nov 2026
-- **Depends on:** W5-03, W5-04
-- **Estimate:** 6 h
-- **Description:** Evaluate every model with beam search on the fixed test audio of the 4 held-out speakers. No results are reported unless they come from this script.
-- **Checklist:**
-  - [ ] WER and CER table per model × SNR (fills Table 12 of the implementation document)
-  - [ ] Per-speaker breakdown
-  - [ ] Mean ± std over seeds where available
-  - [ ] Paired bootstrap confidence interval for P vs. B1 at each SNR
-  - [ ] WER-vs-SNR plot (using W3-09 scripts)
-  - [ ] Check whether the clean-condition target (WER < 10 %) is met, and report it either way
-- **Done when:** Tables and plots are in `experiments/final/`, traceable to configs and checkpoints.
+**Roles this week:** as in Part B, except that Wakisa Isabelle now works only on the demo's frontend (F-06). Her earlier duties moved by role: `transcribe.py` and the demo video to Ainomugisha Faith (`transcribe.py` reuses her preprocessing), and the slides to Charis Opol.
 
-### W5-06 · Fusion behaviour analysis and test-time modality ablations
-- **Owner:** Lisa Lusinga Namugenyi
-- **Reviewer:** Cole Rodney Migisha
-- **Labels:** Evaluation
-- **Due:** Sun 22 Nov 2026
-- **Depends on:** W4-06, W5-03
-- **Estimate:** 4 h
-- **Description:** Shows how P uses each stream.
-- **Checklist:**
-  - [ ] Gate distribution per SNR for the final P
-  - [ ] P with video replaced by `e_miss` (audio-only operation) at all SNRs
-  - [ ] P with audio replaced by `e_miss` (visual-only operation) at all SNRs
-  - [ ] If P is worse than B1 anywhere, work through the diagnosis checklist in Section 9.3 of the implementation document and write up the findings
-- **Done when:** Analysis notes and plots are attached to the card.
+**Daily rhythm:** a 15-minute check-in at 18:00 each day (done / doing / blocked), and a card moves to `Done` only after its Reviewer approves it, as before.
 
-### W5-07 · Live Mode B: windowing, VAD and captions
-- **Owner:** Ansasire Nehum Naamaye
-- **Reviewer:** Wakisa Isabelle
-- **Labels:** App
-- **Due:** Fri 20 Nov 2026
-- **Depends on:** W4-10, W4-08
-- **Estimate:** 8 h
-- **Description:** Complete the windowed pseudo-streaming captioner.
-- **Checklist:**
-  - [ ] Inference worker: every 1 s, process the latest 3 s window
-  - [ ] Energy-based voice-activity detection
-  - [ ] Grey partial caption updated every second; black final caption after ≥ 500 ms silence
-  - [ ] Caption history (last few final captions)
-  - [ ] "Audio only" fallback with `e_miss` when the face is missing
-  - [ ] Error handling: missing camera/microphone, worker exceptions skip the window and are logged
-- **Done when:** Live captions appear for GRID-style sentences spoken to the webcam.
-
-### W5-08 · Audio–video sync calibration (clap test)
-- **Owner:** Wakisa Isabelle
-- **Reviewer:** Ansasire Nehum Naamaye
-- **Labels:** App, Testing
-- **Due:** Thu 19 Nov 2026
-- **Depends on:** W4-10
-- **Estimate:** 2 h
-- **Description:** Measure and correct the constant offset between camera and microphone on the demo machine.
-- **Checklist:**
-  - [ ] Record hand claps; find the frame where the hands meet and the audio onset
-  - [ ] Average the offset over 5 claps
-  - [ ] Store it in the demo config; subtract it during window extraction
-- **Done when:** The offset is measured and applied.
-
-### W5-09 · Latency and real-time factor measurement
-- **Owner:** Ansasire Nehum Naamaye
-- **Reviewer:** Charis Opol
-- **Labels:** Evaluation, App
-- **Due:** Sat 21 Nov 2026
-- **Depends on:** W5-07
-- **Estimate:** 3 h
-- **Description:** Measure on the actual demo machine after a warm-up, over at least 100 windows (median and 95th percentile).
-- **Checklist:**
-  - [ ] Per-frame Face Mesh + crop time
-  - [ ] Model forward time and beam-search time per window
-  - [ ] End-to-end caption latency
-  - [ ] Real-time factor (target ≤ 0.5)
-  - [ ] If too slow: hop 1.5 s, smaller beam, GPU, or quantisation (in that order)
-- **Done when:** A latency table is posted on the card.
-
-### W5-10 · Results and discussion drafts for the report
-- **Owner:** Lisa Lusinga Namugenyi
-- **Reviewer:** Charis Opol
-- **Labels:** Docs
-- **Due:** Sun 22 Nov 2026
-- **Depends on:** W5-05
-- **Estimate:** 4 h
-- **Description:** Write up results as they come in. Report outcomes faithfully, including any where fusion did not help.
-- **Checklist:**
-  - [ ] Results section with final tables and plots
-  - [ ] Ablation discussion (inputs from Faith and Cole)
-  - [ ] Limitations (GRID closed vocabulary, synthetic noise, frontal faces)
-- **Done when:** First drafts of results and limitations exist.
-
-### W5-M · MILESTONES M6 & M7 — Core freeze
-- **Owner:** Charis Opol
-- **Reviewer:** All
-- **Labels:** Milestone, PM
-- **Due:** Sun 22 Nov 2026
-- **Checklist:**
-  - [ ] Hyperparameter sweeps logged; final configuration chosen on validation data only
-  - [ ] All core models evaluated on identical test audio
-  - [ ] Every number traceable to a config and checkpoint
-  - [ ] Tag the repository `v1.0-core` (core freeze); after this, only bug fixes on core code
-  - [ ] Decide which optional extensions (if any) to attempt in Week 6
-
----
-
-## Week 6 — Testing, Report & Demo (Mon 23 Nov – Sun 29 Nov 2026)
-**Milestones:** M8 Application integration (complete) · M9 Testing, documentation and demonstration
-**Week goal:** Everything is tested, reproducible, documented, rehearsed and submitted.
-
-### W6-01 · Live demo stability and failure-case testing
-- **Owner:** Ansasire Nehum Naamaye
-- **Reviewer:** Wakisa Isabelle
-- **Labels:** Testing, App
-- **Due:** Tue 24 Nov 2026
-- **Depends on:** W5-07
-- **Estimate:** 3 h
-- **Checklist:**
-  - [ ] Mode B runs 5 minutes without error
-  - [ ] Cover mouth, turn head, leave frame → "audio only" captions, no crash
-  - [ ] Unplug or deny the microphone/camera → clear message
-  - [ ] Test in a quiet room and with background noise played from a speaker
-- **Done when:** All cases behave as expected; issues are fixed or documented.
-
-### W6-02 · Application parity test (Mode A and B vs. `evaluate.py`)
-- **Owner:** Wakisa Isabelle
-- **Reviewer:** Lisa Lusinga Namugenyi
-- **Labels:** Testing, App
-- **Due:** Tue 24 Nov 2026
-- **Depends on:** W4-09, W5-07
-- **Estimate:** 3 h
-- **Description:** Confirms the demo shows the evaluated model's real behaviour.
-- **Checklist:**
-  - [ ] Run 10 held-out GRID test clips through Mode A
-  - [ ] Feed the same clips to Mode B buffers in real time
-  - [ ] Captions match `evaluate.py` output for the same clips
-- **Done when:** All match, or differences are explained (e.g. window boundaries in Mode B).
-
-### W6-03 · Fresh-clone reproducibility test
-- **Owner:** Ainomugisha Faith
-- **Reviewer:** Ansasire Nehum Naamaye
-- **Labels:** Testing, Docs
-- **Due:** Wed 25 Nov 2026
-- **Depends on:** W6-04
-- **Estimate:** 3 h
-- **Description:** Done by a member not involved in the environment setup.
-- **Checklist:**
-  - [ ] Fresh clone on a clean machine/environment
-  - [ ] Install from the README only
-  - [ ] Run the test suite
-  - [ ] Reproduce one evaluation from a released checkpoint (same WER)
-  - [ ] Report every unclear README step on the card
-- **Done when:** Evaluation reproduces and README gaps are fixed.
-
-### W6-04 · README, setup guide and data download instructions
-- **Owner:** Ansasire Nehum Naamaye
-- **Reviewer:** Ainomugisha Faith
-- **Labels:** Docs
-- **Due:** Tue 24 Nov 2026
-- **Depends on:** W5-M
-- **Estimate:** 4 h
-- **Checklist:**
-  - [ ] Installation (environment files, MediaPipe/PyTorch notes)
-  - [ ] Data download and preprocessing command sequence
-  - [ ] Training, evaluation and `transcribe.py` usage
-  - [ ] Running the demo (Mode A and Mode B)
-  - [ ] Where checkpoints and results live
-- **Done when:** It passes the fresh-clone test (W6-03).
-
-### W6-05 · Complete the final technical report
-- **Owner:** Lisa Lusinga Namugenyi
-- **Reviewer:** Charis Opol
-- **Labels:** Docs
-- **Due:** Fri 27 Nov 2026
-- **Depends on:** W4-11, W5-10
-- **Estimate:** 8 h (editor) + 2 h per member
-- **Checklist:**
-  - [ ] Introduction and related work (reuse the proposal, update)
-  - [ ] Methods (from W4-11 drafts, updated to what was actually built)
-  - [ ] Results, ablations and fusion analysis
-  - [ ] Latency results (from Nehum)
-  - [ ] Limitations and future work
-  - [ ] Check that every number matches `experiments/final/`
-  - [ ] References and figure/table numbering
-  - [ ] Full-team proofread
-- **Done when:** The report is final and exported to PDF.
-
-### W6-06 · Presentation slides
-- **Owner:** Wakisa Isabelle
-- **Reviewer:** Cole Rodney Migisha
-- **Labels:** Docs
-- **Due:** Thu 26 Nov 2026
-- **Depends on:** W5-05
-- **Estimate:** 5 h
-- **Checklist:**
-  - [ ] Problem and motivation
-  - [ ] Architecture diagram
-  - [ ] WER-vs-SNR result and ablations
-  - [ ] Gate behaviour plot
-  - [ ] Demo section and limitations
-  - [ ] Assign speakers per slide (all six members)
-- **Done when:** Slides are approved by the team.
-
-### W6-07 · Recorded fallback demo video
-- **Owner:** Wakisa Isabelle
-- **Reviewer:** Ansasire Nehum Naamaye
-- **Labels:** App, Docs
-- **Due:** Thu 26 Nov 2026
-- **Depends on:** W6-01
-- **Estimate:** 3 h
-- **Description:** A backup in case the live demo fails on the day.
-- **Checklist:**
-  - [ ] Record Mode A: same clip clean vs. 0 dB, audio-only vs. audio-visual captions
-  - [ ] Record Mode B live captioning
-  - [ ] Only team members appear, with consent; no third-party recordings
-- **Done when:** The video is saved in the shared drive and linked on the card.
-
-### W6-08 · Demo rehearsal
-- **Owner:** Charis Opol
-- **Reviewer:** All
-- **Labels:** PM
-- **Due:** Fri 27 Nov 2026
-- **Depends on:** W6-01, W6-06, W6-07
-- **Estimate:** 2 h (all members)
-- **Checklist:**
-  - [ ] Full run-through with timing
-  - [ ] Test on the presentation laptop, room lighting and microphone
-  - [ ] Prepare answers to likely questions (why GRID, why CTC, does fusion help, limitations)
-  - [ ] Agree who switches to the fallback video and when
-- **Done when:** The rehearsal fits the time limit.
-
-### W6-09 · Release package
-- **Owner:** Charis Opol
-- **Reviewer:** Ansasire Nehum Naamaye
-- **Labels:** PM, Docs
-- **Due:** Sat 28 Nov 2026
-- **Depends on:** W6-03, W6-05
-- **Checklist:**
-  - [ ] Final checkpoints (B1, B2, B3, P, ablations) with configs
-  - [ ] Experiment logs and `results.csv`
-  - [ ] Test report (pytest output)
-  - [ ] Tag `v1.0-final`
-  - [ ] Delete any personal recordings that are no longer needed (privacy)
-- **Done when:** The tag is pushed and the release folder is complete.
-
-### W6-10 · Final submission
+### F-00 · Re-plan and freeze both models
 - **Owner:** Charis Opol
 - **Reviewer:** Lisa Lusinga Namugenyi
 - **Labels:** PM, Milestone
-- **Due:** Sun 29 Nov 2026 (check the course deadline)
-- **Depends on:** W6-05, W6-09
+- **Due:** Mon 16 Nov 2026
+- **Depends on:** —
+- **Estimate:** 1 h
+- **Description:** Agree this plan, freeze P4 and ws_v5, and book the Alienware GPU for the week.
 - **Checklist:**
-  - [ ] Report PDF
-  - [ ] Code repository link
-  - [ ] Slides
-  - [ ] Demo video
-  - [ ] Confirm submission received
-- **Done when:** Everything is submitted.
+  - [ ] Team agrees the plan and the owners below
+  - [ ] Record P4 as the final GRID model (chosen on validation in Week 3; no further tuning)
+  - [ ] Record ws_v5 as the real-world model, with twin_v5 as its baseline and v6 as a negative result
+  - [ ] GPU schedule: X1–X3 (Mon–Tue nights), ws_v5 decoder tuning (Tue day), demo and latency (Wed–Thu)
+- **Done when:** The plan is merged to `main` and announced in the group chat.
 
-### W6-M · MILESTONE M9 — Testing, documentation & demonstration
+### F-01 · Merge the open branches into `main`
 - **Owner:** Charis Opol
-- **Reviewer:** All
-- **Labels:** Milestone, PM
-- **Due:** Sun 29 Nov 2026
+- **Reviewer:** Ansasire Nehum Naamaye
+- **Labels:** PM, Testing
+- **Due:** Tue 17 Nov 2026
+- **Depends on:** F-00
+- **Estimate:** 3 h
+- **Description:** `main` lacks two weeks of work: Flix v3–v6, `demo/` and the Week 4 report live on `cole`, and the progress ticks and the `FEATURE_DIMS` fix are in PR #58.
 - **Checklist:**
-  - [ ] Fresh clone installs and reproduces one evaluation
-  - [ ] Demo rehearsed with a recorded fallback clip
-  - [ ] All automated tests pass
-  - [ ] Report and release submitted
-  - [ ] Retrospective: what went well / what to improve
+  - [ ] Review and merge PR #58 (`alienware`: this plan, progress ticks and the `FEATURE_DIMS` import fix)
+  - [ ] Merge `main` into `cole` and resolve conflicts (`cole` predates the caption app, `lipscribe/app/`)
+  - [ ] Open and merge the PR `cole` → `main`
+  - [ ] Full test suite passes on `main`
+- **Done when:** `main` holds all work and `pytest` passes on it.
 
----
+### F-02 · Ablations X1–X3 on GRID
+- **Owner:** Ainomugisha Faith
+- **Reviewer:** Cole Rodney Migisha
+- **Labels:** Training, Evaluation, GPU
+- **Due:** Wed 18 Nov 2026
+- **Depends on:** F-00
+- **Estimate:** 4 h of work + two overnight GPU runs
+- **Description:** The ablations that REF-03 never drops. Each changes one thing in P4's config (P4 = `p_init_b1_b2_v2`) and keeps the data, seed, schedule and initialisation.
+- **Checklist:**
+  - [x] X1: P4 with `modality_dropout: {audio: 0, visual: 0}`
+  - [x] X2: P4 with concatenation fusion in place of cross-modal attention, keeping modality dropout
+  - [x] X3: P4 with a 2D per-frame front-end in place of the 3D one (Cole Rodney Migisha implements it: same channels, kernels 1×k×k)
+  - [x] Each config runs 50 steps without error before the overnight run
+  - [x] Run the three on the Alienware, Mon and Tue nights (the pipeline's retry and watchdog apply)
+  - [x] Evaluate each at the five SNRs with `scripts/evaluate.py`; rows in `experiments/results.csv`
+- **Done when:** X1–X3 have test WER/CER at five SNRs beside P4 in `results.csv`.
+- **Status (16 Nov):** Done on 16 Nov, 19:33. All three ran on P4's real budget (6 epochs, one seed). The first X1 run used 40 epochs, so it was stopped and rerun. Test WER %, clean / −5 dB, greedy (grammar): P4 1.02 / 5.34 (0.71 / 3.95); X1 1.57 / 6.33 (1.11 / 4.93); X2 1.23 / 5.89 (0.73 / 3.96); X3 1.40 / 7.50 (0.98 / 5.60). Modality dropout and the 3D front end both help. Gated attention beats concatenation with greedy decoding, but the two tie with the grammar decoder; with one seed, call them comparable. Reports are in `reports/x*_2026111*`, and the tables are in `analysis/01_grid/tables`.
 
-## Optional Extensions (after core freeze) — list `Optional Extensions`
-Start these only after W5-M, and only if Week 6 core cards are on track.
+### F-03 · Final results and fusion analysis (GRID, films, TED)
+- **Owner:** Lisa Lusinga Namugenyi
+- **Reviewer:** Ainomugisha Faith
+- **Labels:** Evaluation
+- **Due:** Wed 18 Nov 2026
+- **Depends on:** F-02
+- **Estimate:** 5 h
+- **Description:** Completes the GRID evaluation of the Week 3 report. It takes over the old cards W5-05 and W5-06 (done items ticked below) and the rest of W4-06.
+- **Checklist:**
+  - [x] WER and CER table per model × SNR (Week 3 report)
+  - [x] WER-vs-SNR plot (`snr_comparison_curves.png`)
+  - [x] Clean-condition target checked: P4 1.02 % < 10 %
+  - [x] P4 audio-only and video-only with `e_miss` at all SNRs (Week 3 missing-modality table)
+  - [ ] Per-speaker WER for the four test speakers (P4, B1, B3 v2)
+  - [ ] Paired bootstrap 95 % CI for P4 vs B1 at each SNR (resample sentences)
+  - [x] Box plot of the mean gate ḡ per utterance at each SNR, for P4
+  - [x] Per-frame gate plot for three example utterances (clean and −5 dB)
+  - [ ] Ablation table: P4 vs X1, X2, X3 at five SNRs
+  - [ ] One paragraph per finding for the report
+  - [ ] Films: the analysis listed in `analysis/02_films/README.md` (lip gain with CIs, per-film spread, edge words, wrong audio)
+  - [ ] TED: the analysis listed in `analysis/03_ted/README.md` (the same, per talk)
+  - [ ] Cross-source figure and paragraph (`analysis/04_cross_source/README.md`)
+- **Where to look:** `analysis/README.md`. Tables for GRID, films and TED are already generated (`python analysis/scripts/build_tables.py` rebuilds them), and each section's README lists what is left.
+- **Done when:** Every table and figure for the report (GRID, films, TED) is generated from `analysis/` or the evaluation CSVs.
 
-### OPT-01 · X4: EfficientNet-B0 visual trunk
+### F-04 · Real-world model: decoder and final numbers
 - **Owner:** Cole Rodney Migisha
 - **Reviewer:** Charis Opol
-- **Labels:** Optional, Model, GPU
-- **Due:** Thu 26 Nov 2026
-- **Depends on:** W5-M
+- **Labels:** Evaluation, GPU
+- **Due:** Tue 17 Nov 2026
+- **Depends on:** F-00
+- **Estimate:** 4 h
+- **Description:** Pick ws_v5's decoder on validation, then score the locked v5 test sets once more with it. Beam + 4-gram LM gained 0.5–1 point for the v4 models (`reports/flix_v4/beam.md`).
 - **Checklist:**
-  - [ ] Single Conv3d stem → 3-channel map per frame
-  - [ ] ImageNet-pretrained EfficientNet-B0 (torchvision) per frame, global pool 1280 → Linear 512 → BiLSTM
-  - [ ] Train and evaluate like P; compare cost and WER
-- **Done when:** Result logged or the card is archived for lack of compute.
+  - [ ] Tune beam width and the LM's alpha/beta on `film_val` + `ted_val` (`scripts/flix_v4_beam.py`, `lm/flix_train_4gram.arpa`)
+  - [ ] Score twin_v5 and ws_v5 on the v5 test sets once: greedy and beam + LM at clean, 0, −5, −10 dB
+  - [ ] Table of the v6 wrong-audio conditions (silent, talk-over, replace) for the limitations
+  - [ ] Copy the twin_v5 and ws_v5 checkpoints and configs to the release folder
+- **Done when:** `reports/flix_v5/final_decoder.md` holds the decoder settings and the final real-world table.
 
-### OPT-02 · X6: SNR auxiliary head (learned noise estimate)
-- **Owner:** Charis Opol
-- **Reviewer:** Lisa Lusinga Namugenyi
-- **Labels:** Optional, Model, GPU
-- **Due:** Thu 26 Nov 2026
-- **Depends on:** W5-M
-- **Checklist:**
-  - [ ] Linear head on time-averaged audio encoding regresses training SNR (clean = 30 dB)
-  - [ ] Append prediction to the gate input; loss weight 0.1
-  - [ ] Compare with P, especially gate behaviour vs. SNR
-- **Done when:** Result logged or archived.
-
-### OPT-03 · Grammar-constrained decoder (labelled upper reference)
-- **Owner:** Wakisa Isabelle
-- **Reviewer:** Lisa Lusinga Namugenyi
-- **Labels:** Optional, Evaluation
-- **Due:** Thu 26 Nov 2026
-- **Depends on:** W5-05
-- **Description:** Report separately and clearly labelled, never as the headline result, because GRID's fixed grammar inflates accuracy.
-- **Checklist:**
-  - [ ] Restrict beam prefixes to the six-slot GRID grammar
-  - [ ] Evaluate P with it at all SNRs
-- **Done when:** Separate labelled table produced.
-
-### OPT-04 · Emotion detection from facial landmarks
-- **Owner:** Ainomugisha Faith
-- **Reviewer:** Lisa Lusinga Namugenyi
-- **Labels:** Optional
-- **Due:** Sat 28 Nov 2026
-- **Depends on:** W5-M
-- **Description:** Separate module; GRID has no emotion labels. Needs an emotion-labelled audio-visual dataset (e.g. CREMA-D or RAVDESS), with licence terms checked first.
-- **Checklist:**
-  - [ ] Check dataset licence and download a subset
-  - [ ] Reuse Face Mesh; geometric features (mouth width/opening, brow–eye distance, eye aperture, angles) after pose normalisation
-  - [ ] Temporal statistics per utterance; scikit-learn classifier
-  - [ ] Speaker-disjoint split; per-class accuracy and confusion matrix
-  - [ ] State limitations (articulation confound, acted emotions)
-- **Done when:** Results reported as an experimental extension.
-
-### OPT-05 · Language identification feasibility study
+### F-05 · Demo backend on the real-world model
 - **Owner:** Cole Rodney Migisha
 - **Reviewer:** Wakisa Isabelle
-- **Labels:** Optional
-- **Due:** Sat 28 Nov 2026
-- **Depends on:** W5-M
-- **Description:** GRID is English-only. Needs multilingual audio-visual data with language labels (e.g. MuAViC). At this stage, a written feasibility plan is a realistic outcome.
+- **Labels:** App, Model, GPU
+- **Due:** Wed 18 Nov 2026
+- **Depends on:** F-04
+- **Estimate:** 6 h
+- **Description:** The browser demo (`demo/`) is the live application: record a clip on a phone or laptop and get a caption in 2–3 s. Its "Any speech" toggle still runs the old v2 film model. Switch `demo/server.py` to ws_v5 and return everything the new frontend (F-06) shows. The "GRID sentences" toggle stays P4 + grammar.
 - **Checklist:**
-  - [ ] Identify dataset, size and licence
-  - [ ] Design: time-pooled fused representation → linear language classifier
-  - [ ] Note the speaker-identity confound and the need for speaker-disjoint evaluation
-  - [ ] Optional: small consented recording set (English + a Ugandan language) for qualitative testing
-- **Done when:** A feasibility note is added to the report's future-work section.
+  - [ ] "Any speech" loads ws_v5 with its own preprocessing (Auto-AVSR mouth crop, WavLM audio, word pieces) and the F-04 decoder
+  - [ ] `POST /caption` returns both captions: twin_v5 (audio only) and ws_v5 (audio + lips)
+  - [ ] It returns the per-frame gate and accepts an SNR, adding MUSAN noise to the clip before decoding
+  - [ ] Clear error codes for no face, no audio and too-short clips
+  - [ ] Agree the JSON response with Wakisa Isabelle on Tue, before she builds the page
+  - [ ] Parity: 10 v5 test clips give the same greedy caption as `scripts/flix_v5_eval.py`
+  - [ ] Update the backend part of `demo/README.md`
+- **Done when:** The endpoint serves both models with the gate and noise option, and the parity check passes.
+
+### F-06 · Demo frontend
+- **Owner:** Wakisa Isabelle
+- **Reviewer:** Cole Rodney Migisha
+- **Labels:** App
+- **Due:** Thu 19 Nov 2026
+- **Depends on:** F-05 (response format agreed on Tue)
+- **Estimate:** 8 h
+- **Description:** The page people see in the demo, `demo/index.html` (one static page, no build step). It replaces the Gradio Mode A upgrades of W4-09.
+- **Checklist:**
+  - [ ] Model toggle: "GRID sentences" (P4) and "Any speech" (ws_v5)
+  - [ ] Side-by-side captions: "Ears only" (twin_v5) and "Ears + lips" (ws_v5)
+  - [ ] Per-frame gate plot: how much the model trusted the sound vs the lips
+  - [ ] Noise control: an SNR slider (clean, 10, 5, 0, −5, −10 dB) sent with the clip
+  - [ ] Mouth-crop strip, recording timer and a loading state while the server works
+  - [ ] Friendly messages for the backend's error codes (no face, no audio, clip too short)
+  - [ ] Works on a phone and a laptop browser (Chrome, Firefox, Safari)
+  - [ ] Update the user part of `demo/README.md`
+- **Done when:** A phone recording shows both captions, the gate plot and the noise control, on two browsers.
+
+### F-07 · `transcribe.py` for both models
+- **Owner:** Ainomugisha Faith
+- **Reviewer:** Ansasire Nehum Naamaye
+- **Labels:** App, Testing
+- **Due:** Thu 19 Nov 2026
+- **Depends on:** F-05
+- **Estimate:** 3 h
+- **Description:** Finishes W4-08.
+- **Checklist:**
+  - [ ] `--model grid|real` (P4 + grammar, or ws_v5 + F-04 decoder) besides `--checkpoint`
+  - [x] `--snr` adds MUSAN noise at that SNR before decoding
+  - [x] Prints the caption and the time for preprocessing, the model and decoding
+  - [x] End-to-end CLI test: a test clip gives a non-empty lower-case string on CPU
+- **Done when:** The test passes and the README documents the usage.
+
+### F-08 · Latency and real-time factor
+- **Owner:** Ansasire Nehum Naamaye
+- **Reviewer:** Cole Rodney Migisha
+- **Labels:** App, Evaluation
+- **Due:** Thu 19 Nov 2026
+- **Depends on:** F-05, F-06
+- **Estimate:** 3 h
+- **Description:** Replaces W5-09 for the browser demo.
+- **Checklist:**
+  - [ ] Per 3 s clip on the Alienware GPU and on a laptop CPU: mouth cropping, model and decoding time, for P4 and ws_v5
+  - [ ] Real-time factor (target ≤ 0.5)
+  - [ ] End-to-end demo latency: recording uploaded → caption shown
+- **Done when:** A latency table is ready for the report.
+
+### F-09 · Tests and fresh-clone reproducibility
+- **Owner:** Ansasire Nehum Naamaye
+- **Reviewer:** Ainomugisha Faith
+- **Labels:** Testing
+- **Due:** Fri 20 Nov 2026
+- **Depends on:** F-01, F-10
+- **Estimate:** 4 h
+- **Description:** Combines the old cards W6-03 (fresh clone) and the testing parts of W6-01 and W6-02.
+- **Checklist:**
+  - [ ] Full test suite passes on `main`; keep the output for the release
+  - [ ] Fresh clone on a clean machine, installed from the README only
+  - [ ] Reproduce P4's GRID test WER from the released checkpoint
+  - [ ] Demo failure cases: no face, mouth covered, microphone denied, background noise
+  - [ ] Report every unclear README step to its owner
+- **Done when:** A fresh clone reproduces P4's numbers and the demo failure cases give clear messages.
+
+### F-10 · README and setup guide
+- **Owner:** Ansasire Nehum Naamaye
+- **Reviewer:** Ainomugisha Faith
+- **Labels:** Docs
+- **Due:** Thu 19 Nov 2026
+- **Depends on:** F-01
+- **Estimate:** 4 h
+- **Description:** Replaces W6-04.
+- **Checklist:**
+  - [ ] Installation (environment files, MediaPipe and PyTorch notes)
+  - [ ] GRID: data download, preprocessing, training and evaluation commands
+  - [ ] Real-world model: a short summary of the Flix data pipeline and how to run ws_v5
+  - [ ] `transcribe.py` and demo usage
+  - [ ] Where checkpoints, configs and results live
+- **Done when:** F-09's fresh-clone test passes using only the README.
+
+### F-11 · Final technical report
+- **Owner:** Lisa Lusinga Namugenyi (editor)
+- **Reviewer:** Charis Opol
+- **Labels:** Docs
+- **Due:** Draft Thu 19 Nov; final Sat 21 Nov 2026
+- **Depends on:** F-03, F-04, F-08
+- **Estimate:** 6 h editing + 2–3 h per section author
+- **Description:** Replaces W4-11, W5-10 and W6-05. Use the IEEE Access template of the proposal. The report answers two questions: does lip-assisted fusion help on GRID (P4), and does it carry over to real speech (ws_v5)?
+- **Checklist:**
+  - [ ] Introduction and related work — Charis Opol
+  - [ ] Data and noise: GRID, MUSAN, the Flix film and TED pipeline — Ainomugisha Faith
+  - [ ] Visual and audio pipelines; the real-world model and the v4–v6 story — Cole Rodney Migisha
+  - [ ] Model P and training — Charis Opol
+  - [ ] GRID results, ablations and fusion analysis (F-03) — Lisa Lusinga Namugenyi
+  - [ ] Real-world results (F-04), including v6 as a negative result — Cole Rodney Migisha
+  - [ ] Application and latency (F-05, F-06, F-07, F-08) — Ansasire Nehum Naamaye, with the frontend paragraph from Wakisa Isabelle
+  - [ ] Testing (F-09) — Ansasire Nehum Naamaye
+  - [ ] Limitations and future work: GRID's closed vocabulary, edge words, voices that do not match the face (an audio-visual sync signal), synthetic noise
+  - [ ] Every number traced to `experiments/results.csv`, `reports/flix_v5/` or `reports/flix_v6/`
+  - [ ] Full-team proofread (Sat)
+- **Done when:** The PDF is final and every number matches its source.
+
+### F-12 · Presentation slides
+- **Owner:** Charis Opol
+- **Reviewer:** Lisa Lusinga Namugenyi
+- **Labels:** Docs
+- **Due:** Fri 20 Nov 2026
+- **Depends on:** F-03, F-04
+- **Estimate:** 5 h
+- **Description:** Replaces W6-06; reuse the 12 Nov progress presentation where it still holds.
+- **Checklist:**
+  - [ ] Problem and motivation
+  - [ ] Architecture of P4 and of ws_v5
+  - [ ] GRID WER vs SNR, and the ablations
+  - [ ] Gate behaviour plot
+  - [ ] Real-world results: twin_v5 vs ws_v5 in noise
+  - [ ] Demo section and limitations
+  - [ ] Speakers assigned per slide (all six members)
+- **Done when:** The deck is reviewed and every member knows their slides.
+
+### F-13 · Recorded fallback demo video
+- **Owner:** Ainomugisha Faith
+- **Reviewer:** Ansasire Nehum Naamaye
+- **Labels:** App, Docs
+- **Due:** Fri 20 Nov 2026
+- **Depends on:** F-06
+- **Estimate:** 2 h
+- **Checklist:**
+  - [ ] GRID sentences mode: the same sentence clean and at 0 dB
+  - [ ] Any speech mode: twin_v5 vs ws_v5 captions with the noise control on
+  - [ ] Only team members appear, with consent; no third-party recordings
+- **Done when:** A 2–3 minute video is in the submission folder.
+
+### F-14 · Core freeze and release package
+- **Owner:** Charis Opol
+- **Reviewer:** Cole Rodney Migisha
+- **Labels:** PM, Docs
+- **Due:** Freeze Thu 19 Nov; release Sat 21 Nov 2026
+- **Depends on:** F-02, F-04, F-05, F-06
+- **Estimate:** 3 h
+- **Description:** Replaces the W5-M core freeze and W6-09.
+- **Checklist:**
+  - [ ] Tag `v1.0-core` on Thu once F-02, F-04, F-05 and F-06 are merged; afterwards only bug fixes
+  - [ ] Release folder: B1, B2, B3, P4, X1–X3, twin_v5 and ws_v5 checkpoints with their configs
+  - [ ] `experiments/results.csv`, the Flix decision logs and the pytest output from F-09
+  - [ ] Tag `v1.0-final` on Sat
+  - [ ] Delete personal recordings that are no longer needed
+- **Done when:** Both tags exist and the release folder is complete.
+
+### F-15 · Demo rehearsal
+- **Owner:** Charis Opol
+- **Reviewer:** Lisa Lusinga Namugenyi
+- **Labels:** PM
+- **Due:** Sat 21 Nov 2026
+- **Depends on:** F-12, F-13
+- **Estimate:** 2 h (all six members)
+- **Checklist:**
+  - [ ] Full run-through with timing
+  - [ ] Live demo on the presentation laptop: browser, Alienware tunnel, room lighting and microphone
+  - [ ] Agree who switches to the fallback video, and when
+  - [ ] Answers ready: why GRID, why CTC, does fusion help, why ws_v5 and not v6
+- **Done when:** The team has run the full presentation once without stopping.
+
+### F-16 · Final submission
+- **Owner:** Charis Opol
+- **Reviewer:** Lisa Lusinga Namugenyi
+- **Labels:** PM
+- **Due:** Sun 22 Nov 2026, 18:00
+- **Depends on:** F-11, F-12, F-13, F-14
+- **Estimate:** 1 h
+- **Checklist:**
+  - [ ] Report PDF
+  - [ ] Code repository link (tag `v1.0-final`)
+  - [ ] Slides
+  - [ ] Demo video
+  - [ ] Confirm the submission was received
+- **Done when:** The submission is confirmed.
+
+### F-M · MILESTONE M6–M9 — Evaluation, application, testing and demonstration
+- **Owner:** Charis Opol
+- **Labels:** Milestone
+- **Due:** Sun 22 Nov 2026
+- **Checklist:**
+  - [x] All GRID models evaluated on identical test audio (fixed noisy test sets, W2-06)
+  - [x] GRID results traceable to a config and checkpoint (`experiments/results.csv`)
+  - [ ] Both models frozen; every real-world number traceable to a config and checkpoint
+  - [ ] X1–X3 evaluated at five SNRs
+  - [ ] Demo runs ws_v5 and P4 and passes its parity check
+  - [ ] Fresh clone reproduces P4; all automated tests pass
+  - [ ] Report, slides, video and release submitted
+  - [ ] Retrospective: what went well / what to improve
+- **Done when:** Every item above is ticked.
+
+### F-DROP · Dropped in the 16 Nov re-plan
+- **Owner:** Charis Opol
+- **Labels:** PM
+- **Description:** Work dropped to finish by Sun 22 Nov, following REF-03's drop order. Each item goes into the report's future-work section where relevant.
+- **Checklist:**
+  - [x] Optional extensions OPT-01 (EfficientNet-B0 trunk), OPT-02 (SNR auxiliary head), OPT-04 (emotion) and OPT-05 (language identification); OPT-03 (grammar decoder) is done
+  - [x] Learning-rate and modality-dropout sweeps for P (W5-01, W5-02): P4 was chosen on validation in Week 3
+  - [x] Extra seeds and final reruns of B1–B3 and P (W5-03): the Week 3 runs are final
+  - [x] Live Mode B (W4-10, W5-07, W5-08 and its W6-01 tests): the browser demo replaces it
+  - [x] Gradio Mode A upgrades beyond W3-10: moved into the browser demo (F-05, F-06)
+  - [x] A Flix v7 with an audio-visual sync signal: future work, not this week
 
 ---
 
-## Part D — Workload summary (core cards, excluding milestones and optional work)
+## Part D — Workload summary (core cards, excluding milestones)
 
-| Member | W1 | W2 | W3 | W4 | W5 | W6 | Total |
-|---|---|---|---|---|---|---|---|
-| Charis Opol | 2 | 4 | 1 | 1 | 2 | 3 | 13 |
-| Cole Rodney Migisha | 1 | 2 | 2 | 3 | 1 | 0 | 9 |
-| Ainomugisha Faith | 3 | 2 | 2 | 1 | 1 | 1 | 10 |
-| Lisa Lusinga Namugenyi | 2 | 3 | 2 | 2 | 3 | 1 | 13 |
-| Wakisa Isabelle | 1 | 2 | 2 | 2 | 1 | 3 | 11 |
-| Ansasire Nehum Naamaye | 3 | 1 | 1 | 2 | 2 | 2 | 11 |
+| Member | W1 | W2 | W3 | W4 | Final week | Total |
+|---|---|---|---|---|---|---|
+| Charis Opol | 2 | 4 | 1 | 1 | 6 (F-00, F-01, F-12, F-14, F-15, F-16) | 14 |
+| Cole Rodney Migisha | 1 | 2 | 2 | 3 | 2 (F-04, F-05) | 10 |
+| Ainomugisha Faith | 3 | 2 | 2 | 1 | 3 (F-02, F-07, F-13) | 11 |
+| Lisa Lusinga Namugenyi | 2 | 3 | 2 | 2 | 2 (F-03, F-11) | 11 |
+| Wakisa Isabelle | 1 | 2 | 2 | 2 | 1 (F-06) | 8 |
+| Ansasire Nehum Naamaye | 3 | 1 | 1 | 2 | 3 (F-08, F-09, F-10) | 10 |
 
-Card counts don't equal hours: Cole's and Faith's cards include long, hands-on model and data work, and Cole and Faith also own most optional extensions. Rebalance at the weekly reviews if anyone is overloaded.
+Card counts are not hours. The heaviest final-week cards are F-02 (ablations), F-05 and F-06 (the demo) and F-11 (the report), and every member except Wakisa Isabelle also writes a report section. Charis Opol's cards are short coordination tasks. Rebalance at the daily check-in if anyone falls behind.

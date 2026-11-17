@@ -1,0 +1,120 @@
+source,version,model,test_set,condition,decode,wer_pct,cer_pct,n_clips
+films,v4,audio,film_test,clean,greedy,32.13,19.35,43
+films,v4,audio,film_test,0,greedy,41.37,25.57,43
+films,v4,audio,film_test,-5,greedy,53.41,35.03,43
+films,v4,visual,film_test,clean,greedy,60.64,50.35,43
+films,v4,fusion,film_test,clean,greedy,34.94,20.14,43
+films,v4,fusion,film_test,0,greedy,42.57,23.38,43
+films,v4,fusion,film_test,-5,greedy,48.59,30.04,43
+films,v4,fusion-no_visual,film_test,clean,greedy,33.73,20.49,43
+films,v4,fusion-no_visual,film_test,0,greedy,42.97,23.99,43
+films,v4,fusion-no_visual,film_test,-5,greedy,51.41,32.31,43
+films,v4,fusion-no_audio,film_test,clean,greedy,95.18,75.48,43
+films,v4,audio_first,film_test,clean,greedy,36.95,21.45,43
+films,v4,audio_first,film_test,0,greedy,46.99,29.68,43
+films,v4,audio_first,film_test,-5,greedy,54.62,35.55,43
+films,v4,fusion_wp,film_test,clean,greedy,34.54,26.36,43
+films,v4,fusion_wp,film_test,0,greedy,38.96,30.39,43
+films,v4,fusion_wp,film_test,-5,greedy,45.38,35.11,43
+films,v4,fusion_wp,film_test,-10,greedy,47.79,39.32,43
+films,v4,fusion_wp-no_visual,film_test,clean,greedy,32.93,22.42,43
+films,v4,fusion_wp-no_visual,film_test,0,greedy,39.76,28.20,43
+films,v4,fusion_wp-no_visual,film_test,-5,greedy,50.60,39.75,43
+films,v4,fusion_wp-no_visual,film_test,-10,greedy,59.44,53.15,43
+films,v4,fusion_wp-no_audio,film_test,clean,greedy,59.04,49.91,43
+films,v4,fusion_wp_audio,film_test,clean,greedy,30.12,20.49,43
+films,v4,fusion_wp_audio,film_test,0,greedy,38.96,25.57,43
+films,v4,fusion_wp_audio,film_test,-5,greedy,46.18,36.25,43
+films,v4,fusion_wp_audio,film_test,-10,greedy,59.44,51.49,43
+films,v4,fusion_gated,film_test,clean,greedy,30.92,22.07,43
+films,v4,fusion_gated,film_test,0,greedy,37.35,26.53,43
+films,v4,fusion_gated,film_test,-5,greedy,42.97,31.87,43
+films,v4,fusion_gated,film_test,-10,greedy,44.58,35.11,43
+films,v4,fusion_gated-no_visual,film_test,clean,greedy,32.93,21.19,43
+films,v4,fusion_gated-no_visual,film_test,0,greedy,39.76,26.36,43
+films,v4,fusion_gated-no_visual,film_test,-5,greedy,46.99,36.16,43
+films,v4,fusion_gated-no_visual,film_test,-10,greedy,59.84,50.44,43
+films,v4,fusion_gated-no_audio,film_test,clean,greedy,61.04,51.49,43
+films,v4,visual_old,film_test,clean,greedy,73.90,53.68,43
+films,v4,visual_old,film_test,0,greedy,73.90,53.68,43
+films,v4,visual_old,film_test,-5,greedy,73.90,53.68,43
+films,v4,twin,film_test,-10,"beam, no LM",58.23,,43
+films,v4,twin,film_test,-10,beam + LM,57.43,,43
+films,v4,twin,film_test,-5,"beam, no LM",46.59,,43
+films,v4,twin,film_test,-5,beam + LM,46.18,,43
+films,v4,twin,film_test,0,"beam, no LM",39.36,,43
+films,v4,twin,film_test,0,beam + LM,39.36,,43
+films,v4,twin,film_test,clean,"beam, no LM",29.72,,43
+films,v4,twin,film_test,clean,beam + LM,29.72,,43
+films,v4,av,film_test,-10,"beam, no LM",46.18,,43
+films,v4,av,film_test,-10,beam + LM,48.19,,43
+films,v4,av,film_test,-5,"beam, no LM",44.58,,43
+films,v4,av,film_test,-5,beam + LM,43.78,,43
+films,v4,av,film_test,0,"beam, no LM",37.35,,43
+films,v4,av,film_test,0,beam + LM,37.75,,43
+films,v4,av,film_test,clean,"beam, no LM",33.33,,43
+films,v4,av,film_test,clean,beam + LM,34.54,,43
+films,v4,visual,film_test,clean,"beam, no LM",60.64,,43
+films,v4,visual,film_test,clean,beam + LM,58.63,,43
+films,v4,gated,film_test,-10,"beam, no LM",44.58,,43
+films,v4,gated,film_test,-10,beam + LM,45.38,,43
+films,v4,gated,film_test,-5,"beam, no LM",41.37,,43
+films,v4,gated,film_test,-5,beam + LM,40.96,,43
+films,v4,gated,film_test,0,"beam, no LM",35.34,,43
+films,v4,gated,film_test,0,beam + LM,35.34,,43
+films,v4,gated,film_test,clean,"beam, no LM",29.72,,43
+films,v4,gated,film_test,clean,beam + LM,30.12,,43
+films,v5,twin_v4,film_v4,-10,greedy,59.44,51.49,43
+films,v5,twin_v4,film_v4,-5,greedy,46.18,36.25,43
+films,v5,twin_v4,film_v4,0,greedy,38.96,25.57,43
+films,v5,twin_v4,film_v4,clean,greedy,30.12,20.49,43
+films,v5,twin_v4,film_v5,-10,greedy,66.02,56.54,41
+films,v5,twin_v4,film_v5,-5,greedy,52.73,42.87,41
+films,v5,twin_v4,film_v5,0,greedy,43.75,32.60,41
+films,v5,twin_v4,film_v5,clean,greedy,31.64,22.24,41
+films,v5,twin_v5,film_v4,-10,greedy,60.64,52.10,43
+films,v5,twin_v5,film_v4,-5,greedy,49.00,39.49,43
+films,v5,twin_v5,film_v4,0,greedy,36.14,27.50,43
+films,v5,twin_v5,film_v4,clean,greedy,31.33,22.50,43
+films,v5,twin_v5,film_v5,-10,greedy,65.62,56.71,41
+films,v5,twin_v5,film_v5,-5,greedy,53.91,43.21,41
+films,v5,twin_v5,film_v5,0,greedy,41.02,30.81,41
+films,v5,twin_v5,film_v5,clean,greedy,29.30,21.14,41
+films,v5,ws_v4,film_v4,-10,greedy,46.59,37.39,43
+films,v5,ws_v4,film_v4,-5,greedy,37.75,29.77,43
+films,v5,ws_v4,film_v4,0,greedy,35.34,26.36,43
+films,v5,ws_v4,film_v4,clean,greedy,29.72,20.75,43
+films,v5,ws_v4,film_v5,-10,greedy,48.05,40.92,41
+films,v5,ws_v4,film_v5,-5,greedy,42.58,34.80,41
+films,v5,ws_v4,film_v5,0,greedy,35.94,27.93,41
+films,v5,ws_v4,film_v5,clean,greedy,26.95,19.95,41
+films,v5,ws_v5,film_v4,-10,greedy,49.40,42.12,43
+films,v5,ws_v5,film_v4,-5,greedy,42.17,34.94,43
+films,v5,ws_v5,film_v4,0,greedy,34.94,27.06,43
+films,v5,ws_v5,film_v4,clean,greedy,32.13,24.08,43
+films,v5,ws_v5,film_v5,-10,greedy,50.78,43.12,41
+films,v5,ws_v5,film_v5,-5,greedy,43.36,35.65,41
+films,v5,ws_v5,film_v5,0,greedy,35.16,26.99,41
+films,v5,ws_v5,film_v5,clean,greedy,30.08,22.92,41
+films,v6,lips_v5,film,clean,greedy,64.45,52.04,41
+films,v6,twin_v5,film,-10,greedy,65.62,56.71,41
+films,v6,twin_v5,film,-5,greedy,53.91,43.21,41
+films,v6,twin_v5,film,0,greedy,41.02,30.81,41
+films,v6,twin_v5,film,clean,greedy,29.30,21.14,41
+films,v6,twin_v5,film,replace,greedy,123.83,97.79,41
+films,v6,twin_v5,film,silent,greedy,100.00,100.00,41
+films,v6,twin_v5,film,talkover,greedy,94.53,74.62,41
+films,v6,ws_v5,film,-10,greedy,50.78,43.12,41
+films,v6,ws_v5,film,-5,greedy,43.36,35.65,41
+films,v6,ws_v5,film,0,greedy,35.16,26.99,41
+films,v6,ws_v5,film,clean,greedy,30.08,22.92,41
+films,v6,ws_v5,film,replace,greedy,108.20,88.54,41
+films,v6,ws_v5,film,silent,greedy,67.19,57.98,41
+films,v6,ws_v5,film,talkover,greedy,72.66,59.76,41
+films,v6,ws_v6,film,-10,greedy,58.20,47.79,41
+films,v6,ws_v6,film,-5,greedy,52.73,41.51,41
+films,v6,ws_v6,film,0,greedy,50.78,40.24,41
+films,v6,ws_v6,film,clean,greedy,48.44,38.37,41
+films,v6,ws_v6,film,replace,greedy,70.31,54.33,41
+films,v6,ws_v6,film,silent,greedy,63.67,52.63,41
+films,v6,ws_v6,film,talkover,greedy,62.50,51.36,41

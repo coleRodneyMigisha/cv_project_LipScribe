@@ -19,7 +19,7 @@ jobs:
       - name: System libraries
         run: |
           sudo apt-get update
-          sudo apt-get install -y libsndfile1 libportaudio2 libgl1
+          sudo apt-get install -y libsndfile1 libgl1   # no libportaudio2: with it, sounddevice fails to load on runners with no sound server
 
       - name: Install CPU environment
         run: |

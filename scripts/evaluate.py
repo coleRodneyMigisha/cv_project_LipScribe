@@ -105,7 +105,7 @@ def score_checkpoint(checkpoint_path: Path, device: torch.device,
 
                 # Gate hook
                 gate_batch = None
-                if "gate" in output:
+                if output.get("gate") is not None:
                     g = output["gate"].float()
                     mask = batch.get("mask")
                     if mask is not None and mask.shape == g.shape:
@@ -239,6 +239,8 @@ def update_results_csv(results_path: Path, run_dir: Path, metrics: dict, tag: st
         wer_field: ";".join(f"{snr}={metrics[snr]['wer']:.4f}" for snr in metrics),
         cer_field: ";".join(f"{snr}={metrics[snr]['cer']:.4f}" for snr in metrics),
     })
+    for r in rows:
+        r.pop(None, None)
     tmp = results_path.with_suffix(".csv.tmp")
     with tmp.open("w", newline="", encoding="utf-8") as stream:
         writer = csv.DictWriter(stream, fieldnames=fieldnames, extrasaction="ignore")

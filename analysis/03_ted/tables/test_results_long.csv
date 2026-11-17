@@ -1,0 +1,120 @@
+source,version,model,test_set,condition,decode,wer_pct,cer_pct,n_clips
+ted,v4,audio,ted_test,clean,greedy,16.38,8.59,1122
+ted,v4,audio,ted_test,0,greedy,24.03,12.77,1122
+ted,v4,audio,ted_test,-5,greedy,34.33,19.38,1122
+ted,v4,visual,ted_test,clean,greedy,48.25,34.34,1122
+ted,v4,fusion,ted_test,clean,greedy,18.12,9.23,1122
+ted,v4,fusion,ted_test,0,greedy,26.64,13.81,1122
+ted,v4,fusion,ted_test,-5,greedy,36.36,19.51,1122
+ted,v4,fusion-no_visual,ted_test,clean,greedy,17.88,9.17,1122
+ted,v4,fusion-no_visual,ted_test,0,greedy,26.51,13.89,1122
+ted,v4,fusion-no_visual,ted_test,-5,greedy,36.28,20.09,1122
+ted,v4,fusion-no_audio,ted_test,clean,greedy,93.44,65.50,1122
+ted,v4,audio_first,ted_test,clean,greedy,15.79,8.72,1122
+ted,v4,audio_first,ted_test,0,greedy,24.39,13.46,1122
+ted,v4,audio_first,ted_test,-5,greedy,35.16,20.06,1122
+ted,v4,fusion_wp,ted_test,clean,greedy,26.93,20.17,1122
+ted,v4,fusion_wp,ted_test,0,greedy,29.87,22.29,1122
+ted,v4,fusion_wp,ted_test,-5,greedy,33.18,24.20,1122
+ted,v4,fusion_wp,ted_test,-10,greedy,36.25,26.31,1122
+ted,v4,fusion_wp-no_visual,ted_test,clean,greedy,22.10,15.92,1122
+ted,v4,fusion_wp-no_visual,ted_test,0,greedy,27.77,20.01,1122
+ted,v4,fusion_wp-no_visual,ted_test,-5,greedy,35.75,26.63,1122
+ted,v4,fusion_wp-no_visual,ted_test,-10,greedy,47.38,38.77,1122
+ted,v4,fusion_wp-no_audio,ted_test,clean,greedy,48.10,34.21,1122
+ted,v4,fusion_wp_audio,ted_test,clean,greedy,17.36,11.43,1122
+ted,v4,fusion_wp_audio,ted_test,0,greedy,23.35,15.73,1122
+ted,v4,fusion_wp_audio,ted_test,-5,greedy,31.50,22.11,1122
+ted,v4,fusion_wp_audio,ted_test,-10,greedy,43.83,33.96,1122
+ted,v4,fusion_gated,ted_test,clean,greedy,18.51,12.63,1122
+ted,v4,fusion_gated,ted_test,0,greedy,22.84,16.18,1122
+ted,v4,fusion_gated,ted_test,-5,greedy,27.40,19.18,1122
+ted,v4,fusion_gated,ted_test,-10,greedy,32.93,23.63,1122
+ted,v4,fusion_gated-no_visual,ted_test,clean,greedy,18.37,12.22,1122
+ted,v4,fusion_gated-no_visual,ted_test,0,greedy,24.40,16.57,1122
+ted,v4,fusion_gated-no_visual,ted_test,-5,greedy,32.72,22.93,1122
+ted,v4,fusion_gated-no_visual,ted_test,-10,greedy,44.60,34.40,1122
+ted,v4,fusion_gated-no_audio,ted_test,clean,greedy,49.15,35.31,1122
+ted,v4,visual_old,ted_test,clean,greedy,72.70,43.76,1122
+ted,v4,visual_old,ted_test,0,greedy,72.70,43.76,1122
+ted,v4,visual_old,ted_test,-5,greedy,72.70,43.76,1122
+ted,v4,twin,ted_test,-10,"beam, no LM",43.08,,1122
+ted,v4,twin,ted_test,-10,beam + LM,42.38,,1122
+ted,v4,twin,ted_test,-5,"beam, no LM",30.63,,1122
+ted,v4,twin,ted_test,-5,beam + LM,30.29,,1122
+ted,v4,twin,ted_test,0,"beam, no LM",22.63,,1122
+ted,v4,twin,ted_test,0,beam + LM,22.30,,1122
+ted,v4,twin,ted_test,clean,"beam, no LM",16.53,,1122
+ted,v4,twin,ted_test,clean,beam + LM,16.35,,1122
+ted,v4,av,ted_test,-10,"beam, no LM",35.33,,1122
+ted,v4,av,ted_test,-10,beam + LM,34.74,,1122
+ted,v4,av,ted_test,-5,"beam, no LM",32.13,,1122
+ted,v4,av,ted_test,-5,beam + LM,31.68,,1122
+ted,v4,av,ted_test,0,"beam, no LM",28.74,,1122
+ted,v4,av,ted_test,0,beam + LM,28.35,,1122
+ted,v4,av,ted_test,clean,"beam, no LM",25.87,,1122
+ted,v4,av,ted_test,clean,beam + LM,25.48,,1122
+ted,v4,visual,ted_test,clean,"beam, no LM",48.22,,1122
+ted,v4,visual,ted_test,clean,beam + LM,48.17,,1122
+ted,v4,gated,ted_test,-10,"beam, no LM",32.11,,1122
+ted,v4,gated,ted_test,-10,beam + LM,31.93,,1122
+ted,v4,gated,ted_test,-5,"beam, no LM",26.66,,1122
+ted,v4,gated,ted_test,-5,beam + LM,26.39,,1122
+ted,v4,gated,ted_test,0,"beam, no LM",22.26,,1122
+ted,v4,gated,ted_test,0,beam + LM,21.91,,1122
+ted,v4,gated,ted_test,clean,"beam, no LM",17.87,,1122
+ted,v4,gated,ted_test,clean,beam + LM,17.87,,1122
+ted,v5,twin_v4,ted_v4,-10,greedy,43.83,33.96,1122
+ted,v5,twin_v4,ted_v4,-5,greedy,31.50,22.11,1122
+ted,v5,twin_v4,ted_v4,0,greedy,23.35,15.73,1122
+ted,v5,twin_v4,ted_v4,clean,greedy,17.36,11.43,1122
+ted,v5,twin_v4,ted_v5,-10,greedy,45.30,35.57,1094
+ted,v5,twin_v4,ted_v5,-5,greedy,33.00,23.40,1094
+ted,v5,twin_v4,ted_v5,0,greedy,25.32,17.29,1094
+ted,v5,twin_v4,ted_v5,clean,greedy,19.50,13.44,1094
+ted,v5,twin_v5,ted_v4,-10,greedy,45.18,35.06,1122
+ted,v5,twin_v5,ted_v4,-5,greedy,33.75,24.07,1122
+ted,v5,twin_v5,ted_v4,0,greedy,25.75,17.79,1122
+ted,v5,twin_v5,ted_v4,clean,greedy,20.41,14.19,1122
+ted,v5,twin_v5,ted_v5,-10,greedy,43.79,33.83,1094
+ted,v5,twin_v5,ted_v5,-5,greedy,31.07,21.91,1094
+ted,v5,twin_v5,ted_v5,0,greedy,23.50,15.76,1094
+ted,v5,twin_v5,ted_v5,clean,greedy,17.34,11.62,1094
+ted,v5,ws_v4,ted_v4,-10,greedy,31.40,23.31,1122
+ted,v5,ws_v4,ted_v4,-5,greedy,26.43,18.80,1122
+ted,v5,ws_v4,ted_v4,0,greedy,21.88,15.28,1122
+ted,v5,ws_v4,ted_v4,clean,greedy,17.18,11.69,1122
+ted,v5,ws_v4,ted_v5,-10,greedy,32.02,23.62,1094
+ted,v5,ws_v4,ted_v5,-5,greedy,27.18,19.80,1094
+ted,v5,ws_v4,ted_v5,0,greedy,22.96,16.49,1094
+ted,v5,ws_v4,ted_v5,clean,greedy,18.90,13.57,1094
+ted,v5,ws_v5,ted_v4,-10,greedy,35.24,26.41,1122
+ted,v5,ws_v5,ted_v4,-5,greedy,31.00,22.72,1122
+ted,v5,ws_v5,ted_v4,0,greedy,26.32,19.34,1122
+ted,v5,ws_v5,ted_v4,clean,greedy,22.39,15.93,1122
+ted,v5,ws_v5,ted_v5,-10,greedy,30.57,22.47,1094
+ted,v5,ws_v5,ted_v5,-5,greedy,26.60,19.18,1094
+ted,v5,ws_v5,ted_v5,0,greedy,22.25,15.76,1094
+ted,v5,ws_v5,ted_v5,clean,greedy,18.17,12.83,1094
+ted,v6,lips_v5,ted,clean,greedy,44.04,30.79,1094
+ted,v6,twin_v5,ted,-10,greedy,43.79,33.83,1094
+ted,v6,twin_v5,ted,-5,greedy,31.07,21.91,1094
+ted,v6,twin_v5,ted,0,greedy,23.50,15.76,1094
+ted,v6,twin_v5,ted,clean,greedy,17.34,11.62,1094
+ted,v6,twin_v5,ted,replace,greedy,117.46,90.36,1094
+ted,v6,twin_v5,ted,silent,greedy,100.00,100.00,1094
+ted,v6,twin_v5,ted,talkover,greedy,82.40,61.79,1094
+ted,v6,ws_v5,ted,-10,greedy,30.57,22.47,1094
+ted,v6,ws_v5,ted,-5,greedy,26.60,19.18,1094
+ted,v6,ws_v5,ted,0,greedy,22.25,15.76,1094
+ted,v6,ws_v5,ted,clean,greedy,18.17,12.83,1094
+ted,v6,ws_v5,ted,replace,greedy,103.34,80.49,1094
+ted,v6,ws_v5,ted,silent,greedy,45.62,35.78,1094
+ted,v6,ws_v5,ted,talkover,greedy,59.79,46.15,1094
+ted,v6,ws_v6,ted,-10,greedy,38.53,26.36,1094
+ted,v6,ws_v6,ted,-5,greedy,37.23,25.45,1094
+ted,v6,ws_v6,ted,0,greedy,36.35,24.82,1094
+ted,v6,ws_v6,ted,clean,greedy,35.35,24.09,1094
+ted,v6,ws_v6,ted,replace,greedy,44.11,31.14,1094
+ted,v6,ws_v6,ted,silent,greedy,43.73,30.39,1094
+ted,v6,ws_v6,ted,talkover,greedy,40.55,27.95,1094
