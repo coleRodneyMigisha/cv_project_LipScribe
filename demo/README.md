@@ -355,3 +355,5 @@ powershell -ExecutionPolicy Bypass -File demo\deploy-pages.ps1
 
 The page goes live at https://lipscribe.pages.dev. Only `index.html`, `app.js` and `mock-backend.js` are uploaded, never the backend code.
 
+**Automatic deploys.** `.github/workflows/deploy-pages.yml` does the same upload whenever a merge to `main` changes one of those three files, so an approved and merged pull request goes live by itself. It needs two repository secrets, set once by the owner of the Cloudflare account: `CLOUDFLARE_API_TOKEN` (a token with *Cloudflare Pages: Edit*) and `CLOUDFLARE_ACCOUNT_ID`. Until both are set, the workflow skips the upload, and the manual script above still works.
+
