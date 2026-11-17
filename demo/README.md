@@ -85,20 +85,39 @@ the large assets in `~/Desktop/lipscribe_flix` and `~/Desktop/cv_project_LipScri
 `silero-vad`. They were installed on 17 Nov, `silero-vad` with `--no-deps` so that torch stays as
 it is.
 
+Since 17 Nov the demo is **always on**: `scripts/demo_up.sh` starts the backend on 127.0.0.1:8800
+and a public Cloudflare quick tunnel to it, and starts only what is not already running. It runs
+at boot (`scripts/flix_boot.sh`, crontab `@reboot`) and every 5 minutes from cron, so a crash or a
+dropped tunnel is repaired within 5 minutes.
+
 ```bash
 cd ~/Desktop/lipscribe_demo
-# access code: generate once and keep it out of git
-[ -f .demo_code ] || python3 -c "import secrets; print(secrets.token_urlsafe(9))" > .demo_code
-DEMO_CODE="$(cat .demo_code)" PYTHONPATH=.:asr_pkgs HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 \
-  nohup setsid .venv/bin/python -m uvicorn demo.server:app --host 127.0.0.1 --port 8800 \
-  --ws-max-size 16777216 >> logs/demo_server.log 2>&1 &
-curl -s http://127.0.0.1:8800/health   # {"ok": true, "models": {"any": [...], "grid": [...]}, ...}
+bash scripts/demo_up.sh          # prints the share links
+bash scripts/demo_up.sh stop     # stops both (cron starts them again unless you also edit crontab)
+touch .demo_no_tunnel            # keep it private: no public tunnel from now on
+curl -s http://127.0.0.1:8800/health
 ```
+
+- **Access code:** `.demo_code` (generated once, not in git).
+- **Current public address:** `.demo_url`. It changes only when the tunnel restarts (a reboot, or a
+  tunnel crash).
+- **Logs:** `logs/demo_server.log`, `logs/demo_tunnel.log`, `logs/demo_up.log`.
 
 The models take about 30 s to load; until then `/health` says `"loading": true`. `DEMO_MODELS=any`
 or `DEMO_MODELS=grid` loads only one pair. The server takes up to 3 recordings at once and one
 upload at a time; the GPU runs one segment at a time, so a camera clip still gets through while a
 film is being captioned.
+
+**Share link.** The backend serves the page itself and points it at itself, so this works on any
+device, phone or laptop, anywhere:
+
+```
+https://<address in .demo_url>/?code=<code>
+```
+
+The Pages site works too, once it has the current frontend:
+`https://lipscribe.pages.dev/?backend=wss://<address>/ws/live&code=<code>`. It remembers the address
+and the code in that browser.
 
 ### Open it privately (SSH tunnel, nothing public)
 
@@ -115,16 +134,12 @@ Uploads work from any browser.
 `cloudflared` is in `~/bin` on the Alienware (the official release, sha256 checked). It connects
 **out** to Cloudflare, so no port is opened on the university network, and no account is needed.
 
-```bash
-nohup setsid ~/bin/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:8800 > logs/cloudflared.log 2>&1 &
-grep -oE "https://[a-z0-9-]+\.trycloudflare\.com" logs/cloudflared.log | head -1
-# share:  https://<random>.trycloudflare.com/?backend=self&code=<code>
-#    or:  https://lipscribe.pages.dev/?backend=wss://<random>.trycloudflare.com/ws/live&code=<code>
-```
+`demo_up.sh` starts and stops it (it tracks the process by its PID).
 
-- **Stop the tunnel** with exactly
-  `pkill -f "^$HOME/bin/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:8800"`.
-  The Alienware also runs **another user's** `cloudflared` (`--url http://web:8081`); leave it alone.
+- **Other tunnel:** the Alienware also runs **another user's** `cloudflared` (`--url http://web:8081`).
+  Never stop cloudflared by name; leave that one alone.
+- **A fixed address** needs Tailscale Funnel enabled by the tailnet admin, or a Cloudflare account
+  with a domain (a named tunnel). Neither is set up.
 - **Address changes:** the address changes every time the tunnel starts.
 - **Access code:** anyone with the address still needs the code. Do not post the link with the
   code in it publicly.

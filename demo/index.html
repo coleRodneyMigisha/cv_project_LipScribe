@@ -242,6 +242,19 @@ footer strong { color: var(--text); }
   .bars { height: 110px; gap: 1px; }
   .crops-intro { flex-basis: 100%; }
 }
+/* ---------- Large screens ---------- */
+/* Wider layout first, then the whole page scales up (zoom keeps the proportions of every part). */
+@media (min-width: 1600px) {
+  .wrap { max-width: 1520px; padding: 40px 48px 64px; }
+  .main { gap: 28px; }
+}
+@media (min-width: 2200px) { body { zoom: 1.25; } }
+@media (min-width: 2800px) { body { zoom: 1.5; } }
+@media (min-width: 3600px) { body { zoom: 2; } }
+@media (min-width: 1600px) and (min-aspect-ratio: 16/10) {
+  .camera { aspect-ratio: 16 / 10; }     /* landscape monitors: a wider camera and film panel */
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }

@@ -28,7 +28,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 
 from lipscribe.app.session import Engines, Session, SessionError
 
@@ -79,8 +79,12 @@ def health() -> dict:
 
 
 @app.get("/")
-def page() -> FileResponse:
-    return FileResponse(REPO / "demo/index.html")
+def page() -> HTMLResponse:
+    """The page, told to talk to this server (so the tunnel link alone works on any device)."""
+    html = (REPO / "demo/index.html").read_text(encoding="utf-8")
+    html = html.replace('<script src="mock-backend.js"></script>',
+                        '<script>window.LIPSCRIBE_BACKEND = "self";</script>\n<script src="mock-backend.js"></script>', 1)
+    return HTMLResponse(html, headers={"Cache-Control": "no-cache"})
 
 
 @app.get("/app.js")

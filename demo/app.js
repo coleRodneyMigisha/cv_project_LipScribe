@@ -13,7 +13,9 @@
 (function () {
   'use strict';
 
-  var DEFAULT_BACKEND = '';   // e.g. 'wss://lipscribe-api.example.com/ws/live'
+  // e.g. 'wss://lipscribe-api.example.com/ws/live'. When the backend serves this page itself, it sets
+  // window.LIPSCRIBE_BACKEND = 'self', so the page talks to wherever it was loaded from.
+  var DEFAULT_BACKEND = window.LIPSCRIBE_BACKEND || '';
   var CHUNK_MS = 1000;        // how often a piece of audio+video is sent
   var CLIP_SECONDS = 3;       // Clip mode stops by itself after this
   var FPS = 25;               // gate readings per second
@@ -71,7 +73,10 @@
 
   // ---------- State ----------
   var params = new URLSearchParams(location.search);
-  var backendUrl = toWs(params.get('backend') || DEFAULT_BACKEND);
+  // A ?backend=wss://... address is remembered in this browser, so a Pages link works on later visits too.
+  var givenBackend = params.get('backend');
+  if (givenBackend && givenBackend !== 'self') store('lipscribe-backend', givenBackend === 'mock' ? '' : givenBackend);
+  var backendUrl = toWs(givenBackend || (DEFAULT_BACKEND === 'self' ? 'self' : store('lipscribe-backend') || DEFAULT_BACKEND));
   var useMock = !backendUrl || backendUrl === 'mock';
   if (params.get('code')) store('lipscribe-code', params.get('code'));
   var accessCode = params.get('code') || store('lipscribe-code') || '';
