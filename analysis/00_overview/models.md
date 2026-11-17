@@ -46,3 +46,15 @@ These were trained on the Alienware in `~/Desktop/lipscribe_flix`. The decision 
 **Final real-world model: ws_v5**
 (`runs/flix_v5/flix_v5_fusion_gated_ws_20261116-093641/best.pt`), with **twin_v5** as its
 audio-only baseline.
+
+## Frozen checkpoints
+
+Frozen in the 16 Nov re-plan (F-00). Nothing below is retrained. Before you report a number,
+check that the checkpoint behind it still has this hash (`sha256sum <file>` on the Alienware).
+The checkpoints are not in Git.
+
+| Model | Role | Checkpoint (on the Alienware) | SHA-256 |
+|---|---|---|---|
+| P4 | GRID benchmark | `~/Desktop/cv_project_LipScribe/checkpoints/p_proposed_best.pt` | PENDING |
+| ws_v5 | Real-world model | `~/Desktop/lipscribe_flix/runs/flix_v5/flix_v5_fusion_gated_ws_20261116-093641/best.pt` | PENDING |
+| twin_v5 | Real-world baseline | `~/Desktop/lipscribe_flix/runs/flix_v5/flix_v5_fusion_wp_audio_20261116-000004/best.pt` | PENDING |
