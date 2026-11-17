@@ -975,10 +975,11 @@ The audio-only twin twin_v5 (`runs/flix_v5/flix_v5_fusion_wp_audio_20261116-0000
 - **Description:** Agree this plan, freeze P4 and ws_v5, and book the Alienware GPU for the week.
 - **Checklist:**
   - [ ] Team agrees the plan and the owners below
-  - [ ] Record P4 as the final GRID model (chosen on validation in Week 3; no further tuning)
-  - [ ] Record ws_v5 as the real-world model, with twin_v5 as its baseline and v6 as a negative result
+  - [x] Record P4 as the final GRID model (chosen on validation in Week 3; no further tuning)
+  - [x] Record ws_v5 as the real-world model, with twin_v5 as its baseline and v6 as a negative result
   - [ ] GPU schedule: X1–X3 (Mon–Tue nights), ws_v5 decoder tuning (Tue day), demo and latency (Wed–Thu)
 - **Done when:** The plan is merged to `main` and announced in the group chat.
+- **Status (17 Nov):** The plan was merged to `main` in PR #59 on 16 Nov. Both frozen models are recorded with their paths in the table above and in `analysis/00_overview/models.md`, which now also gives each checkpoint's SHA-256.
 
 ### F-01 · Merge the open branches into `main`
 - **Owner:** Charis Opol
@@ -989,11 +990,12 @@ The audio-only twin twin_v5 (`runs/flix_v5/flix_v5_fusion_wp_audio_20261116-0000
 - **Estimate:** 3 h
 - **Description:** `main` lacks two weeks of work: Flix v3–v6, `demo/` and the Week 4 report live on `cole`, and the progress ticks and the `FEATURE_DIMS` fix are in PR #58.
 - **Checklist:**
-  - [ ] Review and merge PR #58 (`alienware`: this plan, progress ticks and the `FEATURE_DIMS` import fix)
-  - [ ] Merge `main` into `cole` and resolve conflicts (`cole` predates the caption app, `lipscribe/app/`)
-  - [ ] Open and merge the PR `cole` → `main`
-  - [ ] Full test suite passes on `main`
+  - [x] Review and merge PR #58 (`alienware`: this plan, progress ticks and the `FEATURE_DIMS` import fix)
+  - [x] Merge `main` into `cole` and resolve conflicts (`cole` predates the caption app, `lipscribe/app/`)
+  - [x] Open and merge the PR `cole` → `main`
+  - [x] Full test suite passes on `main`
 - **Done when:** `main` holds all work and `pytest` passes on it.
+- **Status (17 Nov):** PR #58 merged on 16 Nov; `main` was merged into `cole` in PR #64 and `cole` into `main` in PR #65, so `cole` has no commit that `main` lacks. On `main` at `44400b5a`, `pytest` gives 273 passed and 1 skipped (Windows, Python 3.13), and the CI `tests` job passes. Work still open in PRs #68–#70 belongs to F-04, F-05 and F-11.
 
 ### F-02 · Ablations X1–X3 on GRID
 - **Owner:** Ainomugisha Faith
