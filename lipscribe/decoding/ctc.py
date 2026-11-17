@@ -51,10 +51,13 @@ def greedy_decode(
     """
     if log_probs.dim() != 3:
         raise ValueError(f"greedy_decode expects [T, B, V], got {tuple(log_probs.shape)}")
-    T, B, _ = log_probs.shape
+    T, B, V = log_probs.shape
     best = log_probs.argmax(dim=-1).transpose(0, 1).cpu()  # [B, T]
     if lengths is None:
         lens = [T] * B
     else:
         lens = [int(n) for n in (lengths.tolist() if torch.is_tensor(lengths) else lengths)]
+    from lipscribe.data import subword
+    if V == subword.VOCAB_SIZE:              # Auto-AVSR word pieces (models with head: avsr_ctc)
+        return [subword.decode(collapse_ids(best[b, : lens[b]].tolist(), blank)) for b in range(B)]
     return [collapse(best[b, : lens[b]].tolist(), blank) for b in range(B)]

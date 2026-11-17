@@ -14,6 +14,7 @@ from lipscribe.models.fusion_attention import (
 )
 from lipscribe.models.fusion_concat import B3Concat
 from lipscribe.models.visual_encoder import ResNetVisualEncoder, VisualEncoder
+from lipscribe.preprocessing.features import FEATURE_DIMS
 
 
 def _extract_modality_dropout(config: dict, default_audio: float, default_visual: float) -> tuple[float, float]:
@@ -27,6 +28,10 @@ def build_model(config: dict) -> nn.Module:
     """Build a model from the ``model`` section of an experiment config."""
     name = config.get("name")
     fusion = config.get("fusion")
+    if name in ("v4_audio", "v4_visual", "v4_fusion", "v4_fusion_wp", "v4_fusion_gated"):   # Flix v4
+        from lipscribe.models.pretrained import V4AudioOnly, V4Fusion, V4FusionGated, V4FusionWP, V4VisualOnly
+        return {"v4_audio": V4AudioOnly, "v4_visual": V4VisualOnly, "v4_fusion": V4Fusion,
+                "v4_fusion_wp": V4FusionWP, "v4_fusion_gated": V4FusionGated}[name](config)
     if name == "b1_audio_only":
         return B1AudioOnly(in_dim=FEATURE_DIMS[config.get("audio_features", "logmel80")])
     elif name == "b2_visual_only":
@@ -53,6 +58,7 @@ def build_model(config: dict) -> nn.Module:
             p_audio_drop=p_audio,
             p_visual_drop=p_visual,
             model_cfg=config,
+            fusion="concat" if fusion == "concat" else "cross_attention_gated",
         )
     else:
         raise ValueError(f"Unsupported model: {name!r}")

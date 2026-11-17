@@ -22,10 +22,12 @@ from __future__ import annotations
 
 import math
 import os
+import random
 import shutil
 import subprocess
 import tempfile
 import time
+import zlib
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -56,6 +58,7 @@ class Transcription:
     gate: np.ndarray | None             # per-frame audio weight (fused model P only)
     warnings: list[str] = field(default_factory=list)
     seconds: float = 0.0
+    timings: dict = field(default_factory=dict)   # preprocess_s, model_s, decode_s
 
 
 # ------------------------------------------------------------------ ffmpeg helpers
@@ -151,6 +154,20 @@ class LipScribe:
 
     # -------------------------------------------------------------- inputs
 
+    def _noise_pool(self, noise_splits: str | Path | None):
+        key = str(noise_splits) if noise_splits else ""
+        cache = self.__dict__.setdefault("_pools", {})
+        if key not in cache:
+            from lipscribe.data.dataset import read_noise_pool
+            from lipscribe.preprocessing.noise import NoisePool
+            files = [f for f in read_noise_pool(noise_splits, "test") if Path(f).exists()]
+            if not files:
+                where = noise_splits or "Data/Noise_splits/splits.csv"
+                raise FriendlyError(f"No MUSAN test noise files were found (looked in {where}). "
+                                    "Choose Clean, or pass --noise-splits with the noise split CSV.")
+            cache[key] = NoisePool(files)
+        return cache[key]
+
     def _crops(self, video_path: Path, n_frames: int) -> tuple[np.ndarray, np.ndarray]:
         if not self.face_model.exists():
             raise FriendlyError(f"Face Mesh model not found at {self.face_model} "
@@ -161,8 +178,14 @@ class LipScribe:
 
     def build_item(self, video_path: str | Path | None = None, audio_path: str | Path | None = None,
                    speech_start_s=None, n_frames: int | None = None, workdir: Path | None = None,
-                   crop: bool = True) -> tuple[dict, list[str]]:
-        """One dataset-style item from live inputs (same keys and audio handling as GridDataset)."""
+                   crop: bool = True, snr_db: float | None = None,
+                   noise_splits: str | Path | None = None) -> tuple[dict, list[str]]:
+        """One dataset-style item from live inputs (same keys and audio handling as GridDataset).
+
+        snr_db: None = clean; otherwise MUSAN test-pool noise is mixed in at that SNR before
+        the features are computed. The noise draw is seeded from the clip's samples and the
+        SNR, so the same clip at the same SNR always gets the same mixture.
+        """
         warnings: list[str] = []
         workdir = workdir or Path(tempfile.mkdtemp(prefix="lipscribe_"))
         if video_path is None and audio_path is None:
@@ -204,10 +227,18 @@ class LipScribe:
         if wave is None:
             wave = np.zeros(n_frames * SAMPLES_PER_FRAME, np.float32)
         wave = place_on_video_grid(wave, n_frames * SAMPLES_PER_FRAME, speech_start_s)
-        wave = rms_normalise(np.asarray(wave, dtype=np.float32))
+        wave = np.asarray(wave, dtype=np.float32)
+        if snr_db is not None and math.isfinite(snr_db):
+            pool = self._noise_pool(noise_splits)
+            seed = zlib.crc32(wave.tobytes() + f"|{snr_db:g}".encode())
+            wave, _ = pool.mix(wave, float(snr_db), random.Random(seed))
+            wave = np.asarray(wave, dtype=np.float32)
+        else:
+            snr_db = None
+        wave = rms_normalise(wave)
 
         item = {"utt_id": "live", "speaker": "live", "video": crops, "video_valid": valid,
-                "audio": np.asarray(wave, dtype=np.float32), "snr_db": float("inf"),
+                "audio": np.asarray(wave, dtype=np.float32), "snr_db": float("inf") if snr_db is None else float(snr_db),
                 "text": "", "target": np.zeros(0, dtype=np.int64)}
         return item, warnings
 
@@ -216,18 +247,26 @@ class LipScribe:
     def caption_items(self, items: list[dict]) -> tuple[list[str], dict]:
         """Run evaluate.py's exact chain on prepared items."""
         from scripts.train import to_device
+        t0 = time.time()
         batch = self.prepare(to_device(collate(items), self.device))
         use_amp = bool(self.cfg["train"].get("amp")) and self.device.type == "cuda"
         with torch.inference_mode(), torch.autocast(device_type=self.device.type, enabled=use_amp):
             out = self.model(batch)
-        return self.decode_fn(out["log_probs"].float(), out["lengths"]), out
+        if self.device.type == "cuda":
+            torch.cuda.synchronize()
+        t1 = time.time()
+        captions = self.decode_fn(out["log_probs"].float(), out["lengths"])
+        self.last_timings = {"features_model_s": t1 - t0, "decode_s": time.time() - t1}
+        return captions, out
 
     def transcribe(self, video_path: str | Path | None = None, audio_path: str | Path | None = None,
-                   speech_start_s=None, n_frames: int | None = None) -> Transcription:
+                   speech_start_s=None, n_frames: int | None = None,
+                   snr_db: float | None = None, noise_splits: str | Path | None = None) -> Transcription:
         start = time.time()
         with tempfile.TemporaryDirectory(prefix="lipscribe_") as tmp:
             item, warnings = self.build_item(video_path, audio_path, speech_start_s, n_frames,
-                                             workdir=Path(tmp))
+                                             workdir=Path(tmp), snr_db=snr_db,
+                                             noise_splits=noise_splits)
         face = None
         if video_path is not None and not self.uses_video and not self.face_model.exists():
             warnings.append("Mouth crops not shown (Face Mesh model file missing).")
@@ -241,7 +280,9 @@ class LipScribe:
                                 "the caption relies on the audio.")
                 if self.uses_video:
                     item["video_valid"][:] = False   # fused models fall back to the missing-video path
+        prep_done = time.time()
         captions, out = self.caption_items([item])
+        t = self.last_timings
         gate = out.get("gate")
         if gate is not None:
             gate = gate.float().squeeze(0).cpu().numpy()
@@ -250,7 +291,9 @@ class LipScribe:
             warnings.append("No speech was recognised.")
         return Transcription(caption=caption, n_frames=len(item["audio"]) // SAMPLES_PER_FRAME,
                              face_fraction=face, crops=item["video"] if video_path else None,
-                             gate=gate, warnings=warnings, seconds=time.time() - start)
+                             gate=gate, warnings=warnings, seconds=time.time() - start,
+                             timings={"preprocess_s": prep_done - start, "model_s": t["features_model_s"],
+                                      "decode_s": t["decode_s"]})
 
 
 def mouth_strip(crops: np.ndarray | None, n: int = 12) -> np.ndarray | None:

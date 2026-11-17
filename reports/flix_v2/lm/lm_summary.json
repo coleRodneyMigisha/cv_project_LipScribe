@@ -1,0 +1,41 @@
+{
+  "base": {
+    "checkpoint": "checkpoints/flix_base_p4.pt",
+    "alpha": 2.0,
+    "beta": 0.0,
+    "val_wer": 1.0708762886597938,
+    "val_cer": 0.812365010799136
+  },
+  "tuned": {
+    "checkpoint": "checkpoints/flix_finetuned_p4.pt",
+    "alpha": 0.6,
+    "beta": 3.0,
+    "val_wer": 0.7113402061855669,
+    "val_cer": 0.5234881209503239
+  },
+  "sweep_s1": {
+    "checkpoint": "/home/Lipscribe-team/Desktop/lipscribe_flix/runs/flix_v2/flix_p_20261112-133903/best.pt",
+    "alpha": 1.5,
+    "beta": 4.0,
+    "val_wer": 0.9639175257731959,
+    "val_cer": 0.8142548596112311
+  },
+  "sweep_s2": {
+    "checkpoint": "/home/Lipscribe-team/Desktop/lipscribe_flix/runs/flix_v2/flix_p_20261112-141553/best.pt",
+    "alpha": 0.6,
+    "beta": 0.0,
+    "val_wer": 0.9652061855670103,
+    "val_cer": 0.7937365010799136
+  },
+  "sweep_s3": {
+    "checkpoint": "/home/Lipscribe-team/Desktop/lipscribe_flix/runs/flix_v2/flix_p_20261112-144851/best.pt",
+    "alpha": 1.0,
+    "beta": 4.0,
+    "val_wer": 0.9626288659793815,
+    "val_cer": 0.7967062634989202
+  },
+  "test_words_in_lexicon": {
+    "in": 237,
+    "of": 249
+  }
+}
