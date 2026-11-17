@@ -1063,14 +1063,15 @@ The audio-only twin twin_v5 (`runs/flix_v5/flix_v5_fusion_wp_audio_20261116-0000
 - **Estimate:** 6 h
 - **Description:** The browser demo (`demo/`) is the live application: record a clip on a phone or laptop and get a caption in 2–3 s. Its "Any speech" toggle still runs the old v2 film model. Switch `demo/server.py` to ws_v5 and return everything the new frontend (F-06) shows. The "GRID sentences" toggle stays P4 + grammar.
 - **Checklist:**
-  - [ ] "Any speech" loads ws_v5 with its own preprocessing (Auto-AVSR mouth crop, WavLM audio, word pieces) and the F-04 decoder
-  - [ ] `POST /caption` returns both captions: twin_v5 (audio only) and ws_v5 (audio + lips)
-  - [ ] It returns the per-frame gate and accepts an SNR, adding MUSAN noise to the clip before decoding
-  - [ ] Clear error codes for no face, no audio and too-short clips
-  - [ ] Agree the JSON response with Wakisa Isabelle on Tue, before she builds the page
-  - [ ] Parity: 10 v5 test clips give the same greedy caption as `scripts/flix_v5_eval.py`
-  - [ ] Update the backend part of `demo/README.md`
+  - [x] "Any speech" loads ws_v5 with its own preprocessing (Auto-AVSR mouth crop, WavLM audio, word pieces) and the F-04 decoder
+  - [x] Both captions for every recording: twin_v5 (audio only) and ws_v5 (audio + lips), over the page's WebSocket (`/ws/live`) instead of `POST /caption`
+  - [x] It returns the per-frame gate and accepts an SNR, adding MUSAN noise to the clip before decoding
+  - [x] Clear error codes for no face, no audio and too-short clips
+  - [x] Agree the message format with Wakisa Isabelle (her WebSocket format in `demo/README.md`, extended with `snr`, uploads and new error codes, with her agreement)
+  - [x] Parity: 32 v5 test clips (16 TED, 16 film), batched as in the evaluation, give the same captions as `scripts/flix_v5_eval.py` (greedy, 64 of 64 model outputs) and `scripts/flix_v5_beam.py` (beam + LM, 64 of 64). Run one at a time, as the demo runs them, 37 of 40 match: WavLM's normalisation sees a batch's padding.
+  - [x] Update the backend part of `demo/README.md`
 - **Done when:** The endpoint serves both models with the gate and noise option, and the parity check passes.
+- **Status (17 Nov):** Done. `demo/server.py` now serves `WS /ws/live` for three runs: Live (partials about every 0.5 s), Clip, and **Upload**, which was added at Cole's request. Upload takes a file of any length (a whole film); the backend asks for the 4 MB pieces it needs, so an MP4 with its index at the end starts at once, and it sends captions back in batches as subtitle cues while the file uploads. Each upload cue says whether the lips may be used (the `scripts/mine_flix.py` training-clip rules), and the page's "Best of both" track uses ws_v5 only there. Code: `lipscribe/app/{session,stream,realworld}.py`; tests: `tests/test_stream.py` (281 passed on the Alienware). A 10 min test-film excerpt is captioned in 54 s. Cole also added the Upload section, the test-noise control and `.srt` export to the page, with Wakisa Isabelle's agreement.
 
 ### F-06 · Demo frontend
 - **Owner:** Wakisa Isabelle
@@ -1084,7 +1085,7 @@ The audio-only twin twin_v5 (`runs/flix_v5/flix_v5_fusion_wp_audio_20261116-0000
   - [ ] Model toggle: "GRID sentences" (P4) and "Any speech" (ws_v5)
   - [ ] Side-by-side captions: "Ears only" (twin_v5) and "Ears + lips" (ws_v5)
   - [ ] Per-frame gate plot: how much the model trusted the sound vs the lips
-  - [ ] Noise control: an SNR slider (clean, 10, 5, 0, −5, −10 dB) sent with the clip
+  - [x] Noise control: an SNR slider (clean, 10, 5, 0, −5, −10 dB) sent with the clip (added by Cole with F-05, as a menu)
   - [ ] Mouth-crop strip, recording timer and a loading state while the server works
   - [ ] Friendly messages for the backend's error codes (no face, no audio, clip too short)
   - [ ] Works on a phone and a laptop browser (Chrome, Firefox, Safari)

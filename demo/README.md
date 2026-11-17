@@ -1,168 +1,150 @@
 # LipScribe web demo
 
-You record a short clip with the camera and microphone, and the page shows the caption
-from Model P. It also shows **how much the model trusted the sound vs the lips**
-(from P's fusion gate) and the mouth crops it actually used.
+The page records you with the camera and microphone, or plays a video file you choose, and shows
+two captions side by side: **Ears only** (sound alone) and **Ears + lips** (sound and lips). It also
+shows how much the model trusted the sound and the lips, frame by frame, and the mouth crops it used.
 
 ```
- phone / laptop browser                Alienware (backend)
- ┌───────────────────────┐   HTTPS   ┌───────────────────────────────────────────────┐
- │ demo/index.html       │ ────────▶ │ demo/server.py (FastAPI, 127.0.0.1:8800)        │
- │ record (≤ 6 s, webm/  │  clip +   │   lipscribe.app.inference.LipScribe              │
- │ mp4) → POST /caption  │  access   │   (25 fps → MediaPipe mouth crops → audio →      │
- │ ◀ caption, trust,     │  code     │    Model P → decoder; same chain as evaluate.py)│
- │   mouth strip         │           └───────────────────────────────────────────────┘
- └───────────────────────┘     ▲ reached through an SSH tunnel (private) or a
-                               └ Cloudflare Tunnel (public; no ports opened)
+ phone / laptop browser                         Alienware (backend)
+ ┌─────────────────────────────┐  WebSocket   ┌──────────────────────────────────────────────┐
+ │ demo/index.html + app.js    │ ───────────▶ │ demo/server.py  (FastAPI, 127.0.0.1:8800)    │
+ │ Live / Clip: MediaRecorder  │ chunks, or   │   lipscribe.app.session   one per recording  │
+ │   chunks every 1 s          │ the pieces   │   lipscribe.app.stream    bytes → PyAV →     │
+ │ Upload: the file plays from │ of a file    │                           16 kHz + 25 fps    │
+ │   disk; only bytes go up    │ ◀─────────── │   Silero VAD → speech segments ≤ 4 s         │
+ │ ◀ captions, gate, crops     │ captions     │   lipscribe.app.realworld ws_v5 + twin_v5    │
+ └─────────────────────────────┘              │   lipscribe.app.inference P4 + B1 (GRID)     │
+          ▲ SSH tunnel (private) or Cloudflare Tunnel (public; no port opened)            │
+                                              └──────────────────────────────────────────────┘
 ```
 
 ## Files
 
 | File | What it is |
 |---|---|
-| `demo/index.html` | The whole frontend: one static page, no build step. Camera preview, Record button, model toggle, caption, sound/lips trust bar, mouth strip. Works on phones. |
-| `demo/server.py` | Backend: `POST /caption`, `GET /health`, and `GET /` (serves the page). Binds to localhost only. Needs the `X-Demo-Code` header. Handles one clip at a time, because the GPU is shared with training. |
-| `scripts/flix_boot.sh` | Started by `crontab @reboot` on the Alienware. Restarts the demo server, and the public tunnel too if you opted in (see below). |
+| `demo/index.html`, `demo/app.js` | The page (one static page, no build step). Owner: Wakisa Isabelle. |
+| `demo/mock-backend.js` | A pretend backend for building the page without the Alienware. |
+| `demo/server.py` | The backend: `WS /ws/live`, `GET /health`, and `GET /` (serves the page too). |
+| `lipscribe/app/session.py` | One recording or upload: segments, captions and the messages to the page. |
+| `lipscribe/app/stream.py` | The growing upload file, the PyAV reader, the timeline and Silero VAD. |
+| `lipscribe/app/realworld.py` | ws_v5 and twin_v5 with the Flix v5 preprocessing and the F-04 decoder. |
+| `lipscribe/app/inference.py` | P4 and B1 (the `evaluate.py` chain), used for GRID sentences. |
 
-### The two models (the "GRID sentences" / "Any speech" toggle)
+### The models (the "GRID sentences" / "Any speech" toggle)
 
-| Toggle | Checkpoint | Decoder | Use it for |
+| Toggle | Ears + lips | Ears only | Decoder |
 |---|---|---|---|
-| **GRID sentences** (default) | Model P4, `cv_project_LipScribe/checkpoints/p_proposed_best.pt` (read only) | GRID grammar | The demo. Say a GRID sentence, e.g. *"place blue at f two now"*, *"bin red by g nine soon"*. |
-| **Any speech (experimental)** | Best seed of the film-trained model (`reports/flix_v2/lm/lm_summary.json`) | Word list + bigram LM (`data/flix_lm.json`) | Showing where open vocabulary stands. Expect rough results (≈96% WER on unseen films). |
+| **GRID sentences** | P4, `checkpoints/p_proposed_best.pt` | B1, `checkpoints/b1_audio_only_best.pt` | GRID grammar |
+| **Any speech** | ws_v5, `runs/flix_v5/flix_v5_fusion_gated_ws_20261116-093641/best.pt` | twin_v5, `runs/flix_v5/flix_v5_fusion_wp_audio_20261116-000004/best.pt` | beam + 4-gram LM, the F-04 settings (`reports/flix_v5/final_decoder.md`) |
 
-To use a newer film model (e.g. v3, due around Monday), set
-`DEMO_FILMS=<path to best.pt>` before starting the server.
+"Any speech" makes its inputs exactly as the Flix v5 clips were made: frames at 25 fps and at most
+640 px wide, MediaPipe landmarks, the Auto-AVSR mouth crop, and 16 kHz audio over the same window,
+with 0.32 s added on each side of the speech. On 32 v5 test clips (16 TED, 16 film), batched as in
+the evaluation, the backend gives exactly the evaluation's captions: 64 of 64 model outputs, both
+greedy and beam + LM. The demo runs one segment at a time, and then 37 of 40 outputs match; the
+other 3 differ by a word, because WavLM's normalisation sees a batch's padding.
+
+### Runs
+
+| Run | Input | What comes back |
+|---|---|---|
+| **Live** | MediaRecorder chunks every 1 s | `partial` about every 0.5 s: finished stretches of speech (beam + LM) and the stretch still going on as `pending` (greedy, replaced when it ends) |
+| **Clip** | a 3 s recording | one `final` with both captions, the gate over the whole clip and 4 mouth crops |
+| **Upload** | a file of any length, up to 8 GB or 3 hours (MP4, MKV, MOV, WebM; any codec PyAV reads) | `cues` in batches while the file uploads, then `final` |
+
+**How uploads work.** The page does not send the file in one go. The backend asks for 4 MB pieces
+(`need`), at most 3 at a time, so no request comes near Cloudflare's 100 MB limit. It asks first for
+the bytes the decoder is waiting on. An MP4 whose index (`moov`) is at the end of the file can
+therefore start at once: the backend asks for the last piece, then reads from the start. Speech is
+cut into stretches of at most 4 s with Silero VAD, and each stretch becomes one subtitle cue.
+
+**Which caption to trust.** ws_v5 learned only from clips that showed one large, frontal face with
+moving lips, no camera cut, and the face in at least 90 % of frames (the rules in
+`scripts/mine_flix.py`). On other footage the visible lips may belong to someone who is not
+speaking, and then ws_v5 does much worse than ears alone (F-04: 103 % WER when the voice is someone
+else's). So every upload cue says whether its segment passes those rules (`lips_used`, with the
+`reason` when it does not). The page's **Best of both** track shows ws_v5 for those cues and twin_v5
+for the rest.
+
+Tested on 17 Nov 2026 on two held-out test films (excerpts):
+
+- *Challengers* (10 min MP4, index at the end): captioned in 54 s, 116 cues. Lips were used for 1 %
+  of the speech, because the film is mostly cutaways and profiles. Against the film's subtitles the
+  WER is about 40 % for each track: ears 39.4 %, ears + lips 40.6 %, best of both 39.6 %. Subtitles
+  paraphrase, so treat this as a rough check.
+- *Little Women* (5 min MKV): captioned in 40 s, 68 cues; lips used for 10 % of the speech.
+- Live mode in Chrome (camera and microphone simulated from a film clip): the first words appear
+  about 3 s after you start talking.
 
 ## Running it (on the Alienware)
 
-Everything lives in `~/Desktop/lipscribe_flix`, the Flix checkout. That folder has the film
-model, `data/flix_lm.json`, `models/face_landmarker.task`, and `asr_pkgs/`, which holds
-`imageio-ffmpeg`. That package is the only ffmpeg on the machine.
+The demo runs from a clean copy of the repository, `~/Desktop/lipscribe_demo`. It has symlinks to
+the large assets in `~/Desktop/lipscribe_flix` and `~/Desktop/cv_project_LipScribe`: `.venv`,
+`runs/`, `lm/`, `models/face_landmarker.task`, `pretrained/`, `Data/` (MUSAN), `checkpoints/`,
+`data/stats/` and `asr_pkgs/` (imageio-ffmpeg). The environment also needs `websockets`, `av` and
+`silero-vad`. They were installed on 17 Nov, `silero-vad` with `--no-deps` so that torch stays as
+it is.
 
 ```bash
-cd ~/Desktop/lipscribe_flix
-# access code: generate once and keep it out of git (.demo_code is not committed)
+cd ~/Desktop/lipscribe_demo
+# access code: generate once and keep it out of git
 [ -f .demo_code ] || python3 -c "import secrets; print(secrets.token_urlsafe(9))" > .demo_code
-DEMO_CODE="$(cat .demo_code)" PYTHONPATH=asr_pkgs nohup setsid .venv/bin/python -m uvicorn demo.server:app \
-    --host 127.0.0.1 --port 8800 >> logs/demo_server.log 2>&1 &
-curl -s http://127.0.0.1:8800/health       # {"ok":true,"models":{"grid":...,"films":...}}
+DEMO_CODE="$(cat .demo_code)" PYTHONPATH=.:asr_pkgs HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 \
+  nohup setsid .venv/bin/python -m uvicorn demo.server:app --host 127.0.0.1 --port 8800 \
+  --ws-max-size 16777216 >> logs/demo_server.log 2>&1 &
+curl -s http://127.0.0.1:8800/health   # {"ok": true, "models": {"any": [...], "grid": [...]}, ...}
 ```
 
-Stop it with `pkill -f "uvicorn demo.server:app"`.
+The models take about 30 s to load; until then `/health` says `"loading": true`. `DEMO_MODELS=any`
+or `DEMO_MODELS=grid` loads only one pair. The server takes up to 3 recordings at once and one
+upload at a time; the GPU runs one segment at a time, so a camera clip still gets through while a
+film is being captioned.
 
 ### Open it privately (SSH tunnel, nothing public)
 
-From a laptop that can `ssh alienware`:
-
 ```bash
 ssh -N -L 8800:localhost:8800 alienware
-# then open http://localhost:8800/?code=<the code in .demo_code>
+# then open http://localhost:8800/?backend=self&code=<the code in .demo_code>
 ```
 
-Browsers only allow the camera on **https** or **localhost**, so this works on that laptop
-only. To use another device, use the public tunnel below.
+Browsers only allow the camera on **https** or **localhost**, so this works on that laptop only.
+Uploads work from any browser.
 
 ### Open it from any device (Cloudflare quick tunnel, public)
 
-`cloudflared` is installed in `~/bin` on the Alienware. It is the official release, and its
-sha256 was checked against the release notes. It connects **out** to Cloudflare, so no port is
-opened on the university network. No Cloudflare account is needed.
+`cloudflared` is in `~/bin` on the Alienware (the official release, sha256 checked). It connects
+**out** to Cloudflare, so no port is opened on the university network, and no account is needed.
 
 ```bash
-cd ~/Desktop/lipscribe_flix
 nohup setsid ~/bin/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:8800 > logs/cloudflared.log 2>&1 &
 grep -oE "https://[a-z0-9-]+\.trycloudflare\.com" logs/cloudflared.log | head -1
-# share:  https://<random>.trycloudflare.com/?code=<code>
+# share:  https://<random>.trycloudflare.com/?backend=self&code=<code>
+#    or:  https://lipscribe.pages.dev/?backend=wss://<random>.trycloudflare.com/ws/live&code=<code>
 ```
 
-- **Stop the tunnel:**
-  ```
-  pkill -f "^$HOME/bin/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:8800"
-  ```
-  Keep this exact pattern. The Alienware also runs **another user's** `cloudflared`
-  (`--url http://web:8081`), and that one must be left alone.
-- **Restart the tunnel after a reboot:** run `touch .demo_tunnel` and the boot script will
-  restart it too. It currently does **not**; the tunnel was switched off on 12 Nov.
+- **Stop the tunnel** with exactly
+  `pkill -f "^$HOME/bin/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:8800"`.
+  The Alienware also runs **another user's** `cloudflared` (`--url http://web:8081`); leave it alone.
 - **Address changes:** the address changes every time the tunnel starts.
-- **Access code:** anyone with the address still needs the code. Don't post the link with the
+- **Access code:** anyone with the address still needs the code. Do not post the link with the
   code in it publicly.
-- **Permission:** it is a shared university machine. Agree with whoever runs it before you
-  leave a public tunnel up.
+- **Permission:** it is a shared university machine. Agree with whoever runs it before you leave a
+  public tunnel up.
 
-### A fixed address + the page on Cloudflare Pages (not done yet)
+### Test it without a browser
 
-1. Create a free Cloudflare account. A domain on Cloudflare is needed for a named tunnel
-   hostname.
-2. On the Alienware, create a named tunnel to the backend:
-   ```
-   ~/bin/cloudflared tunnel login
-   ~/bin/cloudflared tunnel create lipscribe
-   ~/bin/cloudflared tunnel route dns lipscribe api.<domain>
-   ~/bin/cloudflared tunnel run --url http://127.0.0.1:8800 lipscribe
-   ```
-3. Deploy the frontend: `npx wrangler pages deploy demo/ --project-name lipscribe`, or drag
-   `demo/index.html` into *Workers & Pages → Create → Pages → Upload*.
-4. Open `https://lipscribe.pages.dev/?api=https://api.<domain>&code=<code>`. The page keeps
-   the server address and code in localStorage, and they can also be changed under
-   **Settings**. CORS is already open on the backend; the access code is the protection.
-
-## API
-
-```
-POST /caption   multipart: clip=<webm|mp4 with audio>, model=grid|films ; header X-Demo-Code
-  200 {"caption": "bin blue at j five please", "seconds": 2.08, "model": "p_init_b1_b2_v2 (grammar)",
-       "face_fraction": 1.0, "lips_trust": 0.23, "warnings": [], "mouth_strip": "data:image/png;base64,…"}
-  401 wrong code · 413 > ~10 s · 422 friendly input problem (e.g. no face and video-only model)
-GET  /health    {"ok": true, "models": {...}}
-```
-
-A test you can run on the Alienware. It converts a GRID test-speaker clip to WebM the way
-Chrome records, then posts it:
+`scripts/demo_ws_client.py` drives the WebSocket exactly as the page does (start message, binary
+chunks or `need` replies, stop) and prints every message with its arrival time:
 
 ```bash
-FF=$(PYTHONPATH=asr_pkgs .venv/bin/python -c "import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())")
-M=Data/grip_corpus/grid-corpus-dataset-for-training-lipnet/data/s24_processed/bbaj5p.mpg   # "bin blue at j five please"
-$FF -y -i $M -c:v libvpx -b:v 1M -c:a libopus -ac 1 /tmp/t.webm
-curl -s -H "X-Demo-Code: $(cat .demo_code)" -F clip=@/tmp/t.webm -F model=grid http://127.0.0.1:8800/caption
+.venv/bin/python scripts/demo_ws_client.py "ws://127.0.0.1:8800/ws/live?code=$(cat .demo_code)" clip grid clip.webm --snr -5
+.venv/bin/python scripts/demo_ws_client.py "ws://127.0.0.1:8800/ws/live?code=$(cat .demo_code)" upload any film.mp4
 ```
+ The 17 Nov tests used held-out GRID speaker s4 and test-film
+excerpts. At −5 dB of MUSAN noise, B1 heard *"bin blue at l five please"* as "bin blue at **f** five
+please", and P4 got it exactly right.
 
-Tested on 12 Nov, through the public tunnel:
-
-- Speaker s24, *"bin blue at j five please"*: **exact**, in 2.1 s.
-- Speaker s4, *"bin blue at e nine now"*: **exact**, in 2.8 s.
-- Wrong code: refused with 401.
-
-## How to continue
-
-1. **Test on real devices:** phones and laptops; Safari (sends MP4) and Chrome (WebM); no face
-   in view; silence; noisy rooms (the lips share of the trust bar should rise); two uploads at
-   once (the second waits for the first).
-2. **Live captions (next feature):** the model reads a whole window both ways in time
-   (BiLSTM), so it can't caption word by word. Plan:
-   - add a WebSocket endpoint;
-   - have the page send `MediaRecorder` chunks every ~1 s (`rec.start(1000)`);
-   - on the server, keep the last ~3 s, decode it with `LipScribe.transcribe`, and push the
-     caption back.
-   Expect ~1–2 s delay. Roughly 2–3 hours of work.
-3. **Fixed address / Cloudflare Pages:** see the section above.
-4. **Better open-vocabulary model:** when v3 (film + Whisper + TED clips) finishes, point
-   `DEMO_FILMS` at its best checkpoint.
-
-## Don't disturb (long jobs on the Alienware, Nov 2026)
-
-Training runs for days in `~/Desktop/lipscribe_flix`. See the PR description and
-`scripts/flix_chain_run.sh`.
-
-- **The jobs:** `scripts/ted_harvest.py` (TED clip harvest) and `scripts/flix_chain_run.sh`
-  (ResNet tuning, then v3 on the full data; ~3–4 days).
-- **After a reboot:** both restart by themselves (`crontab -l` → `scripts/flix_boot.sh`). If
-  needed, restart by hand with `BOOT_DELAY=0 bash scripts/flix_boot.sh`; it never starts a
-  second copy.
-- **Logs:** `logs/flix_chain.log`, `logs/ted_harvest.log`, `logs/boot.log`,
-  `logs/demo_server.log`.
-- **The demo shares the GPU:** a caption takes a few seconds even while training runs.
-The demo page is one static page with no build step: `demo/index.html`, plus `demo/app.js` (the page logic) and `demo/mock-backend.js` (a pretend backend for testing).
+`legacy.html`, the first page, used the old `POST /caption` endpoint, which has been removed.
 
 ## Using the page
 
@@ -170,12 +152,15 @@ The demo page is one static page with no build step: `demo/index.html`, plus `de
 2. Pick how you want captions:
    - **Live**: press the glowing button and talk normally. Words appear while you speak. Press it again (or Esc) to stop.
    - **Clip**: press the button and say one sentence. It stops by itself after 3 seconds, and the captions arrive 2–3 seconds later.
+   - **Upload** (in Clip mode): choose a video file instead, of any length, even a whole film. It plays in the page while it uploads, and captions arrive in batches a little ahead of the picture. If playback catches up with them, the video pauses until they are ahead again. Pick the subtitle track (**Best of both**, **Ears only** or **Ears + lips**) and download it as an `.srt` file.
 3. Pick the model:
    - **GRID sentences**: the six-word GRID commands, e.g. "bin blue at j five please".
    - **Any speech**: open vocabulary (experimental).
 4. Read the results:
    - **Ears only** (sound alone) and **Ears + lips** (sound and lips) are shown side by side. Words where Ears only disagrees with Ears + lips are underlined in pink.
    - **Room noise** is measured automatically. The louder the room, the more the model leans on the lips.
+   - **Add test noise before captioning** mixes MUSAN noise into the sound at the chosen level (10 to −10 dB) before the models hear it, the same noise as the test sets. It shows what the lips add when the sound gets bad.
+   - In an upload, the small label under **Ears + lips** says whether the lips were used for the line playing now, and why not when they were not.
    - **Who the model trusted**: each bar is one frame (25 a second). Teal is the sound's share of the model's trust and pink is the lips' share.
    - **What the eyes saw**: the 96×96 mouth crops the model used.
 
@@ -190,7 +175,8 @@ The page follows the device's theme. Use the moon/sun button to switch, or add `
 | Address | What it talks to |
 |---|---|
 | `…/` (nothing added) | The **pretend backend** in `mock-backend.js`. It shows sample captions, and the mouth crops come from your own camera. |
-| `…/?backend=wss://HOST/ws/live` | The **real backend** on the Alienware |
+| `…/?backend=wss://HOST/ws/live&code=CODE` | The **real backend** on the Alienware. The code is remembered in this browser. |
+| `…/?backend=self&code=CODE` | The backend that served the page (e.g. `http://localhost:8800` through the SSH tunnel) |
 
 Once the backend address stops changing, set `DEFAULT_BACKEND` at the top of `app.js`.
 
@@ -202,7 +188,8 @@ Testing switches for the pretend backend:
 
 ## Message format (for the backend)
 
-The page opens **one WebSocket** per recording.
+The page opens **one WebSocket** per recording or upload, at `/ws/live?code=<access code>`. A wrong
+code gets `{"type":"error","code":"bad_code"}` and the socket closes.
 
 ### Page → backend
 
@@ -212,14 +199,20 @@ The page opens **one WebSocket** per recording.
    {"type":"start","run":"live","mode":"grid","mime":"video/webm;codecs=vp8,opus","chunk_ms":1000,"fps":25,"clip_seconds":null}
    ```
 
-   - `run` is `live` or `clip`.
+   - `run` is `live`, `clip` or `upload`.
    - `mode` is `grid` (GRID sentences) or `any` (Any speech).
    - `clip_seconds` is `3` in Clip mode and `null` in Live mode.
    - Safari sends `video/mp4` instead of WebM, so read `mime`.
+   - `snr` (optional): `null` for the sound as recorded, or a number in dB; the backend mixes MUSAN test noise in at that level before captioning.
+   - Upload only: `"name"` and `"size"` (bytes) of the file. GRID sentences takes uploads of up to 10 s.
 
 2. **Binary messages**: MediaRecorder chunks of audio and video together, one about every `chunk_ms`. The first chunk carries the container header, so join the chunks in order to decode them.
 
 3. A text message `{"type":"stop"}` after the last chunk.
+
+**Upload:** instead of chunks, the page answers each `need` message with one binary message: the
+8-byte big-endian `offset`, then exactly `length` bytes of the file from that offset.
+`{"type":"cancel"}` stops the upload.
 
 ### Backend → page
 
@@ -268,7 +261,30 @@ Clip mode only. It drives the "Reading your lips…" steps.
 {"type":"error","code":"no_face","message":"optional detail for the console"}
 ```
 
-The page has friendly text for these codes: `no_face`, `no_audio`, `clip_too_short`, `server_busy`. Any other code shows a general message.
+The page has friendly text for these codes: `no_face`, `no_audio`, `clip_too_short`, `server_busy`, `bad_code`, `bad_file`, `file_too_large`, `grid_too_long`, `model_unavailable`, `server_error`. Any other code shows a general message.
+
+### Upload messages (backend → page)
+
+```json
+{"type":"ready","ears_model":"twin_v5","lips_model":"ws_v5","chunk_bytes":4194304}
+{"type":"need","offset":88080384,"length":4194304}
+{"type":"progress","uploaded":12582912,"size":89389751}
+{"type":"progress","captioned_s":131.2,"duration_s":600.2}
+{"type":"cues","captioned_s":152.3,"duration_s":600.2,
+ "cues":[{"i":3,"start":149.67,"end":151.36,"ears":"know shes a pillar of the community",
+          "lips":"i know shes a pill of the community","lips_used":false,"reason":"not frontal",
+          "face":0.95,"gate":[0.31,0.29],"crops":[{"t":149.7,"src":"data:image/jpeg;base64,..."}]}]}
+{"type":"final","processing_s":54.2,"cues":116,"duration_s":600.2,"face_found":0.36,"lips_share":0.006}
+```
+
+| Field | Meaning |
+|---|---|
+| `start`, `end` | Where the speech is, in seconds of the file. The model heard 0.32 s more on each side. |
+| `ears`, `lips` | twin_v5 and ws_v5 (or B1 and P4) for this stretch. |
+| `lips_used`, `reason` | Whether the segment passes the training-clip rules, so that ws_v5's line can be trusted; if not, why (`camera cut`, `no face`, `not frontal`, `face too small`, `2nd face`, `face lost`, `lips still`). |
+| `gate`, `crops` | The lips' share of trust for each frame of the speech, and 4 mouth crops. |
+| `captioned_s` | Everything before this time has been captioned. |
+| `lips_share` | The fraction of the speech time whose line came from ws_v5. |
 
 ## Run it on your laptop
 
