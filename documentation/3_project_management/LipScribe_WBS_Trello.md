@@ -1047,11 +1047,12 @@ The audio-only twin twin_v5 (`runs/flix_v5/flix_v5_fusion_wp_audio_20261116-0000
 - **Estimate:** 4 h
 - **Description:** Pick ws_v5's decoder on validation, then score the locked v5 test sets once more with it. Beam + 4-gram LM gained 0.5–1 point for the v4 models (`reports/flix_v4/beam.md`).
 - **Checklist:**
-  - [ ] Tune beam width and the LM's alpha/beta on `film_val` + `ted_val` (`scripts/flix_v4_beam.py`, `lm/flix_train_4gram.arpa`)
-  - [ ] Score twin_v5 and ws_v5 on the v5 test sets once: greedy and beam + LM at clean, 0, −5, −10 dB
-  - [ ] Table of the v6 wrong-audio conditions (silent, talk-over, replace) for the limitations
-  - [ ] Copy the twin_v5 and ws_v5 checkpoints and configs to the release folder
+  - [x] Tune beam width and the LM's alpha/beta on `film_val` + `ted_val` (`scripts/flix_v4_beam.py`, `lm/flix_train_4gram.arpa`)
+  - [x] Score twin_v5 and ws_v5 on the v5 test sets once: greedy and beam + LM at clean, 0, −5, −10 dB
+  - [x] Table of the v6 wrong-audio conditions (silent, talk-over, replace) for the limitations
+  - [x] Copy the twin_v5 and ws_v5 checkpoints and configs to the release folder
 - **Done when:** `reports/flix_v5/final_decoder.md` holds the decoder settings and the final real-world table.
+- **Status (17 Nov):** Done on 17 Nov, 07:50 (`scripts/flix_v5_beam.py`, run by `scripts/flix_v5_beam_run.sh`). On validation, the LibriSpeech + own-transcript 4-gram won for every model. ws_v5 uses alpha 0.2, beta 1.0, width 32; twin_v5 uses alpha 0.2, beta 0.5, width 64. Test WER % with beam + LM, ws_v5 (twin_v5): TED clean 16.9 (15.7), −10 dB 28.5 (42.3); films clean 27.3 (27.7), −10 dB 49.2 (64.5). The decoder gains 1–3 points over greedy. The lips cut 14–15 points at −10 dB (CIs exclude zero) but cost 1.3 points on clean TED (CI [+0.6, +1.8]). The wrong-audio table is unchanged in kind: ws_v5 still fails on replaced audio (TED 103 %). Checkpoints, configs and the decoder settings are in `~/Desktop/lipscribe_release/real_world/` on the Alienware, with `SHA256SUMS`.
 
 ### F-05 · Demo backend on the real-world model
 - **Owner:** Cole Rodney Migisha
