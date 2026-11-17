@@ -1,0 +1,35 @@
+% Author: Ainomugisha Faith (first draft written 16 Nov from the repository; check and extend).
+\section{Data and Noise}
+\label{sec:data}
+
+\subsection{GRID corpus}
+LipScribe is trained and tested on the GRID audio-visual corpus~\cite{cooke2006}. Every GRID
+sentence follows a six-slot command grammar (command, colour, preposition, letter, digit,
+adverb) drawn from 51 words, and lasts 3~s: 75 video frames at 25~frames/s with 16~kHz audio.
+The team verified every utterance before use (\texttt{scripts/verify\_dataset.py}): video,
+audio and alignment files present; $75 \pm 2$ decodable frames; audio duration within 40~ms of
+the video; a six-word transcript from the GRID word list; audio neither silent nor clipped
+throughout; and a Face Mesh success rate of at least 90~\% of frames.
+
+The split is speaker-independent (\texttt{data/splits.csv}), so no test speaker is ever seen in
+training: 26 speakers for training (25,891 usable utterances), 3 for validation (3,000) and 4
+for testing (3,999), 32,890 in total. Speaker s21 is excluded because its video is missing.
+The split was fixed in Week~1 and never regenerated.
+
+\subsection{Noise}
+Background noise comes from the MUSAN corpus~\cite{snyder2015}. Its 930 noise files are split
+by file into separate pools for training (651), validation (139) and testing (140), so no noise
+recording appears in more than one pool. During training each utterance is mixed with a random
+training-pool segment at a signal-to-noise ratio (SNR) drawn uniformly from clean, 10, 5, 0 and
+$-5$~dB. Validation and test use fixed noisy copies of every utterance at the same five levels,
+made once with deterministic seeds (\texttt{scripts/make\_noisy\_test.py}), so every model is
+scored on identical audio. After mixing, each waveform is scaled to $-25$~dBFS RMS with the
+gain capped at 20~dB, so near-silent clips are not amplified into pure noise.
+
+\subsection{Real-world data}
+% TODO (Faith, F-11): two short paragraphs on the out-of-domain data used for the real-world
+% model: subtitled films and series mined into GRID-format clips (scripts/mine_flix.py; one
+% visible, frontal speaker per clip), films without subtitles and TED talks labelled by Whisper
+% word timestamps, the download-mine-delete harvester (only mouth crops are kept), and the
+% film/TED train, validation and test splits (test titles and talks never used in training).
+% Numbers: reports/flix_v5/decision_log.md (manifest counts) and the Week 4 report.

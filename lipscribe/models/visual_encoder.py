@@ -148,13 +148,17 @@ class ResNetVisualEncoder(nn.Module):
     """Conv3d (5x7x7) front end + per-frame ResNet-18 trunk + 2-layer BiLSTM."""
 
     def __init__(self, dropout: float = 0.3, spatial_dropout: float = 0.0,
-                 input_norm: str = "clip") -> None:
+                 input_norm: str = "clip", frontend: str = "3d") -> None:
         super().__init__()
         if input_norm not in ("none", "clip"):
             raise ValueError(f"input_norm must be 'none' or 'clip', got {input_norm!r}")
+        if frontend not in ("3d", "2d"):
+            raise ValueError(f"frontend must be '3d' or '2d', got {frontend!r}")
         self.input_norm = input_norm
+        self.frontend_kind = frontend
+        k_t, p_t = (5, 2) if frontend == "3d" else (1, 0)   # 2d = per-frame, no temporal kernel
         self.frontend = nn.Sequential(
-            nn.Conv3d(1, 64, kernel_size=(5, 7, 7), stride=(1, 2, 2), padding=(2, 3, 3), bias=False),
+            nn.Conv3d(1, 64, kernel_size=(k_t, 7, 7), stride=(1, 2, 2), padding=(p_t, 3, 3), bias=False),
             nn.BatchNorm3d(64),
             nn.ReLU(inplace=True),
             nn.MaxPool3d(kernel_size=(1, 3, 3), stride=(1, 2, 2), padding=(0, 1, 1)),
@@ -198,5 +202,6 @@ def build_visual_encoder(model_cfg: dict | None = None, dropout: float = 0.3) ->
                              input_norm=cfg.get("input_norm", "none"))
     if name == "resnet18_bilstm":
         return ResNetVisualEncoder(dropout=dropout, spatial_dropout=spatial,
-                                   input_norm=cfg.get("input_norm", "clip"))
+                                   input_norm=cfg.get("input_norm", "clip"),
+                                   frontend=str(cfg.get("frontend", "3d")))
     raise ValueError(f"Unknown visual_encoder {name!r} (conv3d_bilstm or resnet18_bilstm)")

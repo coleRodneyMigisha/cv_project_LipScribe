@@ -81,7 +81,7 @@ def run_overfit(
                 ).item()
                 hyps = greedy_decode(eval_out["log_probs"].float(), eval_out["lengths"])
                 cur_cer = cer(batch["texts"], hyps)
-                gate_mean = eval_out["gate"].mean().item()
+                gate_mean = eval_out["gate"].mean().item() if eval_out.get("gate") is not None else float("nan")
                 best_cer = min(best_cer, cur_cer)
                 best_loss = min(best_loss, eval_loss)
 
