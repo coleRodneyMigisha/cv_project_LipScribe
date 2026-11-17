@@ -43,6 +43,9 @@
     bad_file: ['We couldn’t read that file', 'Try an .mp4, .mkv, .mov or .webm video with sound.'],
     file_too_large: ['That file is too big', 'Files up to 8 GB (about 3 hours) can be captioned.'],
     grid_too_long: ['GRID sentences takes short clips', 'Upload a clip of up to 10 seconds, or switch to Any speech for longer videos.'],
+    no_meeting_audio: ['The shared screen has no sound', 'Share again and tick “Share tab audio” (or “Share system audio” on Windows), or pick a sound device under “Meeting sound from”.'],
+    display_denied: ['Screen sharing was cancelled', 'Press the button again and choose the meeting’s tab, window or screen.'],
+    bad_zoom_link: ['That isn’t a Zoom caption link', 'Paste the caption API token from Zoom (CC → Set up manual captioner → Copy the API token), or leave the box empty.'],
     needs_backend: ['Uploads need the real backend', 'Open the page with ?backend=… to caption a file; the pretend backend only does camera captions.'],
     model_unavailable: ['That model isn’t loaded', 'Switch model, or ask the team to start the server with both models.'],
     server_error: ['The server hit a problem', 'Try again. If it keeps happening, tell the team what you did.'],
@@ -68,7 +71,8 @@
     camera: document.querySelector('.camera'), player: $('filePlayer'), snrSel: $('snrSel'),
     uploadBox: $('uploadBox'), upIntro: $('upIntro'), fileInput: $('fileInput'), fileBtn: $('fileBtn'), backBtn: $('backBtn'),
     upPanel: $('upPanel'), barUp: $('barUp'), barCap: $('barCap'), barHead: $('barHead'), upSent: $('upSent'), upCap: $('upCap'),
-    srtBtn: $('srtBtn'), lipsChip: $('lipsChip'), lipsFoot: $('lipsFoot'), upNote: $('upNote'), noiseRow: $('noiseRow')
+    srtBtn: $('srtBtn'), lipsChip: $('lipsChip'), lipsFoot: $('lipsFoot'), upNote: $('upNote'), noiseRow: $('noiseRow'),
+    meetingBox: $('meetingBox'), meetingPanel: $('meetingPanel'), soundSel: $('soundSel'), zoomUrl: $('zoomUrl'), zoomStatus: $('zoomStatus')
   };
 
   // ---------- State ----------
@@ -89,7 +93,9 @@
     run: 'live', mode: 'grid', stream: null, recorder: null, socket: null,
     phase: 'nocam',       // nocam | ready | recording | waiting
     startedAt: 0, raf: 0, gate: [], crops: [], connectTimer: 0, replyTimer: 0, gotFinal: false,
-    up: null              // upload in progress or finished: see "Upload" below
+    up: null,             // upload in progress or finished: see "Upload" below
+    source: 'camera',     // Live mode: 'camera' or 'meeting' (a shared tab, window or screen)
+    runStream: null       // the stream being recorded when it is not the camera
   };
 
   // ---------- Helpers ----------
@@ -313,11 +319,18 @@
     el.fileBtn.classList.toggle('disabled', S.phase === 'recording' || S.phase === 'waiting');
     el.backBtn.hidden = true; el.upPanel.hidden = true; el.lipsChip.hidden = true;
     var live = S.run === 'live', rec = S.phase === 'recording', wait = S.phase === 'waiting';
+    var meeting = live && S.source === 'meeting';
+    el.meetingBox.hidden = !live;
+    el.meetingPanel.hidden = !meeting;
+    if (sourceBtns) sourceBtns.forEach(function (x) { x.disabled = rec || wait; });
+    el.camera.classList.toggle('screen', meeting && !!S.runStream);
     el.left.classList.toggle('recording', rec);
-    el.recBtn.disabled = S.phase === 'nocam' || wait;
+    el.recBtn.disabled = (S.phase === 'nocam' && !meeting) || wait;
     el.recBtn.setAttribute('aria-label', rec ? (live ? 'Stop live captions' : 'Stop recording') : (live ? 'Start live captions' : 'Record a clip'));
-    el.recTitle.textContent = rec ? (live ? 'Live captions are on' : 'Recording…') : wait ? 'Working on it…' : (live ? 'Start live captions' : 'Record a clip');
-    el.recHelp.textContent = live
+    el.recTitle.textContent = rec ? (meeting ? 'Captioning the meeting' : live ? 'Live captions are on' : 'Recording…') : wait ? 'Working on it…' : (meeting ? 'Caption a meeting' : live ? 'Start live captions' : 'Record a clip');
+    el.recHelp.textContent = meeting
+      ? (rec ? 'Captions follow the meeting a few seconds behind. Tap to stop, or stop sharing.' : 'Choose the meeting’s tab, window or screen when the browser asks.')
+      : live
       ? 'Talk normally. Words appear as you speak; tap again to stop.'
       : 'Face the camera and say one sentence. We stop at ' + CLIP_SECONDS + ' seconds.';
     el.recLabel.textContent = live ? 'LIVE' : 'REC';
@@ -394,7 +407,8 @@
   // ---------- Recording + socket ----------
   el.recBtn.addEventListener('click', function () {
     if (S.up) { if (!S.up.done && !S.up.failed) cancelUpload(); return; }
-    if (S.phase === 'ready') startRun();
+    if (S.run === 'live' && S.source === 'meeting' && (S.phase === 'ready' || S.phase === 'nocam')) startMeeting();
+    else if (S.phase === 'ready') startRun();
     else if (S.phase === 'recording') stopRun();
   });
   document.addEventListener('keydown', function (e) {
@@ -416,10 +430,14 @@
       clearTimeout(S.connectTimer);
       if (S.socket !== sock) return;
       var mime = pickMime();
-      sock.send(JSON.stringify({ type: 'start', run: S.run, mode: S.mode, mime: mime, chunk_ms: CHUNK_MS, fps: FPS, clip_seconds: S.run === 'clip' ? CLIP_SECONDS : null, snr: snrValue() }));
+      var meetingRun = !!S.runStream;
+      sock.send(JSON.stringify({ type: 'start', run: S.run, mode: S.mode, mime: mime, chunk_ms: CHUNK_MS, fps: FPS,
+        clip_seconds: S.run === 'clip' ? CLIP_SECONDS : null, snr: snrValue(), source: meetingRun ? 'meeting' : 'camera',
+        zoom_url: meetingRun && el.zoomUrl.value.trim() ? el.zoomUrl.value.trim() : null }));
       if (window.MediaRecorder) {
         try {
-          S.recorder = mime ? new MediaRecorder(S.stream, { mimeType: mime }) : new MediaRecorder(S.stream);
+          var recStream = S.runStream || S.stream;
+          S.recorder = mime ? new MediaRecorder(recStream, { mimeType: mime }) : new MediaRecorder(recStream);
         } catch (e) { fail('unsupported', e); return; }
         S.recorder.ondataavailable = function (ev) {
           if (ev.data && ev.data.size && sock.readyState === 1) sock.send(ev.data);
@@ -469,6 +487,10 @@
     switch (msg.type) {
       case 'ready':
         break;
+      case 'zoom':
+        el.zoomStatus.className = 'zoom-status ' + (msg.ok ? 'ok' : 'bad');
+        el.zoomStatus.textContent = msg.ok ? 'Sent ' + msg.sent + (msg.sent === 1 ? ' line' : ' lines') + ' to Zoom' : 'Zoom: ' + (msg.message || 'could not send');
+        break;
       case 'progress':
         if (msg.step) setStep(msg.step);
         break;
@@ -517,9 +539,81 @@
     var sock = S.socket; S.socket = null;
     if (sock && sock.readyState <= 1) { try { sock.close(); } catch (e) {} }
     renderMouthBox(null);
+    if (S.runStream) {
+      S.runStream.getTracks().forEach(function (t) { t.stop(); });
+      S.runStream = null;
+      el.video.srcObject = S.stream || null;
+      if (!S.stream) el.camEmpty.style.display = '';
+    }
     S.phase = S.stream ? 'ready' : 'nocam';
     render();
   }
+
+  // ---------- Meeting captions (Live mode) ----------
+  // The meeting's picture comes from screen sharing; its sound from the shared tab or screen, or
+  // from an audio input (a virtual device such as BlackHole on a Mac, "Monitor of …" on Linux).
+  var sourceBtns = document.querySelectorAll('[data-source]');
+  sourceBtns.forEach(function (b) {
+    b.addEventListener('click', function () {
+      S.source = b.getAttribute('data-source');
+      pressOne(sourceBtns, 'data-source', S.source);
+      if (S.source === 'meeting') listSoundInputs();
+      resetResults(); render();
+    });
+  });
+  var savedZoom = store('lipscribe-zoom'); if (savedZoom) el.zoomUrl.value = savedZoom;
+  el.zoomUrl.addEventListener('change', function () { store('lipscribe-zoom', el.zoomUrl.value.trim()); el.zoomStatus.textContent = ''; });
+
+  function listSoundInputs() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+    navigator.mediaDevices.enumerateDevices().then(function (devs) {
+      var keep = el.soundSel.value;
+      while (el.soundSel.options.length > 1) el.soundSel.remove(1);
+      devs.filter(function (d) { return d.kind === 'audioinput'; }).forEach(function (d, i) {
+        var o = document.createElement('option');
+        o.value = d.deviceId; o.textContent = d.label || ('Sound input ' + (i + 1));
+        el.soundSel.appendChild(o);
+      });
+      el.soundSel.value = keep;
+      if (el.soundSel.selectedIndex < 0) el.soundSel.selectedIndex = 0;
+    }).catch(function () {});
+  }
+  el.soundSel.addEventListener('focus', listSoundInputs);
+
+  function startMeeting() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) { showError('unsupported'); return; }
+    if (!window.isSecureContext) { showError('needs_https'); return; }
+    var sound = el.soundSel.value;
+    navigator.mediaDevices.getDisplayMedia({
+      video: { frameRate: { ideal: FPS }, width: { max: 1280 }, height: { max: 1280 } },
+      audio: sound === 'shared' ? { echoCancellation: false, noiseSuppression: false, autoGainControl: false } : false,
+      systemAudio: 'include', selfBrowserSurface: 'exclude', surfaceSwitching: 'include'
+    }).then(function (screen) {
+      if (sound === 'shared') {
+        if (!screen.getAudioTracks().length) { screen.getTracks().forEach(function (t) { t.stop(); }); showError('no_meeting_audio'); return null; }
+        return screen;
+      }
+      return navigator.mediaDevices.getUserMedia({ audio: { deviceId: { exact: sound }, echoCancellation: false, noiseSuppression: false, autoGainControl: false } })
+        .then(function (mic) { return new MediaStream(screen.getVideoTracks().concat(mic.getAudioTracks())); })
+        .catch(function (e) { screen.getTracks().forEach(function (t) { t.stop(); }); throw e; });
+    }).then(function (stream) {
+      if (!stream) return;
+      S.runStream = stream;
+      el.video.srcObject = stream;
+      var p = el.video.play(); if (p && p.catch) p.catch(function () {});
+      el.camEmpty.style.display = 'none';
+      if (window.LipScribeMockSocket) window.LipScribeMockSocket.video = el.video;
+      stream.getVideoTracks()[0].addEventListener('ended', function () { if (S.phase === 'recording') stopRun(); });
+      el.zoomStatus.textContent = el.zoomUrl.value.trim() ? 'Waiting for the first line…' : '';
+      el.zoomStatus.className = 'zoom-status muted';
+      S.phase = 'ready';
+      startRun();
+    }).catch(function (err) {
+      var name = err && err.name;
+      showError(name === 'NotAllowedError' || name === 'AbortError' ? 'display_denied' : name === 'NotFoundError' ? 'camera_missing' : 'unknown', err);
+    });
+  }
+  if (params.get('source') === 'meeting') { S.source = 'meeting'; pressOne(sourceBtns, 'data-source', 'meeting'); }
 
   // ---------- Upload (Clip mode) ----------
   // The video plays from the person's own disk; only captions come back. Cues arrive in order, a

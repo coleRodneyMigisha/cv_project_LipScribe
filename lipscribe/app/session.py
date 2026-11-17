@@ -48,6 +48,14 @@ CLIP_MIN_S = 0.6
 CLIP_MIN_FACE = 0.5      # a camera clip with a face in fewer frames gets the no_face error
 
 
+TAIL_WORDS = 300          # live transcripts sent to the page are capped (an hour-long meeting)
+
+
+def _tail(lines: list[str], n: int = TAIL_WORDS) -> str:
+    words = " ".join(x for x in lines if x).split()
+    return " ".join(words[-n:])
+
+
 class SessionError(Exception):
     def __init__(self, code: str, message: str = ""):
         super().__init__(message or code)
@@ -94,7 +102,7 @@ class Session:
 
     def __init__(self, engines: Engines, run: str, mode: str, emit: Callable[[dict], None],
                  snr: float | None = None, size: int | None = None, mime: str = "", name: str = "",
-                 sid: str = "s"):
+                 sid: str = "s", source: str = "camera", zoom_url: str | None = None):
         if run not in ("live", "clip", "upload"):
             raise SessionError("bad_request", f"unknown run {run!r}")
         if mode not in ("any", "grid"):
@@ -102,6 +110,17 @@ class Session:
         if mode == "any" and engines.rw is None or mode == "grid" and engines.p4 is None:
             raise SessionError("model_unavailable", f"the {mode} model is not loaded")
         self.E, self.run, self.mode, self.emit, self.snr, self.sid = engines, run, mode, emit, snr, sid
+        # A meeting (shared tab or screen) shows many faces, tiles and screen shares, so it gets the
+        # strict training-clip rules, like an upload; a person at their own camera does not need them.
+        self.source = source if source in ("camera", "meeting") else "camera"
+        self.strict = run == "upload" or self.source == "meeting"
+        self.zoom = None
+        if zoom_url:
+            from lipscribe.app.zoom_captions import ZoomCaptioner, ZoomURLError
+            try:
+                self.zoom = ZoomCaptioner(zoom_url, report=emit)
+            except ZoomURLError as e:
+                raise SessionError("bad_zoom_link", str(e)) from e
         self.src = GrowingFile(size) if run == "upload" else LiveStream()
         fmt = None
         if run != "upload":
@@ -120,6 +139,8 @@ class Session:
     def start(self) -> None:
         self.reader.start()
         self.thread.start()
+        if self.zoom is not None:
+            self.zoom.start()
 
     def feed(self, data: bytes) -> None:                # live / clip: chunks in order
         self.src.append(data)
@@ -150,6 +171,9 @@ class Session:
         except Exception as e:                           # noqa: BLE001
             if not self.cancelled:
                 self.emit({"type": "error", "code": "server_error", "message": f"{type(e).__name__}: {e}"[:300]})
+        finally:
+            if self.zoom is not None:
+                self.zoom.close()
 
     def _check_media(self) -> None:
         tl = self.tl
@@ -232,11 +256,13 @@ class Session:
             limit = tl.duration if eof else None
             spans = [window(s, e, limit if limit else end) for s, e in ready]
             spans = [s for s in spans if s.end - s.start >= 0.3]
-            cues = self._caption_many(spans, strict=upload)
+            cues = self._caption_many(spans, strict=self.strict)
             for c in cues:
                 c["i"] = len(self.cues)
                 self.cues.append(c)
                 committed["ears"].append(c["ears"]); committed["lips"].append(c["lips"])
+                if self.zoom is not None:                  # the meeting's own captions: the routed line
+                    self.zoom.send(c["lips"] if c["lips_used"] else c["ears"])
                 dur = c["end"] - c["start"]
                 face_w += c["face"] * dur; face_n += dur; speech_t += dur
                 lips_t += dur if c["lips_used"] else 0.0
@@ -267,9 +293,9 @@ class Session:
                     pend = {"ears": p["ears"], "lips": p["lips"]}
                     last_partial = time.time()
                 msg = {"type": "final" if eof else "partial", "t": round(end, 2),
-                       "ears": {"text": " ".join(x for x in committed["ears"] if x), "pending": pend["ears"],
+                       "ears": {"text": _tail(committed["ears"]), "pending": pend["ears"],
                                 "model": E.names(self.mode)[0]},
-                       "lips": {"text": " ".join(x for x in committed["lips"] if x), "pending": pend["lips"],
+                       "lips": {"text": _tail(committed["lips"]), "pending": pend["lips"],
                                 "model": E.names(self.mode)[1]},
                        "gate": [g for c in cues for g in c["gate"]],
                        "crops": [x for c in cues for x in c["crops"]][-8:],

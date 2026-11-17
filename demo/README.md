@@ -161,6 +161,35 @@ please", and P4 got it exactly right.
 
 `legacy.html`, the first page, used the old `POST /caption` endpoint, which has been removed.
 
+## Captions in a Zoom meeting
+
+In **Live** mode, choose **Caption from: A meeting**. The host shares the meeting's tab, window or
+screen, and everyone in the Zoom meeting sees LipScribe's lines as the meeting's own closed captions.
+
+1. **Once, in the Zoom web settings** (Settings → Meeting → In meeting (advanced)): turn on
+   *Closed captioning* and *Allow use of caption API token to integrate with 3rd-party closed
+   captioning services*. Whether a free Zoom account offers this was not checked.
+2. **In the meeting:** CC → *Set up manual captioner* → *Copy the API token*, and paste it into
+   **Zoom caption API token** on the page. The token stops working if the meeting ends or restarts.
+3. **Meeting sound from:**
+   - *The shared tab or screen*: Zoom in a Chrome or Edge tab (tick "Share tab audio"), or the
+     Zoom app on Windows (share the screen and tick "Share system audio");
+   - *an audio input*: the Zoom app on a Mac, with its sound routed through a virtual device such
+     as BlackHole; on Linux, the "Monitor of …" input.
+4. Press the button and pick the meeting when the browser asks. Tell everyone in the meeting that
+   it is being captioned.
+
+The backend sends each finished line (the **Best of both** line: ws_v5 where the lips pass the
+training-clip rules, twin_v5 elsewhere) with a rising sequence number. It posts only to
+`https://….zoom.us` caption links (`lipscribe/app/zoom_captions.py`). The page shows how many lines
+reached Zoom, or why Zoom refused them. Lines appear in Zoom about 2–4 s after they are spoken,
+because only finished lines are sent. Meeting tiles are small and often show someone other than
+the speaker, so most lines come from the ears alone.
+
+Tested on 17 Nov in Chrome, with a tab playing a film clip and its sound from an audio input: live
+captions on the page, and the backend's posts reached Zoom's caption server, which refused the test
+token (403) as expected. Not yet tested in a real Zoom meeting.
+
 ## Using the page
 
 1. Open the page and press **Turn on camera & mic**. Allow both when the browser asks.

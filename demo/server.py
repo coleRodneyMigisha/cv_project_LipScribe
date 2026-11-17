@@ -148,14 +148,16 @@ async def live(ws: WebSocket, code: str = "") -> None:
     sid = uuid.uuid4().hex[:8]
     try:
         s = Session(_engines, run, mode, emit, snr=_snr(start.get("snr")), size=size,
-                    mime=start.get("mime", ""), name=start.get("name", ""), sid=sid)
+                    mime=start.get("mime", ""), name=start.get("name", ""), sid=sid,
+                    source=start.get("source", "camera"), zoom_url=start.get("zoom_url") or None)
     except SessionError as e:
         await _error(ws, e.code, e.message)
         return
     with _slock:
         _sessions[sid] = s
     s.start()
-    print(f"{time.strftime('%H:%M:%S')} session {sid} start run={run} mode={mode} size={size} snr={start.get('snr')}", flush=True)
+    print(f"{time.strftime('%H:%M:%S')} session {sid} start run={run} mode={mode} size={size} snr={start.get('snr')} "
+          f"source={start.get('source', 'camera')} zoom={'yes' if start.get('zoom_url') else 'no'}", flush=True)
     names = _engines.names(mode)
     await ws.send_text(json.dumps({"type": "ready", "ears_model": names[0], "lips_model": names[1],
                                    **({"chunk_bytes": CHUNK} if run == "upload" else {})}))

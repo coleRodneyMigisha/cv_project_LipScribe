@@ -228,6 +228,18 @@ footer strong { color: var(--text); }
 .snr-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 13px; }
 .snr-row select { min-height: 40px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--chip); color: var(--text); font: inherit; font-size: 13px; font-weight: 600; }
 
+/* ---------- Meeting captions (Live mode) ---------- */
+.meeting { display: flex; flex-direction: column; gap: 12px; padding-top: 18px; border-top: 1px solid var(--line); }
+.meeting label { font-size: 13px; }
+.meeting input[type=url], .meeting select { width: 100%; min-height: 42px; padding: 0 14px; border-radius: 14px; border: 1px solid var(--border); background: var(--chip); color: var(--text); font: inherit; font-size: 13px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.zoom-status { font-size: 13px; font-weight: 600; }
+.zoom-status.ok { color: var(--teal-text); }
+.zoom-status.bad { color: var(--pink-text); }
+.consent { font-size: 13px; line-height: 1.45; padding: 10px 14px; border-radius: 14px; background: var(--chip); border: 1px solid var(--border); }
+.camera.screen .mirror { transform: none; }
+.camera.screen .mirror video { object-fit: contain; background: #000; }
+
 /* ---------- Phone ---------- */
 @media (max-width: 640px) {
   .wrap { padding: 20px 16px 40px; gap: 18px; }
@@ -316,6 +328,33 @@ footer strong { color: var(--text); }
         <div style="display:flex;flex-direction:column;gap:4px">
           <span class="rec-title display" id="recTitle">Start live captions</span>
           <span class="rec-help muted" id="recHelp">Talk normally. Words appear as you speak; tap again to stop.</span>
+        </div>
+      </div>
+
+      <div class="meeting" id="meetingBox" hidden>
+        <div class="upload-head">
+          <span class="upload-title">Caption from</span>
+          <div class="seg small" role="group" aria-label="What to caption">
+            <button type="button" data-source="camera" aria-pressed="true">My camera</button>
+            <button type="button" data-source="meeting" aria-pressed="false">A meeting</button>
+          </div>
+        </div>
+        <div id="meetingPanel" class="up-panel" hidden>
+          <p class="muted" style="margin:0;font-size:13px;line-height:1.45">Press the button, then choose the meeting's tab, window or screen. LipScribe captions the people in it and can put the captions into the Zoom meeting itself.</p>
+          <div class="field">
+            <label for="soundSel" class="muted">Meeting sound from</label>
+            <select id="soundSel">
+              <option value="shared">The shared tab or screen (Zoom in a browser, or Windows)</option>
+            </select>
+            <span class="muted" style="font-size:12px;line-height:1.4">Zoom app on a Mac: route its sound through a virtual device such as BlackHole and pick it here. On Linux, pick “Monitor of …”.</span>
+          </div>
+          <div class="field">
+            <label for="zoomUrl" class="muted">Zoom caption API token (optional)</label>
+            <input type="url" id="zoomUrl" placeholder="https://wmcc.zoom.us/closedcaption?id=…" autocomplete="off" spellcheck="false">
+            <span class="muted" style="font-size:12px;line-height:1.4">In the meeting: <strong>CC</strong> → <em>Set up manual captioner</em> → <em>Copy the API token</em>. The host must first turn on <em>Closed captioning</em> and <em>Allow use of caption API token</em> in the Zoom web settings.</span>
+            <span class="zoom-status muted" id="zoomStatus" aria-live="polite"></span>
+          </div>
+          <span class="consent">Tell everyone in the meeting that LipScribe is captioning it. Nothing is saved on the server.</span>
         </div>
       </div>
 
