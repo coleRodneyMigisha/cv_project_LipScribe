@@ -6,7 +6,44 @@ LipScribe is an audio-visual speech recognition system. It produces live caption
 
 This is the capstone project of **Group 4** in the Computer Vision and Deep Learning course, Department of Computer Science, Uganda Christian University.
 
-> **Status:** in development (as of 29 October 2026). Week 1 is complete and Week 2 is nearly complete. The GRID corpus is downloaded, verified and split by speaker, and the preprocessing pipeline, audio encoder, CTC decoder and evaluation metrics are in the repository with tests. Training has not started, so there are no results yet. See the [Weeks 1 and 2 progress report](<documentation/5_submissions/week1 and 2 report/LipScribe_Progress_Report_Weeks1-2.pdf>).
+> **Status (17 November 2026):** both models are trained and frozen, and the final report is being
+> written for submission on 22 November.
+> - **GRID benchmark (P4):** 1.02 % test WER on clean audio and 5.34 % at −5 dB (greedy decoding;
+>   0.71 % and 3.95 % with the GRID grammar), on speakers held out from training.
+> - **Real speech (ws_v5, films and TED talks):** 16.9 % WER on clean TED speech and 28.5 % at −10 dB,
+>   where audio alone scores 42.3 % (beam search with a 4-gram language model;
+>   [`reports/flix_v5/final_decoder.md`](reports/flix_v5/final_decoder.md)).
+
+## Try the demo
+
+The demo runs the real models on the team's GPU machine (the Alienware) and works on any phone or
+laptop browser. It can caption your camera live, a 3-second clip, an uploaded video of any length
+(even a whole film), or a Zoom meeting, where the captions appear inside the meeting.
+
+**How to open it this week:** ask the team for the current link. It has the form
+`https://<address>.trycloudflare.com/?code=<access code>` and opens the current page, already
+connected to the models. The link is kept out of this repository because the access code is in it.
+
+**What does not work yet:**
+
+- **`https://lipscribe.pages.dev` on its own does not use the real models yet.** It still shows an
+  older version of the page, which runs on a built-in pretend backend with sample captions. It will
+  use the real models once three things are done:
+  1. pull request #69 is merged;
+  2. the site is redeployed, either by hand (`demo/deploy-pages.ps1`) or automatically once the
+     Cloudflare secrets are added (see [`demo/README.md`](demo/README.md));
+  3. the backend has a fixed address, written into `DEFAULT_BACKEND` in `demo/app.js`.
+- **The link above can change.** The backend is reached through a free Cloudflare quick tunnel,
+  whose address changes whenever the tunnel restarts, for example after a reboot. The backend
+  restarts itself within 5 minutes, and `bash scripts/demo_up.sh` on the Alienware prints the new
+  link.
+- **A fixed address waits for the Alienware's clustering,** planned for the weekend of
+  21–22 November 2026. After that, the backend gets a permanent address (Tailscale Funnel or a
+  Cloudflare named tunnel). Then `lipscribe.pages.dev` alone will open the real demo.
+- **It is a demo, not a service.** It shares one GPU with training, and takes at most 3 users at
+  once and one upload at a time.
+
+How it is built and run: [`demo/README.md`](demo/README.md).
 
 ## How it will work
 
