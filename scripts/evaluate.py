@@ -85,16 +85,6 @@ def score_checkpoint(checkpoint_path: Path, device: torch.device,
         with torch.inference_mode():
             for batch in loader:
                 batch = prepare_batch(to_device(batch, device))
-<<<<<<< HEAD
-                if drop_modality == "audio":
-                    if "features" in batch:
-                        batch["features"] = torch.zeros_like(batch["features"])
-                    if "audio" in batch:
-                        batch["audio"] = torch.zeros_like(batch["audio"])
-                elif drop_modality == "visual":
-                    if "video" in batch:
-                        batch["video"] = torch.zeros_like(batch["video"])
-=======
                 if drop_modality is not None:
                     batch["drop_modality"] = drop_modality
                     if not hasattr(model, "fusion"):
@@ -106,7 +96,6 @@ def score_checkpoint(checkpoint_path: Path, device: torch.device,
                         elif drop_modality == "visual":
                             if "video" in batch:
                                 batch["video"] = torch.zeros_like(batch["video"])
->>>>>>> 4e472b40faa9a4d62fed2f4699c907e09c3851e1
 
                 with torch.autocast(device_type=device.type, enabled=use_amp):
                     output = model(batch)
@@ -116,11 +105,7 @@ def score_checkpoint(checkpoint_path: Path, device: torch.device,
 
                 # Gate hook
                 gate_batch = None
-<<<<<<< HEAD
-                if "gate" in output:
-=======
                 if output.get("gate") is not None:
->>>>>>> 4e472b40faa9a4d62fed2f4699c907e09c3851e1
                     g = output["gate"].float()
                     mask = batch.get("mask")
                     if mask is not None and mask.shape == g.shape:

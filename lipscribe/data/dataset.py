@@ -235,12 +235,9 @@ class GridDataset(Dataset):
         max_jitter: int = 4,
         p_flip: float = 0.5,
         visual_aug_params: dict | None = None,
-<<<<<<< HEAD
-=======
         tokenizer: str = "char",
         interference: dict | None = None,
         condition: str = "none",
->>>>>>> 4e472b40faa9a4d62fed2f4699c907e09c3851e1
     ) -> None:
         # tokenizer: "char" (28 symbols) or "subword" (Auto-AVSR unigram-5000, lipscribe.data.subword)
         if tokenizer == "subword":

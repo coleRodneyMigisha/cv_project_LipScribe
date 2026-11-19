@@ -142,8 +142,6 @@ def init_lstm_forget_bias(model: nn.Module, value: float = 1.0) -> None:
                 param[h:2 * h].fill_(value if name.startswith("bias_ih") else 0.0)
 
 
-<<<<<<< HEAD
-=======
 def resolve_init_from(cfg: dict) -> dict:
     """Resolve pretrained encoder checkpoint paths from ``cfg`` (W4-05).
 
@@ -171,7 +169,6 @@ def resolve_init_from(cfg: dict) -> dict:
     return init_from
 
 
->>>>>>> 4e472b40faa9a4d62fed2f4699c907e09c3851e1
 def load_pretrained(model: nn.Module, init_from: dict, map_location="cpu") -> dict:
     """Copy sub-module weights from other runs' checkpoints into ``model``.
 
@@ -198,8 +195,6 @@ def load_pretrained(model: nn.Module, init_from: dict, map_location="cpu") -> di
         prefix = module_name + "."
         sub = {k[len(prefix):]: v for k, v in source.items() if k.startswith(prefix)}
         own = target.state_dict()
-<<<<<<< HEAD
-=======
         for k in own:   # X3: 3D (5x7x7) front-end checkpoint into a 2D (1x7x7) front-end
             if (k in sub and own[k].ndim == 5 and sub[k].ndim == 5
                     and own[k].shape[2] == 1 and sub[k].shape[2] > 1
@@ -207,7 +202,6 @@ def load_pretrained(model: nn.Module, init_from: dict, map_location="cpu") -> di
                 sub[k] = sub[k].sum(dim=2, keepdim=True)
                 print(f"{module_name}.{k}: {tuple(source[prefix + k].shape)} -> {tuple(own[k].shape)} "
                       "by summing over the temporal axis (static clip gives the same response)")
->>>>>>> 4e472b40faa9a4d62fed2f4699c907e09c3851e1
         missing = [k for k in own if k not in sub]
         bad_shape = [k for k in own if k in sub and sub[k].shape != own[k].shape]
         if missing or bad_shape:
@@ -221,11 +215,6 @@ def load_pretrained(model: nn.Module, init_from: dict, map_location="cpu") -> di
     return loaded
 
 
-<<<<<<< HEAD
-def param_groups(model: nn.Module, weight_decay: float) -> list[dict]:
-    """Weight decay on weight matrices only; none on biases or norm parameters."""
-    decay, no_decay = [], []
-=======
 def param_groups(model: nn.Module, weight_decay: float, lr: float | None = None,
                  lr_mult: dict | None = None) -> list[dict]:
     """Weight decay on weight matrices only; none on biases or norm parameters.
@@ -236,7 +225,6 @@ def param_groups(model: nn.Module, weight_decay: float, lr: float | None = None,
     """
     lr_mult = dict(lr_mult or {})
     groups: dict[tuple[bool, float], list] = {}
->>>>>>> 4e472b40faa9a4d62fed2f4699c907e09c3851e1
     for name, param in model.named_parameters():
         if not param.requires_grad:
             continue
@@ -463,10 +451,6 @@ def fit(cfg: dict, model: nn.Module, train_loader: Iterable, val_loaders: dict,
     if resume is None:
         init_lstm_forget_bias(model)
         # After the forget-bias init, so pretrained LSTM biases are not overwritten.
-<<<<<<< HEAD
-        if cfg.get("model", {}).get("init_from"):
-            load_pretrained(model, cfg["model"]["init_from"])
-=======
         init_from = resolve_init_from(cfg)
         if init_from:
             load_pretrained(model, init_from)
@@ -482,7 +466,6 @@ def fit(cfg: dict, model: nn.Module, train_loader: Iterable, val_loaders: dict,
     # train.select_metric: "wer" (default) or "cer" picks best.pt / early stopping.
     # CER is the useful signal when WER saturates near 100% (open-vocabulary film clips).
     select_key = "mean_cer" if str(tc.get("select_metric", "wer")).lower() == "cer" else "mean_wer"
->>>>>>> 4e472b40faa9a4d62fed2f4699c907e09c3851e1
 
     optimiser = torch.optim.AdamW(param_groups(model, tc["weight_decay"], lr=tc["lr"],
                                                lr_mult=tc.get("lr_mult")), lr=tc["lr"])
@@ -733,16 +716,6 @@ def build_loaders(cfg: dict, limit: int | None = None):
     # p_erase, max_erase_area (lipscribe.data.augmentation.apply_visual_augmentation).
     aug = dict(d.get("visual_aug") or {})
     aug_base = {k: aug.pop(k) for k in ("max_jitter", "p_flip") if k in aug}
-<<<<<<< HEAD
-    train_ds = GridDataset(d["manifest"], d["splits"], "train", seed=int(cfg.get("seed", 1)),
-                           snrs=[snr_value(s) for s in d["train_snrs"]],
-                           visual_augment=visual_aug, visual_aug_params=aug, **aug_base, **extra)
-    # data.val_snrs (default eval_snrs): a visual-only model scores the same at
-    # every SNR, so validating it once on clean audio is enough.
-    val_sets = {str(s): GridDataset(d["manifest"], d["splits"], "val", snr_db=snr_value(s),
-                                    visual_augment=False, **extra)
-                for s in d.get("val_snrs") or d["eval_snrs"]}
-=======
     # data.interference (Flix v6): p_silent / p_replace / p_talkover / sir_db, see GridDataset.
     train_ds = GridDataset(d["manifest"], d["splits"], "train", seed=int(cfg.get("seed", 1)),
                            snrs=[snr_value(s) for s in d["train_snrs"]],
@@ -768,7 +741,6 @@ def build_loaders(cfg: dict, limit: int | None = None):
         val_sets = {str(s): GridDataset(d["manifest"], d["splits"], "val", snr_db=snr_value(s),
                                         visual_augment=False, **extra)
                     for s in snrs}
->>>>>>> 4e472b40faa9a4d62fed2f4699c907e09c3851e1
     if limit:
         train_ds = Subset(train_ds, range(min(limit, len(train_ds))))
         val_sets = {s: Subset(ds, range(min(limit, len(ds)))) for s, ds in val_sets.items()}
@@ -807,11 +779,8 @@ def parse_args(argv=None) -> argparse.Namespace:
     p.add_argument("--runs-root", default=str(REPO_ROOT / "runs"))
     p.add_argument("--limit", type=int, help="use only the first N utterances per split (smoke runs)")
     p.add_argument("--max-epochs", type=int, help="override train.max_epochs")
-<<<<<<< HEAD
-=======
     p.add_argument("--max-steps", type=int,
                    help="stop after this many optimizer updates; skips end-of-epoch validation")
->>>>>>> 4e472b40faa9a4d62fed2f4699c907e09c3851e1
     p.add_argument("--time-budget-min", type=float,
                    help="wall-clock training budget in minutes (shortens and compresses the schedule)")
     p.add_argument("--no-results", action="store_true",
@@ -838,14 +807,11 @@ def main(argv=None) -> None:
     if args.max_epochs is not None:
         cfg = copy.deepcopy(cfg)
         cfg["train"]["max_epochs"] = args.max_epochs
-<<<<<<< HEAD
-=======
     if args.max_steps is not None:
         if args.max_steps < 1:
             p.error("--max-steps must be at least 1")
         cfg = copy.deepcopy(cfg)
         cfg["train"]["max_steps"] = args.max_steps
->>>>>>> 4e472b40faa9a4d62fed2f4699c907e09c3851e1
     if args.time_budget_min is not None:
         cfg = copy.deepcopy(cfg)
         cfg["train"]["time_budget_min"] = args.time_budget_min

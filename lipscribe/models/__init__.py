@@ -6,10 +6,6 @@ from lipscribe.models.audio_encoder import AudioEncoder
 from lipscribe.models.b1_audio_only import B1AudioOnly
 from lipscribe.models.b2_visual_only import B2VisualOnly
 from lipscribe.models.ctc_head import CTCHead
-<<<<<<< HEAD
-from lipscribe.models.fusion_concat import B3Concat
-from lipscribe.models.visual_encoder import ResNetVisualEncoder, VisualEncoder
-=======
 from lipscribe.models.fusion_attention import (
     AttentionFusion,
     CrossModalAttention,
@@ -26,7 +22,6 @@ def _extract_modality_dropout(config: dict, default_audio: float, default_visual
     p_audio = float(md.get("audio", md.get("p_audio", config.get("p_audio_drop", default_audio))))
     p_visual = float(md.get("visual", md.get("p_visual", config.get("p_visual_drop", default_visual))))
     return p_audio, p_visual
->>>>>>> 4e472b40faa9a4d62fed2f4699c907e09c3851e1
 
 
 def build_model(config: dict) -> nn.Module:
@@ -42,14 +37,6 @@ def build_model(config: dict) -> nn.Module:
     elif name == "b2_visual_only":
         dropout = float(config.get("dropout", 0.3))
         return B2VisualOnly(dropout=dropout, model_cfg=config)
-<<<<<<< HEAD
-    elif name in ("b3_concat", "fusion_concat"):
-        dropout = float(config.get("dropout", 0.3))
-        md = config.get("modality_dropout") or {}
-        return B3Concat(dropout=dropout, model_cfg=config,
-                        p_audio_drop=float(md.get("audio", 0.0)),
-                        p_visual_drop=float(md.get("visual", 0.0)))
-=======
     elif name in ("b3_concat", "fusion_concat") or (name is None and fusion == "concat"):
         dropout = float(config.get("dropout", 0.3))
         p_audio, p_visual = _extract_modality_dropout(config, 0.0, 0.0)
@@ -73,7 +60,6 @@ def build_model(config: dict) -> nn.Module:
             model_cfg=config,
             fusion="concat" if fusion == "concat" else "cross_attention_gated",
         )
->>>>>>> 4e472b40faa9a4d62fed2f4699c907e09c3851e1
     else:
         raise ValueError(f"Unsupported model: {name!r}")
 
@@ -85,12 +71,9 @@ __all__ = [
     "B2VisualOnly",
     "B3Concat",
     "CTCHead",
-<<<<<<< HEAD
-=======
     "CrossModalAttention",
     "GatedFusion",
     "LipScribeModel",
->>>>>>> 4e472b40faa9a4d62fed2f4699c907e09c3851e1
     "ResNetVisualEncoder",
     "VisualEncoder",
     "build_model",
