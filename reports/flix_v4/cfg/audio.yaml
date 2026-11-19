@@ -1,0 +1,45 @@
+experiment: flix_v4_audio
+seed: 1
+data:
+  manifest: data/flix_v4/train_mix.csv
+  splits: data/flix_v4/splits.csv
+  noise_splits: Data/Noise_splits/splits.csv
+  val_manifests:
+    film: data/flix_v4/film_val.csv
+    ted: data/flix_v4/ted_val.csv
+  visual_augment: false
+  train_snrs:
+  - clean
+  - clean
+  - 10
+  - 5
+  - 0
+  eval_snrs:
+  - clean
+  - 0
+model:
+  name: v4_audio
+  dropout: 0.1
+  audio_encoder_cfg:
+    name: microsoft/wavlm-base-plus
+    cache_dir: pretrained/hf/hub
+    mask_time_prob: 0.05
+    layerdrop: 0.05
+    freeze_feature_encoder: true
+train:
+  optimiser: adamw
+  lr: 0.0003
+  lr_mult:
+    audio_encoder: 0.2
+  weight_decay: 0.01
+  batch_size: 16
+  grad_accum: 1
+  max_epochs: 30
+  warmup_epochs: 1
+  patience: 6
+  grad_clip: 5.0
+  amp: true
+  num_workers: 8
+  select_metric: wer
+decode:
+  method: greedy

@@ -1,0 +1,28 @@
+% Authors: Ansasire Nehum Naamaye (with the frontend paragraph from Wakisa Isabelle).
+% First draft written 16 Nov from the repository; check and extend (F-11).
+\section{Application}
+\label{sec:application}
+
+\subsection{Shared inference engine}
+All applications call one inference engine (\texttt{lipscribe/app/inference.py}), which runs
+exactly the preprocessing of training and evaluation: it converts the video to 25~frames/s,
+extracts the mouth crops, reads the audio from the video or a separate file, computes the
+features and decodes. A parity test checks that a GRID test clip captioned through the engine
+gives the same caption as \texttt{scripts/evaluate.py}.
+
+\subsection{Interfaces}
+\texttt{scripts/transcribe.py} captions one clip from the command line, on CPU or GPU, and can
+add test-pool noise at a chosen SNR. The Gradio application (Mode~A) lets a user upload or
+record a clip and shows the caption beside it, the mouth crops the model used, captions from
+the audio-only and the audio-visual model side by side, and the per-frame gate. The browser
+demo (\texttt{demo/}) runs the same engine on the team's GPU workstation: a phone or laptop
+records a short clip and receives the caption in 2--3~s.
+% TODO (Wakisa, F-11): the frontend (demo/index.html): recording, the two captions, the gate
+% plot, the noise control, error messages; one screenshot.
+
+\subsection{Live capture}
+Live Mode~B captures camera frames and 16~kHz microphone audio on separate threads, time-stamped
+by one monotonic clock, and keeps the last 4~s of each in ring buffers. Face Mesh runs on every
+new frame with causal smoothing, so only mouth crops are stored, and a window of 75 frames and
+48,000 samples can be cut at any moment (\texttt{lipscribe/app/live.py}).
+% TODO (Nehum, F-11): latency and real-time factor (F-08).

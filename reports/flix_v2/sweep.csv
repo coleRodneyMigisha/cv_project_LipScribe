@@ -1,0 +1,4 @@
+trial,seed,init,lr,freeze,dropout,weight_decay,audio_dropout,batch_size,snrs,eyes,spatial_dropout,aug,vis_dropout,best_epoch,epochs,val_cer,val_wer,run_dir
+final_t03,1,p4_recipe,0.001,visual_encoder,0.3,0.05,0.25,8,mild,,,,,44,150,0.7333,1.0696,/home/Lipscribe-team/Desktop/lipscribe_flix/runs/flix_v2/flix_p_20261112-133903
+final_t03,2,p4_recipe,0.001,visual_encoder,0.3,0.05,0.25,8,mild,,,,,108,150,0.7384,1.0735,/home/Lipscribe-team/Desktop/lipscribe_flix/runs/flix_v2/flix_p_20261112-141553
+final_t03,3,p4_recipe,0.001,visual_encoder,0.3,0.05,0.25,8,mild,,,,,111,150,0.7365,1.0928,/home/Lipscribe-team/Desktop/lipscribe_flix/runs/flix_v2/flix_p_20261112-144851

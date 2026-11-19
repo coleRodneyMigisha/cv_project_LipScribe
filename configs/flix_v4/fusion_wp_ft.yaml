@@ -1,0 +1,88 @@
+# Flix v4 fusion v2 fine-tune: fusion_wp over-trusted the lips (with real lips it was worse on
+# clean audio than with the lips removed). Rebalance: noise levels evenly spread from clean to -10 dB,
+# lips hidden more often than audio (0.30 vs 0.15), top 4 WavLM layers unfrozen (lr 1e-5),
+# selection over clean/0/-5/-10. Starts from the whole fusion_wp checkpoint.
+experiment: flix_v4_fusion_wp_ft
+seed: 1
+data:
+  manifest: data/flix_v4c/train_mix.csv
+  splits: data/flix_v4c/splits.csv
+  noise_splits: Data/Noise_splits/splits.csv
+  tokenizer: subword
+  val_manifests:
+    film: data/flix_v4c/film_val.csv
+    ted: data/flix_v4c/ted_val.csv
+  visual_augment: true
+  visual_aug:
+    max_jitter: 4
+    p_flip: 0.5
+    max_scale: 0.1
+    p_erase: 0.3
+    max_erase_area: 0.15
+    time_masks: 2
+    max_mask_width: 6
+  train_snrs:
+  - clean
+  - 10
+  - 5
+  - 0
+  - -5
+  - -10
+  eval_snrs:
+  - clean
+  - 0
+  - -5
+  - -10
+model:
+  name: v4_fusion_wp
+  dropout: 0.1
+  num_heads: 8
+  fusion_layers: 2
+  modality_dropout:
+    audio: 0.15
+    visual: 0.3
+  aux_ctc:
+    audio: 0.3
+    visual: 0.3
+  freeze:
+  - audio_encoder.model.feature_extractor
+  - audio_encoder.model.feature_projection
+  - audio_encoder.model.encoder.pos_conv_embed
+  - audio_encoder.model.encoder.layer_norm
+  - audio_encoder.model.encoder.layers.0
+  - audio_encoder.model.encoder.layers.1
+  - audio_encoder.model.encoder.layers.2
+  - audio_encoder.model.encoder.layers.3
+  - audio_encoder.model.encoder.layers.4
+  - audio_encoder.model.encoder.layers.5
+  - audio_encoder.model.encoder.layers.6
+  - audio_encoder.model.encoder.layers.7
+  audio_encoder_cfg:
+    name: microsoft/wavlm-base-plus
+    cache_dir: pretrained/hf/hub
+    mask_time_prob: 0.05
+    layerdrop: 0.0
+    freeze_feature_encoder: true
+  visual_encoder_cfg:
+    pretrained: false
+    dropout: 0.1
+    zoom: 1.0
+  init_model_from: runs/flix_v4/flix_v4_fusion_wp_20261114-110340/best.pt
+train:
+  optimiser: adamw
+  lr: 0.0001
+  lr_mult:
+    audio_encoder: 0.1
+    visual_encoder: 0.1
+  weight_decay: 0.01
+  batch_size: 8
+  grad_accum: 2
+  max_epochs: 8
+  warmup_epochs: 0.5
+  patience: 3
+  grad_clip: 5.0
+  amp: true
+  num_workers: 8
+  select_metric: wer
+decode:
+  method: greedy

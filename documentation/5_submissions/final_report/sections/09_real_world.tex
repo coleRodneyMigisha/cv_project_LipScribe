@@ -1,0 +1,114 @@
+% Author: Cole Rodney Migisha (F-04, F-11). Draft of 17 Nov 2026; every number is from
+% reports/flix_v5/final_decoder.md, reports/flix_v5/decision_log.md, reports/flix_v6/decision_log.md
+% or reports/flix_v4/decision_log.md.
+\section{Real-World Speech}
+\label{sec:realworld}
+
+\subsection{Test sets and protocol}
+The real-world models are scored on two held-out test sets: 1,094 TED clips from 67~talks, and
+41~film clips from three films. No test talk or film was used for training, validation or the
+language models. The references are Whisper large-v3-turbo transcripts of each clip's own audio
+(Section~\ref{sec:pipelines-real}), so TED and film WER here measure agreement with Whisper. The
+film set is small, and its confidence intervals are correspondingly wide. Noise is the fixed
+MUSAN test mixture at 0, $-5$ and $-10$~dB. Each test set was scored once, after the decoder had
+been chosen on validation. Differences between two models come with a 95~\% paired bootstrap
+interval (10,000 resamples of whole talks for TED and of clips for films).
+
+\subsection{The lips help in noise}
+Table~\ref{tab:realworld} compares the warm start ws\_v5 with its audio-only twin twin\_v5. On
+clean speech the two are close. On TED, ws\_v5 is 1.3~points worse, and the interval excludes
+zero; on films they tie. As the noise grows, the lips matter more. At $-5$~dB, ws\_v5 is
+4.9~points better on TED and 11.3~points better on films. At $-10$~dB, it cuts TED WER from
+42.3~\% to 28.5~\% and film WER from 64.5~\% to 49.2~\%, and both intervals exclude zero.
+Beam search with the LM gains 1 to 3~points over greedy decoding for both models. ws\_v5 is
+therefore the real-world model. Its small cost on clean TED speech is the price of a gate that
+trusts the lips when the sound is poor.
+
+\begin{table*}[t]
+\caption{Real-world test WER (\%) of the audio-only twin and the warm start, greedy and with beam
+search + LM. Lips gain = WER(ws\_v5) $-$ WER(twin\_v5) with beam + LM, with its 95~\% paired
+bootstrap interval; negative means the lips help.}
+\label{tab:realworld}
+\centering
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{llrrrrr}
+\toprule
+ & & \multicolumn{2}{c}{twin\_v5} & \multicolumn{2}{c}{ws\_v5} & \\
+\cmidrule(lr){3-4}\cmidrule(lr){5-6}
+Set & SNR & greedy & LM & greedy & LM & Lips gain \\
+\midrule
+TED  & clean   & 17.3 & 15.7 & 18.2 & 16.9 & $+1.3$ [$+0.6$, $+1.8$] \\
+     & 0 dB    & 23.5 & 21.5 & 22.3 & 20.5 & $-1.0$ [$-2.4$, $+0.3$] \\
+     & $-5$ dB & 31.1 & 29.6 & 26.6 & 24.7 & $-4.9$ [$-7.0$, $-2.9$] \\
+     & $-10$ dB& 43.8 & 42.3 & 30.6 & 28.5 & $-13.8$ [$-17.0$, $-10.5$] \\
+\midrule
+Film & clean   & 29.3 & 27.7 & 30.1 & 27.3 & $-0.4$ [$-5.5$, $+5.3$] \\
+     & 0 dB    & 41.0 & 39.8 & 35.2 & 34.8 & $-5.1$ [$-10.7$, $+0.9$] \\
+     & $-5$ dB & 53.9 & 53.1 & 43.4 & 41.8 & $-11.3$ [$-17.9$, $-5.2$] \\
+     & $-10$ dB& 65.6 & 64.5 & 50.8 & 49.2 & $-15.2$ [$-24.8$, $-5.6$] \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{From the first fusion to ws\_v5}
+Each fusion design in Section~\ref{sec:pipelines-real} was kept or dropped by comparing it with
+the audio-only twin on the same test set. On the first clips, with greedy decoding, the twin
+scored 17.4~\% on clean TED and 43.8~\% at $-10$~dB. The lip-anchored fusion reached 36.2~\% at
+$-10$~dB, but 26.9~\% on clean speech, so it traded clean accuracy for accuracy in noise. The
+reliability-gated fusion, trained from scratch, kept most of both (18.5~\% clean, 32.9~\% at
+$-10$~dB). The warm start then matched the twin on clean speech (17.2~\% against 17.4~\%) and
+reached 31.4~\% at $-10$~dB (\texttt{reports/flix\_v4/decision\_log.md} and
+\texttt{reports/flix\_v5/decision\_log.md}).
+
+Re-cutting the clips with 0.32~s of padding (v5) helped less than we expected. On the re-cut TED
+test set, ws\_v5 beat the v4 warm start by 0.7~points on clean speech (interval $-1.3$ to
+$-0.2$) and by 1.5~points at $-10$~dB. However, the success criterion set before the run was a
+gain of at least one point on clean speech and on the mean over noise levels, so the re-cut fell
+short of it. Edge words also stayed hard: ws\_v5 still got a clip's first or last word wrong
+30.6~\% of the time, against 10.8~\% for inner words, so they failed the target of less than
+1.5~times the inner-word error.
+
+\subsection{Audio that does not belong to the face: a negative result}
+In real use, the voice may not belong to the face on screen. The speaker may only mouth words,
+someone else may talk over them, or someone else may talk instead. ws\_v5 never saw such audio
+in training, because its noise is non-speech only. Table~\ref{tab:wrongaudio} shows the result.
+When another person's speech replaces the speaker's, ws\_v5 transcribes the wrong voice. Its TED
+WER then reaches 103.3~\%, far worse than reading the lips alone: lips\_v5, which is ws\_v5 with
+its audio stream switched off, scores 42.3~\%.
+
+We therefore trained ws\_v6, the same warm start with interference added to 35~\% of the
+training clips: silence (10~\%), another clip's speech alone (10~\%) and talk-over at
+$-5$ to $10$~dB (15~\%), the label always being the on-screen speaker's words. On wrong audio it
+behaved as hoped. It matched lip reading when the voice was replaced (42.3~\% against 42.3~\% on
+TED) and beat ws\_v5 under talk-over (39.0~\% against 57.7~\%). It also lost 15.9~points on
+clean TED speech (32.8~\% against 16.9~\%), however, far beyond the one point we had allowed. Its
+gate cannot tell a matching voice from a mismatched one using the features alone, so it trusts
+the audio less everywhere. ws\_v5 therefore remains the real-world model. Detecting a mismatched
+voice needs an explicit audio-visual synchrony signal, which we leave to future work
+(Section~\ref{sec:limitations}). The demo uses ws\_v5's lips only where a segment shows one
+frontal, speaking face (Section~\ref{sec:application}).
+
+\begin{table}[t]
+\caption{Test WER (\%) with audio that does not belong to the face, beam search + LM. The
+reference is always the on-screen speaker's words. Silent: the speaker only mouths. Talk-over:
+another clip's speech at 0~dB over the speaker. Replace: the speaker mouths while someone else
+talks. lips\_v5 is ws\_v5 with its audio stream switched off (clean row only).}
+\label{tab:wrongaudio}
+\centering
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{llrrrr}
+\toprule
+Set & Condition & twin\_v5 & ws\_v5 & ws\_v6 & lips\_v5 \\
+\midrule
+TED  & clean     & 15.7  & 16.9  & 32.8 & 42.3 \\
+     & silent    & 100.0 & 44.7  & 42.2 & -- \\
+     & talk-over & 78.9  & 57.7  & 39.0 & -- \\
+     & replace   & 116.6 & 103.3 & 42.3 & -- \\
+\midrule
+Film & clean     & 27.7  & 27.3  & 47.3 & 64.1 \\
+     & silent    & 100.0 & 66.8  & 65.6 & -- \\
+     & talk-over & 89.5  & 71.5  & 64.1 & -- \\
+     & replace   & 122.3 & 107.0 & 68.8 & -- \\
+\bottomrule
+\end{tabular}
+\end{table}

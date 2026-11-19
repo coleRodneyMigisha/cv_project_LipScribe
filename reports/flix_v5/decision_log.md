@@ -1,0 +1,171 @@
+# Flix v5 decision log
+
+## Spec (written 15 Nov 2026, before any v5 run)
+
+- **Why.** v4 clips are cut tightly around their words. On the TED test the audio-only twin gets
+  the first / last word of a clip wrong 22 % of the time against 11 % for inner words, and
+  widening the test audio by 0.32 s per side alone cut that to 19 % (edge check, 15 Nov).
+- **Change (one).** Every clip's window grows by 8 frames per side. Mouth crops (same Auto-AVSR
+  crop) and audio are cut from the same source for that window; the label is every Whisper
+  large-v3-turbo word (context cut ±1.5 s, word timestamps) with ≥ 50 % of its duration inside
+  the window. Clip ids, splits, model configs and training recipes stay as in v4.
+- **Retrained chain.** visual_c → twin (fusion_wp_audio) → fusion_wp → warm start (fusion_gated_ws).
+  audio_reg is kept: its audio and labels already matched.
+- **Locked evaluation.** Test sets touched once, at the end: v4c test sets (old clips, old labels)
+  and v5 test sets (re-cut clips, new labels; film test labels are now Whisper, not the
+  human-checked subtitles). Greedy CTC, clean / 0 / −5 / −10 dB, scripts/flix_v5_eval.py.
+- **Baseline.** The v4 twin and v4 warm start scored on the same v5 test sets.
+- **Primary metric.** TED v5 test WER, warm start, clean and the mean over the four SNRs.
+- **Expected.** Best: TED clean ≈ 10 %. Realistic: 12–13 %. Worst: no better than the v4 warm
+  start on the v5 test set.
+- **Success.** ws_v5 beats ws_v4 on the v5 TED test by ≥ 1 point (clean and SNR mean) with a
+  95 % CI excluding 0, and the edge-word error falls below 1.5 × the inner-word error.
+- **Stop rule.** One pass of the chain; no tuning runs without the user. A failed stage is logged
+  and the pipeline stops.
+- 2026-11-15 05:46 Relabel worker started.
+- 2026-11-15 05:46 TED re-cut started (flix_v5/jobs_ted.csv).
+- 2026-11-15 10:59 TED re-cut done: 1985 talks, 37337 clips cropped.
+- 2026-11-15 11:02 Relabel done: 39582 clips.
+- 2026-11-15 11:02 Manifests written to data/flix_v5: {"film_val":{"before":69,"kept":67,"dropped":{"not_cut":0,"no_speech":0,"unspellable":0,"hallucination":2,"ctc_len":0}},"flix_test":{"before":43,"kept":41,"dropped":{"not_cut":0,"no_speech":1,"unspellable":0,"hallucination":1,"ctc_len":0}},"ted_val":{"before":821,"kept":805,"dropped":{"not_cut":0,"no_speech":0,"unspellable":3,"hallucination":8,"ctc_len":5}},"train_mix":{"before":38677,"kept":37634,"dropped":{"not_cut":5,"no_speech":76,"unspellable":275,"hallucination":429,"ctc_len":258}},"ted_test":{"before":1122,"kept":1094,"dropped":{"not_cut":0,"no_speech":1,"unspellable":8,"hallucination":
+- 2026-11-15 11:02 Stage visual_c failed (logs/flix_v5_visual_c.log).
+- 2026-11-15 20:19 Stage visual_c started (configs/flix_v5/visual_c.yaml).
+- 2026-11-15 23:28 Stage visual_c done: best epoch 2/15: mean val WER 56.6% (film_clean 72.3%, ted_clean 41.0%). Run: runs/flix_v5/flix_v5_visual_c_20261115-201956
+- 2026-11-15 23:28 Stage fusion_wp_audio started (configs/flix_v5/fusion_wp_audio.yaml).
+- 2026-11-15 23:29 Stage fusion_wp_audio failed (logs/flix_v5_fusion_wp_audio.log).
+- 2026-11-16 00:00 Stage fusion_wp_audio started (configs/flix_v5/fusion_wp_audio.yaml).
+- 2026-11-16 01:33 Stage fusion_wp_audio done: . Run: runs/flix_v5/flix_v5_fusion_wp_audio_20261115-232845
+- 2026-11-16 01:33 Stage fusion_wp started (configs/flix_v5/fusion_wp.yaml).
+- 2026-11-16 05:01 Stage fusion_wp done: best epoch 11/12: mean val WER 41.4% (film_clean 44.1%, film_0 52.5%, film_-5 58.7%, ted_clean 29.2%, ted_0 31.1%, ted_-5 32.6%). Run: runs/flix_v5/flix_v5_fusion_wp_20261116-013318
+- 2026-11-16 05:01 Stage fusion_gated_ws started (configs/flix_v5/fusion_gated_ws.yaml).
+- 2026-11-16 05:01 Stage fusion_gated_ws failed (logs/flix_v5_fusion_gated_ws.log).
+- 2026-11-16 09:30 Repair: fusion_wp_audio.run pointed at the failed 23:28 attempt (the run-directory lookup read an old line of the appended log), so fusion_gated_ws could not load the twin. Set to runs/flix_v5/flix_v5_fusion_wp_audio_20261116-000004 (best epoch 11/12: mean val WER 32.4%, ted_clean 17.5%, film_clean 27.2%). Lookup now reads only the new attempt's lines; a stage needs best.pt to count as done.
+- 2026-11-16 09:36 Stage fusion_gated_ws started (configs/flix_v5/fusion_gated_ws.yaml).
+- 2026-11-16 10:47 Stage fusion_gated_ws done: best epoch 4/9: mean val WER 35.5% (film_clean 30.9%, film_0 43.6%, film_-5 51.2%, film_-10 59.4%, ted_clean 18.8%, ted_0 22.8%, ted_-5 26.6%, ted_-10 30.9%). Run: runs/flix_v5/flix_v5_fusion_gated_ws_20261116-093641
+
+## Test results (greedy), 2026-11-16 10:52
+
+| model | test set | SNR | WER % | edge-word err % | inner-word err % | n |
+|---|---|---|---:|---:|---:|---:|
+| twin_v4 | film_v4 | clean | 30.12 | 34.88 | 23.31 | 43 |
+| twin_v4 | film_v4 | 0 | 38.96 | 43.02 | 31.90 | 43 |
+| twin_v4 | film_v4 | -5 | 46.18 | 52.33 | 39.88 | 43 |
+| twin_v4 | film_v4 | -10 | 59.44 | 61.63 | 57.06 | 43 |
+| twin_v4 | ted_v4 | clean | 17.36 | 21.67 | 10.61 | 1122 |
+| twin_v4 | ted_v4 | 0 | 23.35 | 28.88 | 16.09 | 1122 |
+| twin_v4 | ted_v4 | -5 | 31.50 | 37.39 | 23.93 | 1122 |
+| twin_v4 | ted_v4 | -10 | 43.83 | 49.89 | 37.22 | 1122 |
+| twin_v4 | film_v5 | clean | 31.64 | 35.00 | 22.73 | 41 |
+| twin_v4 | film_v5 | 0 | 43.75 | 46.25 | 35.80 | 41 |
+| twin_v4 | film_v5 | -5 | 52.73 | 51.25 | 46.02 | 41 |
+| twin_v4 | film_v5 | -10 | 66.02 | 57.50 | 64.77 | 41 |
+| twin_v4 | ted_v5 | clean | 19.50 | 29.13 | 11.29 | 1094 |
+| twin_v4 | ted_v5 | 0 | 25.32 | 36.85 | 16.26 | 1094 |
+| twin_v4 | ted_v5 | -5 | 33.00 | 43.53 | 24.79 | 1094 |
+| twin_v4 | ted_v5 | -10 | 45.30 | 54.78 | 38.40 | 1094 |
+| ws_v4 | film_v4 | clean | 29.72 | 38.37 | 23.31 | 43 |
+| ws_v4 | film_v4 | 0 | 35.34 | 46.51 | 28.83 | 43 |
+| ws_v4 | film_v4 | -5 | 37.75 | 50.00 | 30.67 | 43 |
+| ws_v4 | film_v4 | -10 | 46.59 | 56.98 | 39.26 | 43 |
+| ws_v4 | ted_v4 | clean | 17.18 | 22.66 | 10.50 | 1122 |
+| ws_v4 | ted_v4 | 0 | 21.88 | 28.75 | 14.53 | 1122 |
+| ws_v4 | ted_v4 | -5 | 26.43 | 33.45 | 18.76 | 1122 |
+| ws_v4 | ted_v4 | -10 | 31.40 | 39.23 | 23.40 | 1122 |
+| ws_v4 | film_v5 | clean | 26.95 | 37.50 | 19.89 | 41 |
+| ws_v4 | film_v5 | 0 | 35.94 | 47.50 | 27.84 | 41 |
+| ws_v4 | film_v5 | -5 | 42.58 | 48.75 | 36.36 | 41 |
+| ws_v4 | film_v5 | -10 | 48.05 | 55.00 | 43.18 | 41 |
+| ws_v4 | ted_v5 | clean | 18.90 | 29.17 | 11.03 | 1094 |
+| ws_v4 | ted_v5 | 0 | 22.96 | 34.84 | 14.44 | 1094 |
+| ws_v4 | ted_v5 | -5 | 27.18 | 39.14 | 18.75 | 1094 |
+| ws_v4 | ted_v5 | -10 | 32.02 | 43.21 | 23.68 | 1094 |
+| twin_v5 | film_v4 | clean | 31.33 | 39.53 | 22.70 | 43 |
+| twin_v5 | film_v4 | 0 | 36.14 | 45.35 | 26.38 | 43 |
+| twin_v5 | film_v4 | -5 | 49.00 | 62.79 | 38.04 | 43 |
+| twin_v5 | film_v4 | -10 | 60.64 | 63.95 | 57.06 | 43 |
+| twin_v5 | ted_v4 | clean | 20.41 | 29.83 | 10.26 | 1122 |
+| twin_v5 | ted_v4 | 0 | 25.75 | 36.18 | 15.57 | 1122 |
+| twin_v5 | ted_v4 | -5 | 33.75 | 43.53 | 23.73 | 1122 |
+| twin_v5 | ted_v4 | -10 | 45.18 | 53.38 | 36.83 | 1122 |
+| twin_v5 | film_v5 | clean | 29.30 | 33.75 | 19.32 | 41 |
+| twin_v5 | film_v5 | 0 | 41.02 | 42.50 | 33.52 | 41 |
+| twin_v5 | film_v5 | -5 | 53.91 | 53.75 | 47.73 | 41 |
+| twin_v5 | film_v5 | -10 | 65.62 | 60.00 | 62.50 | 41 |
+| twin_v5 | ted_v5 | clean | 17.34 | 28.03 | 10.24 | 1094 |
+| twin_v5 | ted_v5 | 0 | 23.50 | 35.71 | 15.88 | 1094 |
+| twin_v5 | ted_v5 | -5 | 31.07 | 42.02 | 24.03 | 1094 |
+| twin_v5 | ted_v5 | -10 | 43.79 | 54.23 | 37.60 | 1094 |
+| ws_v5 | film_v4 | clean | 32.13 | 43.02 | 23.31 | 43 |
+| ws_v5 | film_v4 | 0 | 34.94 | 50.00 | 26.99 | 43 |
+| ws_v5 | film_v4 | -5 | 42.17 | 55.81 | 33.74 | 43 |
+| ws_v5 | film_v4 | -10 | 49.40 | 59.30 | 43.56 | 43 |
+| ws_v5 | ted_v4 | clean | 22.39 | 32.96 | 11.50 | 1122 |
+| ws_v5 | ted_v4 | 0 | 26.32 | 36.90 | 15.08 | 1122 |
+| ws_v5 | ted_v4 | -5 | 31.00 | 41.87 | 19.68 | 1122 |
+| ws_v5 | ted_v4 | -10 | 35.24 | 44.74 | 24.30 | 1122 |
+| ws_v5 | film_v5 | clean | 30.08 | 35.00 | 22.73 | 41 |
+| ws_v5 | film_v5 | 0 | 35.16 | 45.00 | 28.98 | 41 |
+| ws_v5 | film_v5 | -5 | 43.36 | 50.00 | 38.07 | 41 |
+| ws_v5 | film_v5 | -10 | 50.78 | 52.50 | 47.73 | 41 |
+| ws_v5 | ted_v5 | clean | 18.17 | 30.64 | 10.78 | 1094 |
+| ws_v5 | ted_v5 | 0 | 22.25 | 35.62 | 14.29 | 1094 |
+| ws_v5 | ted_v5 | -5 | 26.60 | 39.37 | 18.57 | 1094 |
+| ws_v5 | ted_v5 | -10 | 30.57 | 42.75 | 22.78 | 1094 |
+
+Paired bootstrap, v5 minus v4 model on the same set (WER points, 95 % CI, P(v5 better)):
+
+| pair | test set | SNR | diff | CI | P |
+|---|---|---|---:|---|---:|
+| twin_v5 − twin_v4 | film_v4 | clean | +1.20 | [-2.30, +4.85] | 0.22 |
+| twin_v5 − twin_v4 | film_v4 | 0 | -2.81 | [-5.88, +0.40] | 0.95 |
+| twin_v5 − twin_v4 | film_v4 | -5 | +2.81 | [+0.00, +6.06] | 0.02 |
+| twin_v5 − twin_v4 | film_v4 | -10 | +1.20 | [-1.26, +3.85] | 0.14 |
+| twin_v5 − twin_v4 | ted_v4 | clean | +3.06 | [+1.81, +4.27] | 0.00 |
+| twin_v5 − twin_v4 | ted_v4 | 0 | +2.40 | [+1.13, +3.60] | 0.00 |
+| twin_v5 − twin_v4 | ted_v4 | -5 | +2.26 | [+1.38, +3.12] | 0.00 |
+| twin_v5 − twin_v4 | ted_v4 | -10 | +1.35 | [+0.49, +2.27] | 0.00 |
+| twin_v5 − twin_v4 | film_v5 | clean | -2.34 | [-6.23, +2.11] | 0.84 |
+| twin_v5 − twin_v4 | film_v5 | 0 | -2.73 | [-6.87, +1.43] | 0.89 |
+| twin_v5 − twin_v4 | film_v5 | -5 | +1.17 | [-1.25, +3.74] | 0.14 |
+| twin_v5 − twin_v4 | film_v5 | -10 | -0.39 | [-3.65, +2.80] | 0.54 |
+| twin_v5 − twin_v4 | ted_v5 | clean | -2.16 | [-2.82, -1.58] | 1.00 |
+| twin_v5 − twin_v4 | ted_v5 | 0 | -1.82 | [-2.37, -1.27] | 1.00 |
+| twin_v5 − twin_v4 | ted_v5 | -5 | -1.93 | [-2.53, -1.41] | 1.00 |
+| twin_v5 − twin_v4 | ted_v5 | -10 | -1.51 | [-2.09, -1.00] | 1.00 |
+| ws_v5 − ws_v4 | film_v4 | clean | +2.41 | [-1.04, +6.20] | 0.07 |
+| ws_v5 − ws_v4 | film_v4 | 0 | -0.40 | [-3.59, +2.98] | 0.55 |
+| ws_v5 − ws_v4 | film_v4 | -5 | +4.42 | [+1.14, +8.10] | 0.00 |
+| ws_v5 − ws_v4 | film_v4 | -10 | +2.81 | [-0.83, +6.80] | 0.06 |
+| ws_v5 − ws_v4 | ted_v4 | clean | +5.21 | [+3.65, +6.95] | 0.00 |
+| ws_v5 − ws_v4 | ted_v4 | 0 | +4.43 | [+2.77, +6.30] | 0.00 |
+| ws_v5 − ws_v4 | ted_v4 | -5 | +4.57 | [+2.98, +6.19] | 0.00 |
+| ws_v5 − ws_v4 | ted_v4 | -10 | +3.83 | [+2.36, +5.41] | 0.00 |
+| ws_v5 − ws_v4 | film_v5 | clean | +3.12 | [-1.33, +8.11] | 0.08 |
+| ws_v5 − ws_v4 | film_v5 | 0 | -0.78 | [-4.68, +3.12] | 0.61 |
+| ws_v5 − ws_v4 | film_v5 | -5 | +0.78 | [-4.42, +5.58] | 0.35 |
+| ws_v5 − ws_v4 | film_v5 | -10 | +2.73 | [-1.67, +7.49] | 0.10 |
+| ws_v5 − ws_v4 | ted_v5 | clean | -0.74 | [-1.30, -0.17] | 0.99 |
+| ws_v5 − ws_v4 | ted_v5 | 0 | -0.70 | [-1.22, -0.24] | 1.00 |
+| ws_v5 − ws_v4 | ted_v5 | -5 | -0.57 | [-1.37, +0.14] | 0.94 |
+| ws_v5 − ws_v4 | ted_v5 | -10 | -1.45 | [-2.36, -0.55] | 1.00 |
+| ws_v5 − twin_v5 | film_v4 | clean | +0.80 | [-2.71, +4.76] | 0.30 |
+| ws_v5 − twin_v5 | film_v4 | 0 | -1.20 | [-7.01, +5.05] | 0.63 |
+| ws_v5 − twin_v5 | film_v4 | -5 | -6.83 | [-14.23, -0.43] | 0.98 |
+| ws_v5 − twin_v5 | film_v4 | -10 | -11.24 | [-19.29, -3.67] | 1.00 |
+| ws_v5 − twin_v5 | ted_v4 | clean | +1.98 | [+0.60, +3.14] | 0.00 |
+| ws_v5 − twin_v5 | ted_v4 | 0 | +0.56 | [-1.05, +2.10] | 0.26 |
+| ws_v5 − twin_v5 | ted_v4 | -5 | -2.75 | [-4.50, -0.97] | 1.00 |
+| ws_v5 − twin_v5 | ted_v4 | -10 | -9.94 | [-12.80, -6.97] | 1.00 |
+| ws_v5 − twin_v5 | film_v5 | clean | +0.78 | [-3.61, +5.60] | 0.35 |
+| ws_v5 − twin_v5 | film_v5 | 0 | -5.86 | [-11.39, -0.72] | 0.98 |
+| ws_v5 − twin_v5 | film_v5 | -5 | -10.55 | [-16.73, -4.84] | 1.00 |
+| ws_v5 − twin_v5 | film_v5 | -10 | -14.84 | [-23.91, -5.86] | 1.00 |
+| ws_v5 − twin_v5 | ted_v5 | clean | +0.82 | [+0.09, +1.49] | 0.01 |
+| ws_v5 − twin_v5 | ted_v5 | 0 | -1.25 | [-2.61, +0.17] | 0.96 |
+| ws_v5 − twin_v5 | ted_v5 | -5 | -4.47 | [-6.74, -2.21] | 1.00 |
+| ws_v5 − twin_v5 | ted_v5 | -10 | -13.22 | [-16.49, -9.84] | 1.00 |
+- 2026-11-16 10:52 Flix v5 finished.
+
+## F-04: decoder and final numbers (17 Nov 2026)
+
+- 07:20 `scripts/flix_v5_beam.py`: dump twin_v5, ws_v5, ws_v6 and lips_v5 (top-48 word pieces per frame) on film_val/ted_val and the v5 test sets; greedy hypotheses match `reports/flix_v6/hyps.json` clip for clip. Neither LM contains a val or test talk (2 of ~2,000 eval sentences match a training sentence word for word).
+- 07:50 Done. Chosen on validation only: LibriSpeech + own 4-gram for all three models; ws_v5 alpha 0.2, beta 1.0, width 32; twin_v5 alpha 0.2, beta 0.5, width 64; ws_v6 alpha 0.3, beta 2.0, width 64. Test tables and bootstrap CIs: `final_decoder.md`. Per-clip hypotheses: `beam_hyps.json.gz`.

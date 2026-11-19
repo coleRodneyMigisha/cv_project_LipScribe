@@ -1,0 +1,78 @@
+
+[19:56:14 | +0m] Stage 0: pull, GPU check, tests  (B2 budget 50 min, B3 budget 30 min)
+name, memory.used [MiB], memory.total [MiB]
+NVIDIA GeForce RTX 4080 SUPER, 4020 MiB, 16376 MiB
+..................................F
+=================================== FAILURES ===================================
+_____________________ test_crop_output_for_all_five_clips ______________________
+
+    def test_crop_output_for_all_five_clips():
+        project_root = Path(__file__).resolve().parents[1]
+        clips_dir = project_root / "data" / "mouth_crop_clips"
+        model_path = project_root / "models" / "face_landmarker.task"
+    
+        clips = [
+            clips_dir / f"clip_{index}.mp4"
+            for index in range(1, 6)
+        ]
+    
+        assert len(clips) == 5, (
+            f"Expected 5 clips, found {len(clips)}"
+        )
+    
+        # Import here so the simple unit tests above do not need to initialize
+        # Face Landmarker unless this integration test is being run.
+        from lipscribe.preprocessing.crop import crop_video
+    
+        for clip_path in clips:
+>           result = crop_video(
+                video_path=clip_path,
+                model_path=model_path,
+            )
+
+tests/test_crop.py:165: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+video_path = PosixPath('/home/Lipscribe-team/Desktop/cv_project_LipScribe/data/mouth_crop_clips/clip_1.mp4')
+model_path = PosixPath('/home/Lipscribe-team/Desktop/cv_project_LipScribe/models/face_landmarker.task')
+target_frame_count = None, audio_frame_count = None
+
+    def crop_video(
+        video_path: str | Path,
+        model_path: str | Path,
+        target_frame_count: int | None = None,
+        audio_frame_count: int | None = None,
+    ) -> CropResult:
+        """Read a video and return aligned, stabilized grayscale mouth crops.
+    
+        ``target_frame_count`` is the audio-derived number of video/encoder frames.
+        ``audio_frame_count`` is an equivalent alias for callers that name the
+        source explicitly; passing both is an error. If omitted, one output entry
+        is returned per decoded video frame.
+    
+        The output never drops a decoded frame silently. Failed detections are
+        interpolated when possible and marked invalid. Padding repeats the last
+        successful face frame and marks the padded entries invalid. ``exclude_utterance``
+        is true when more than 10% of returned frames are invalid.
+        """
+        if target_frame_count is not None and audio_frame_count is not None:
+            raise ValueError("pass only one of target_frame_count or audio_frame_count")
+        if audio_frame_count is not None:
+            target_frame_count = audio_frame_count
+    
+        video_path = Path(video_path)
+        model_path = Path(model_path)
+    
+        cap = cv2.VideoCapture(str(video_path))
+    
+        if not cap.isOpened():
+>           raise OSError(f"Could not open video: {video_path}")
+E           OSError: Could not open video: /home/Lipscribe-team/Desktop/cv_project_LipScribe/data/mouth_crop_clips/clip_1.mp4
+
+lipscribe/preprocessing/crop.py:369: OSError
+=========================== short test summary info ============================
+FAILED tests/test_crop.py::test_crop_output_for_all_five_clips - OSError: Cou...
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 34 passed in 22.11s
+
+[19:56:45 | +0m] Tests failed. Aborting before any training.

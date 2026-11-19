@@ -1,0 +1,32 @@
+# W3-08 (Experiment X5): B1 audio-only with A3 features (80 log-Mel concatenated with
+# 13 MFCC + delta + delta-delta = 119 channels). Identical to configs/b1_audio_only.yaml
+# (A1, 80 log-Mel) except model.audio_features and data.feature_stats, so the comparison
+# isolates the feature choice.
+experiment: b1_logmel_mfcc
+seed: 1
+data:
+  manifest: data/manifest.csv
+  splits: data/splits.csv
+  feature_stats: data/stats/feature_norm_logmel_mfcc.npz   # scripts/compute_norm_stats.py --audio-features logmel_mfcc
+  noise_splits: Data/Noise_splits/splits.csv   # MUSAN pools (make_noise_splits.py)
+  noisy_dir: data/processed/noisy_test         # fixed noisy val/test files (W2-06)
+  train_snrs: [clean, 10, 5, 0, -5]
+  eval_snrs:  [clean, 10, 5, 0, -5]
+model:
+  name: b1_audio_only
+  streams: [audio]
+  audio_features: logmel_mfcc
+  fusion: none
+train:
+  optimiser: adamw
+  lr: 3.0e-4
+  weight_decay: 1.0e-2
+  batch_size: 16
+  grad_accum: 1
+  max_epochs: 60
+  warmup_epochs: 1
+  patience: 8
+  grad_clip: 5.0
+  amp: true
+  num_workers: 4
+decode: {method: greedy}

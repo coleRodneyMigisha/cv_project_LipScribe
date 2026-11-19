@@ -1,0 +1,10 @@
+{
+  "checkpoint": "/home/Lipscribe-team/Desktop/lipscribe_flix/runs/flix_sweep/flix_p_20261112-093529/best.pt",
+  "results": {
+    "clean": {
+      "n_utts": 43,
+      "wer": 0.9879518072289156,
+      "cer": 0.8922942206654991
+    }
+  }
+}
