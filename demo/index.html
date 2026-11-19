@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LipScribe · live captions that listen and lip-read</title>
+<meta name="description" content="LipScribe demo: captions from sound alone vs sound + lips. CVDL Group 4, Uganda Christian University.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3CradialGradient id='a' cx='35%25' cy='40%25'%3E%3Cstop offset='0' stop-color='%235FC4BE'/%3E%3Cstop offset='1' stop-color='%235FC4BE' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient id='b' cx='68%25' cy='66%25'%3E%3Cstop offset='0' stop-color='%23E58AB0'/%3E%3Cstop offset='1' stop-color='%23E58AB0' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='16' cy='16' r='15' fill='%23F5F3F1'/%3E%3Ccircle cx='16' cy='16' r='15' fill='url(%23a)'/%3E%3Ccircle cx='16' cy='16' r='15' fill='url(%23b)'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#F5F3F1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Doto:wght@600;800&family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>
+/* ---------- Theme ---------- */
+:root {
+  --bg: #F5F3F1; --text: #17222B; --muted: #55636E; --line: rgba(23,34,43,0.08);
+  --card: rgba(255,255,255,0.55); --card-strong: rgba(255,255,255,0.75); --border: rgba(255,255,255,0.95);
+  --chip: rgba(255,255,255,0.6); --shadow: 0 20px 50px rgba(60,70,90,0.10);
+  --teal: #5FC4BE; --teal-text: #126B68; --pink: #E58AB0; --pink-text: #A23463; --lilac: #B6ACEC;
+  --aura-teal: rgba(130,214,206,0.55); --aura-pink: rgba(240,170,200,0.55); --aura-lilac: rgba(196,186,240,0.45);
+  --pink-glow: rgba(229,138,176,0.55); --orb-core: #FFFFFF;
+  --camera: linear-gradient(160deg, #3A4E5A, #22323B); --crop: #44545D;
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  --bg: #0B1C26; --text: #EEF3F5; --muted: #9FB2BC; --line: rgba(255,255,255,0.08);
+  --card: rgba(255,255,255,0.05); --card-strong: rgba(255,255,255,0.08); --border: rgba(255,255,255,0.10);
+  --chip: rgba(255,255,255,0.06); --shadow: 0 20px 60px rgba(0,0,0,0.35);
+  --teal: #4FC2BC; --teal-text: #86DCD6; --pink: #E58AB0; --pink-text: #F3AECB; --lilac: #9C93D8;
+  --aura-teal: rgba(47,140,136,0.45); --aura-pink: rgba(196,92,140,0.35); --aura-lilac: rgba(120,110,200,0.25);
+  --pink-glow: rgba(229,138,176,0.55); --orb-core: #0B1C26;
+  --camera: linear-gradient(160deg, #1B3340, #0E2029); --crop: #2A4350;
+  color-scheme: dark;
+}
+
+/* ---------- Base ---------- */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  min-height: 100vh; overflow-x: hidden; position: relative;
+  font-family: Inter, system-ui, sans-serif; background: var(--bg); color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+button { font-family: inherit; color: inherit; }
+.mono { font-family: Doto, ui-monospace, monospace; font-weight: 800; letter-spacing: 0.04em; }
+.display { font-family: 'Space Grotesk', sans-serif; letter-spacing: -0.02em; }
+.muted { color: var(--muted); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
+
+.aura { position: fixed; border-radius: 50%; pointer-events: none; z-index: 0; }
+.aura.a1 { width: 620px; height: 620px; left: -160px; top: -200px; background: var(--aura-teal); filter: blur(90px); }
+.aura.a2 { width: 560px; height: 560px; right: -140px; top: 260px; background: var(--aura-pink); filter: blur(100px); }
+.aura.a3 { width: 520px; height: 520px; left: 30%; bottom: -260px; background: var(--aura-lilac); filter: blur(110px); }
+
+.wrap { position: relative; z-index: 1; max-width: 1280px; margin: 0 auto; padding: 32px 40px 56px; display: flex; flex-direction: column; gap: 28px; }
+.glass { background: var(--card); border: 1px solid var(--border); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); box-shadow: var(--shadow); }
+
+/* ---------- Header ---------- */
+header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; }
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand-orb { width: 36px; height: 36px; border-radius: 50%; background: radial-gradient(circle at 35% 40%, var(--teal) 0%, transparent 60%), radial-gradient(circle at 70% 65%, var(--pink) 0%, transparent 62%); box-shadow: 0 0 24px var(--pink-glow); }
+.brand-name { font-weight: 700; font-size: 22px; }
+.brand-sub { font-size: 13px; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.seg { display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: var(--card); border: 1px solid var(--border); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+.seg button { min-height: 44px; padding: 0 20px; border: 0; border-radius: 999px; background: transparent; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+.seg button[aria-pressed="true"] { background: var(--text); color: var(--bg); }
+.seg button:disabled { cursor: not-allowed; opacity: 0.55; }
+.live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--pink); box-shadow: 0 0 8px var(--pink); }
+.clip-dot { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid currentColor; }
+.icon-btn { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--border); background: var(--card); cursor: pointer; display: grid; place-items: center; }
+
+/* ---------- Layout ---------- */
+.main { display: flex; flex-wrap: wrap; gap: 24px; align-items: stretch; }
+.left { flex: 1 1 460px; min-width: 0; display: flex; flex-direction: column; gap: 18px; padding: 20px; border-radius: 32px; }
+.right { flex: 1.25 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 18px; }
+
+/* ---------- Camera ---------- */
+.camera { position: relative; aspect-ratio: 4 / 3; border-radius: 22px; overflow: hidden; background: var(--camera); }
+.mirror { position: absolute; inset: 0; transform: scaleX(-1); }
+.mirror video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mouth-box { position: absolute; border: 2px solid var(--pink); border-radius: 14px; box-shadow: 0 0 22px var(--pink); transition: all 0.2s ease; display: none; }
+.cam-pill { position: absolute; display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: rgba(0,0,0,0.38); color: #FFFFFF; font-size: 12px; font-weight: 600; }
+.cam-pill.tl { left: 16px; top: 16px; }
+.cam-pill.tr { right: 16px; top: 16px; }
+.rec-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--pink); }
+.recording .rec-dot { animation: pulse 1s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: 0.3; } }
+.cam-empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; text-align: center; color: #FFFFFF; }
+.cam-empty p { margin: 0; font-size: 14px; opacity: 0.9; max-width: 300px; line-height: 1.45; }
+.pill-btn { min-height: 44px; padding: 0 20px; border-radius: 999px; border: 0; background: var(--text); color: var(--bg); font-size: 14px; font-weight: 600; cursor: pointer; }
+.cam-empty .pill-btn { background: #FFFFFF; color: #17222B; }
+.overlay-caption { position: absolute; left: 12px; right: 12px; bottom: 12px; padding: 12px 16px; border-radius: 18px; background: rgba(15,24,30,0.55); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); color: #FFFFFF; font-family: 'Space Grotesk', sans-serif; font-size: 18px; line-height: 1.3; display: none; }
+
+.rec-row { display: flex; align-items: center; gap: 18px; }
+.orb { position: relative; flex: none; width: 84px; height: 84px; border-radius: 50%; border: 1px solid var(--border); cursor: pointer; background: radial-gradient(circle at 50% 50%, var(--orb-core) 52%, var(--pink) 100%); box-shadow: 0 0 34px var(--pink-glow); transition: transform 0.15s ease; }
+.orb:hover { transform: scale(1.04); }
+.orb:disabled { cursor: not-allowed; opacity: 0.5; transform: none; }
+.orb span { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; transform: translate(-50%, -50%); background: var(--text); border-radius: 50%; transition: border-radius 0.2s ease; }
+.recording .orb span { border-radius: 6px; }
+.recording .orb { animation: glow 1.6s ease-in-out infinite; }
+@keyframes glow { 50% { box-shadow: 0 0 56px var(--pink-glow); } }
+.rec-title { font-weight: 600; font-size: 18px; }
+.rec-help { font-size: 14px; line-height: 1.45; }
+
+/* ---------- Noise gauge ---------- */
+.noise { display: flex; flex-direction: column; gap: 12px; padding-top: 18px; border-top: 1px solid var(--line); }
+.noise-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.tag { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; padding: 3px 8px; border-radius: 999px; background: var(--chip); border: 1px solid var(--border); }
+.noise-row { display: flex; align-items: center; gap: 16px; }
+.noise-val { display: flex; flex-direction: column; min-width: 104px; }
+.noise-val .mono { font-size: 28px; color: var(--pink-text); }
+.noise-val span:last-child { font-size: 13px; font-weight: 600; }
+.gauge { flex: 1 1 auto; display: flex; flex-direction: column; gap: 8px; }
+.gauge-track { position: relative; height: 14px; border-radius: 999px; background: linear-gradient(90deg, var(--teal), var(--lilac), var(--pink)); }
+.gauge-knob { position: absolute; top: 50%; left: 0%; width: 24px; height: 24px; transform: translate(-50%, -50%); border-radius: 50%; background: var(--orb-core); border: 3px solid var(--text); box-shadow: 0 0 16px var(--pink-glow); transition: left 0.5s ease; }
+.gauge-labels { display: flex; justify-content: space-between; font-size: 12px; }
+
+/* ---------- Captions ---------- */
+.cap-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+h1 { margin: 0; font-weight: 600; font-size: 30px; }
+.badge { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 999px; background: var(--chip); border: 1px solid var(--border); }
+.badge-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.badge.on .badge-dot { background: var(--pink); box-shadow: 0 0 8px var(--pink); animation: pulse 1s ease-in-out infinite; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.cap { position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 14px; padding: 24px; border-radius: 28px; min-height: 210px; }
+.cap.lips { background: var(--card-strong); }
+.cap-aura { position: absolute; width: 230px; height: 230px; right: -80px; top: -90px; border-radius: 50%; filter: blur(50px); opacity: 0.38; pointer-events: none; }
+.ears .cap-aura { background: var(--teal); }
+.lips .cap-aura { background: var(--pink); opacity: 0.42; }
+.cap-top { position: relative; display: flex; align-items: center; justify-content: space-between; }
+.cap-name { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 15px; }
+.ears .cap-name { color: var(--teal-text); }
+.lips .cap-name { color: var(--pink-text); }
+.cap-model { font-size: 12px; }
+.cap-text { position: relative; margin: 0; flex: 1; font-family: 'Space Grotesk', sans-serif; font-weight: 500; font-size: 30px; line-height: 1.25; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+.cap-text .placeholder { color: var(--muted); font-size: 20px; font-weight: 400; font-family: Inter, sans-serif; }
+.cap-text .diff { color: var(--pink-text); text-decoration: underline wavy var(--pink); text-underline-offset: 6px; }
+.cap-text .pending { opacity: 0.4; }
+.caret { display: inline-block; width: 3px; height: 0.95em; margin-left: 2px; border-radius: 2px; vertical-align: -0.1em; animation: blink 1s steps(2, start) infinite; }
+.ears .caret { background: var(--teal); }
+.lips .caret { background: var(--pink); }
+@keyframes blink { to { visibility: hidden; } }
+.cap-foot { position: relative; font-size: 13px; }
+
+/* ---------- Loading + errors ---------- */
+.loading { display: none; flex-direction: column; align-items: center; gap: 18px; padding: 28px; border-radius: 28px; text-align: center; }
+.loading-orb { position: relative; width: 120px; height: 120px; }
+.loading-orb::before { content: ""; position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle at 35% 40%, var(--teal) 0%, transparent 62%), radial-gradient(circle at 68% 66%, var(--pink) 0%, transparent 64%); filter: blur(18px); animation: spin 3s linear infinite; }
+.loading-orb::after { content: ""; position: absolute; inset: 22px; border-radius: 50%; background: var(--card-strong); border: 1px solid var(--border); }
+@keyframes spin { to { transform: rotate(360deg); } }
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; text-align: left; }
+.steps li { display: flex; align-items: center; gap: 10px; font-size: 15px; color: var(--muted); }
+.steps li .ico { width: 20px; height: 20px; border-radius: 50%; border: 2px solid currentColor; flex: none; }
+.steps li.done { color: var(--text); }
+.steps li.done .ico { border-color: var(--teal-text); background: radial-gradient(circle, var(--teal-text) 35%, transparent 40%); }
+.steps li.now { color: var(--text); font-weight: 600; }
+.steps li.now .ico { border-color: var(--pink-text); border-right-color: transparent; animation: spin 0.9s linear infinite; }
+
+.error { display: none; gap: 14px; padding: 18px; border-radius: 24px; }
+.error.show { display: flex; }
+.error-ico { flex: none; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle, var(--orb-core) 45%, var(--pink) 100%); color: var(--pink-text); font-weight: 800; font-size: 20px; }
+.error-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.error-title { font-weight: 600; font-size: 17px; }
+.error-text { font-size: 14px; line-height: 1.45; }
+.error-actions { display: flex; align-items: center; gap: 10px; margin-top: 4px; flex-wrap: wrap; }
+.error-code { font-size: 12px; }
+
+/* ---------- Gate plot ---------- */
+.gate { display: flex; flex-direction: column; gap: 14px; padding: 24px; border-radius: 28px; }
+.gate-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px; }
+h2 { margin: 0; font-weight: 600; font-size: 20px; }
+.gate-sub { font-size: 13px; }
+.gate-nums { display: flex; gap: 18px; }
+.gate-num { display: flex; flex-direction: column; align-items: flex-end; }
+.gate-num .mono { font-size: 30px; }
+.gate-num span:last-child { font-size: 12px; font-weight: 600; color: var(--muted); }
+.bars { display: flex; align-items: stretch; gap: 2px; height: 150px; }
+.bar { flex: 1 1 0; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.bar i { display: block; border-radius: 3px; flex-basis: 0; flex-shrink: 1; transition: flex-grow 0.25s ease; }
+.bar .s { background: var(--teal); opacity: 0.75; }
+.bar .l { background: var(--pink); }
+.bar.empty .s, .bar.empty .l { background: var(--line); opacity: 1; }
+.axis { display: flex; justify-content: space-between; font-family: Doto, monospace; font-weight: 600; font-size: 13px; color: var(--muted); }
+
+/* ---------- Crops ---------- */
+.crops { display: flex; flex-wrap: wrap; align-items: center; gap: 20px; padding: 20px 24px; border-radius: 28px; }
+.crops-intro { flex: 0 0 200px; display: flex; flex-direction: column; gap: 4px; }
+.crops-intro span:first-child { font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 17px; }
+.crops-intro span:last-child { font-size: 13px; line-height: 1.4; }
+.crop-strip { flex: 999 1 560px; min-width: 0; display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; }
+.crop-strip figure { margin: 0; flex: none; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.crop-strip img, .crop-strip .crop-empty { width: 84px; height: 84px; border-radius: 16px; background: var(--crop); object-fit: cover; display: block; }
+.crop-strip figcaption { font-family: Doto, monospace; font-weight: 600; font-size: 12px; color: var(--muted); }
+
+footer { display: flex; flex-wrap: wrap; gap: 10px 28px; font-size: 13px; color: var(--muted); }
+footer strong { color: var(--text); }
+.conn { display: inline-flex; align-items: center; gap: 6px; }
+.conn i { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.conn.ok i { background: var(--teal); }
+.conn.mock i { background: var(--lilac); }
+
+/* ---------- Phone ---------- */
+@media (max-width: 640px) {
+  .wrap { padding: 20px 16px 40px; gap: 18px; }
+  .left { padding: 14px; border-radius: 26px; }
+  .seg button { padding: 0 14px; }
+  h1 { font-size: 24px; }
+  .cap { min-height: 150px; padding: 20px; }
+  .cap-text { font-size: 24px; }
+  .overlay-caption.show { display: block; }
+  .noise-val { min-width: 88px; }
+  .gate { padding: 18px; }
+  .bars { height: 110px; gap: 1px; }
+  .crops-intro { flex-basis: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="aura a1" aria-hidden="true"></div>
+<div class="aura a2" aria-hidden="true"></div>
+<div class="aura a3" aria-hidden="true"></div>
+
+<div class="wrap" id="app">
+  <header>
+    <div class="brand">
+      <div class="brand-orb" aria-hidden="true"></div>
+      <div style="display:flex;flex-direction:column">
+        <span class="brand-name display">LipScribe</span>
+        <span class="brand-sub muted">Captions that listen and lip-read</span>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Captioning style">
+        <button type="button" data-run="live" aria-pressed="true"><span class="live-dot" aria-hidden="true"></span>Live</button>
+        <button type="button" data-run="clip" aria-pressed="false"><span class="clip-dot" aria-hidden="true"></span>Clip</button>
+      </div>
+      <div class="seg" role="group" aria-label="Model">
+        <button type="button" data-mode="grid" aria-pressed="true">GRID sentences</button>
+        <button type="button" data-mode="any" aria-pressed="false">Any speech</button>
+      </div>
+      <button type="button" class="icon-btn" id="themeBtn" aria-label="Switch to dark theme">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="main">
+    <section class="left glass" aria-label="Camera and recording" id="leftCard">
+      <div class="camera">
+        <div class="mirror">
+          <video id="video" playsinline muted autoplay></video>
+          <div class="mouth-box" id="mouthBox" aria-hidden="true"></div>
+        </div>
+        <div class="cam-empty" id="camEmpty">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 7l-7 5 7 5V7z"></path><rect x="1" y="5" width="15" height="14" rx="2"></rect></svg>
+          <p id="camEmptyText">LipScribe needs your camera and microphone to read your lips and hear you.</p>
+          <button type="button" class="pill-btn" id="camBtn">Turn on camera &amp; mic</button>
+        </div>
+        <div class="cam-pill tl" id="timerPill" hidden>
+          <span class="rec-dot" aria-hidden="true"></span>
+          <span id="recLabel" style="font-weight:700;letter-spacing:0.08em">LIVE</span>
+          <span class="mono" id="timer" style="font-size:16px">00:00.0</span>
+        </div>
+        <div class="cam-pill tr" id="facePill" hidden>Mouth found</div>
+        <div class="overlay-caption" id="overlayCaption" aria-hidden="true"></div>
+      </div>
+
+      <div class="rec-row">
+        <button type="button" class="orb" id="recBtn" aria-label="Start live captions" disabled><span aria-hidden="true"></span></button>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <span class="rec-title display" id="recTitle">Start live captions</span>
+          <span class="rec-help muted" id="recHelp">Talk normally. Words appear as you speak; tap again to stop.</span>
+        </div>
+      </div>
+
+      <div class="noise">
+        <div class="noise-head">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span id="noiseLabel" style="font-weight:600;font-size:15px">Room noise</span>
+            <span class="tag">AUTO</span>
+          </div>
+          <span class="muted" style="font-size:13px">Measured from your microphone</span>
+        </div>
+        <div class="noise-row">
+          <div class="noise-val">
+            <span class="mono" id="noiseDb">--</span>
+            <span id="noiseWord">Waiting for sound</span>
+          </div>
+          <div class="gauge" role="meter" aria-labelledby="noiseLabel" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="No reading yet" id="gauge">
+            <div class="gauge-track"><div class="gauge-knob" id="gaugeKnob"></div></div>
+            <div class="gauge-labels muted" aria-hidden="true"><span>Quiet</span><span>Some noise</span><span>Noisy</span><span>Very noisy</span></div>
+          </div>
+        </div>
+        <span class="muted" style="font-size:13px;line-height:1.45">LipScribe adapts by itself: the louder the room, the more it reads your lips.</span>
+      </div>
+    </section>
+
+    <section class="right" aria-label="Captions">
+      <div class="cap-head">
+        <h1 class="display">What each model heard</h1>
+        <span class="badge" id="badge"><span class="badge-dot" aria-hidden="true"></span><span id="badgeText">Ready</span></span>
+      </div>
+
+      <div class="error glass" id="errorBox" role="alert">
+        <div class="error-ico" aria-hidden="true">!</div>
+        <div class="error-body">
+          <span class="error-title display" id="errorTitle"></span>
+          <span class="error-text muted" id="errorText"></span>
+          <div class="error-actions">
+            <button type="button" class="pill-btn" id="errorRetry">Try again</button>
+            <span class="error-code muted" id="errorCode"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="loading glass" id="loading" aria-live="polite">
+        <div class="loading-orb" aria-hidden="true"></div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span class="display" style="font-size:24px;font-weight:600">Reading your lips…</span>
+          <span class="muted" style="font-size:14px">Usually takes 2–3 seconds</span>
+        </div>
+        <ol class="steps" id="steps">
+          <li data-step="sent"><span class="ico" aria-hidden="true"></span>Clip sent to the Alienware</li>
+          <li data-step="face"><span class="ico" aria-hidden="true"></span>Face found, mouth cropped</li>
+          <li data-step="listen"><span class="ico" aria-hidden="true"></span>Listening and lip-reading</li>
+          <li data-step="write"><span class="ico" aria-hidden="true"></span>Writing both captions</li>
+        </ol>
+      </div>
+
+      <div class="cards" id="cards">
+        <article class="cap ears glass">
+          <div class="cap-aura" aria-hidden="true"></div>
+          <div class="cap-top">
+            <span class="cap-name">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"></path></svg>
+              Ears only
+            </span>
+            <span class="cap-model muted" id="earsModel">twin_v5</span>
+          </div>
+          <p class="cap-text" id="earsText"><span class="placeholder">Captions from sound alone appear here.</span></p>
+          <span class="cap-foot muted">Listens to the sound only</span>
+        </article>
+        <article class="cap lips glass">
+          <div class="cap-aura" aria-hidden="true"></div>
+          <div class="cap-top">
+            <span class="cap-name">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12c3-4 6-5 9-3 3-2 6-1 9 3-3 4-6 6-9 6s-6-2-9-6z"></path><path d="M3 12h18"></path></svg>
+              Ears + lips
+            </span>
+            <span class="cap-model muted" id="lipsModel">ws_v5</span>
+          </div>
+          <p class="cap-text" id="lipsText" aria-live="polite"><span class="placeholder">Captions from sound and lips appear here.</span></p>
+          <span class="cap-foot muted" id="lipsFoot">Listens and lip-reads together</span>
+        </article>
+      </div>
+
+      <section class="gate glass" aria-label="Gate plot">
+        <div class="gate-head">
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <h2 class="display">Who the model trusted, moment by moment</h2>
+            <span class="gate-sub muted" id="gateSub">The last 3 seconds, scrolling as you speak</span>
+          </div>
+          <div class="gate-nums">
+            <div class="gate-num"><span class="mono" style="color:var(--teal-text)" id="soundPct">--</span><span>sound</span></div>
+            <div class="gate-num"><span class="mono" style="color:var(--pink-text)" id="lipsPct">--</span><span>lips</span></div>
+          </div>
+        </div>
+        <div class="bars" id="bars" role="img" aria-label="Trust per frame: sound on top in teal, lips below in pink. No data yet."></div>
+        <div class="axis" aria-hidden="true"><span id="ax0">−3s</span><span id="ax1">−2s</span><span id="ax2">−1s</span><span id="ax3">now</span></div>
+      </section>
+    </section>
+  </div>
+
+  <section class="crops glass" aria-label="Mouth crops">
+    <div class="crops-intro">
+      <span>What the eyes saw</span>
+      <span class="muted">96×96 mouth crops the model used</span>
+    </div>
+    <div class="crop-strip" id="crops"></div>
+  </section>
+
+  <footer>
+    <span id="statTime">Captioned in <strong>--</strong></span>
+    <span id="statFace">Face found in <strong>--</strong> of frames</span>
+    <span class="conn" id="conn"><i aria-hidden="true"></i><span id="connText">Not connected</span></span>
+    <span>CVDL Group 4 · Uganda Christian University</span>
+  </footer>
+</div>
+
+<script src="mock-backend.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

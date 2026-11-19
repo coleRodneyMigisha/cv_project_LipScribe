@@ -1,0 +1,2 @@
+2a0b7cc8261aad2c902c1985e06a4d08  ../cv_project_LipScribe/checkpoints/p_proposed_best.pt
+2a0b7cc8261aad2c902c1985e06a4d08  checkpoints/flix_base_p4.pt

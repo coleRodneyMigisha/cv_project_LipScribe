@@ -1,0 +1,48 @@
+# Proposed LipScribe model P4 (Audio from B1 + Visual from B2 v2 resnet18_bilstm):
+# Matches B3 v2 encoder initialization and augmentation with cross-modal attention + gated fusion.
+experiment: p_init_b1_b2_v2
+seed: 1
+data:
+  manifest: data/manifest.csv
+  splits: data/splits.csv
+  feature_stats: data/stats/feature_norm.npz
+  noise_splits: Data/Noise_splits/splits.csv
+  noisy_dir: data/processed/noisy_test
+  visual_augment: true
+  visual_aug:
+    max_jitter: 4
+    p_flip: 0.5
+    max_scale: 0.1
+    p_erase: 0.5
+    max_erase_area: 0.15
+    time_masks: 2
+    max_mask_width: 6
+  train_snrs: [clean, 10, 5, 0, -5]
+  eval_snrs:  [clean, 10, 5, 0, -5]
+model:
+  name: p_proposed
+  streams: [audio, visual]
+  audio_features: logmel80
+  visual_encoder: resnet18_bilstm
+  input_norm: clip
+  spatial_dropout: 0.2
+  fusion: cross_attention_gated
+  dropout: 0.3
+  attn_dropout: 0.1
+  num_heads: 4
+  modality_dropout: {audio: 0.25, visual: 0.15}
+  init_audio_from: checkpoints/b1_audio_only_best.pt
+  init_visual_from: checkpoints/b2_visual_only_v2_best.pt
+train:
+  optimiser: adamw
+  lr: 3.0e-4
+  weight_decay: 1.0e-2
+  batch_size: 16
+  grad_accum: 1
+  max_epochs: 40
+  warmup_epochs: 1
+  patience: 12
+  grad_clip: 5.0
+  amp: true
+  num_workers: 8
+decode: {method: greedy}

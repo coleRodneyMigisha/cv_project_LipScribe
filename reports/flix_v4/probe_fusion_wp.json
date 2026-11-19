@@ -1,0 +1,58 @@
+{
+ "film_test|clean": {
+  "real": 34.5,
+  "shuffled": 61.8,
+  "zero": 36.1,
+  "e_miss": 32.9,
+  "n": 43
+ },
+ "film_test|0": {
+  "real": 39.0,
+  "shuffled": 68.3,
+  "zero": 41.4,
+  "e_miss": 39.8,
+  "n": 43
+ },
+ "film_test|-5": {
+  "real": 45.4,
+  "shuffled": 72.7,
+  "zero": 50.6,
+  "e_miss": 50.6,
+  "n": 43
+ },
+ "film_test|-10": {
+  "real": 47.8,
+  "shuffled": 82.3,
+  "zero": 62.2,
+  "e_miss": 59.4,
+  "n": 43
+ },
+ "ted_test|clean": {
+  "real": 26.9,
+  "shuffled": 80.2,
+  "zero": 26.1,
+  "e_miss": 22.1,
+  "n": 1122
+ },
+ "ted_test|0": {
+  "real": 29.9,
+  "shuffled": 84.1,
+  "zero": 31.6,
+  "e_miss": 27.8,
+  "n": 1122
+ },
+ "ted_test|-5": {
+  "real": 33.2,
+  "shuffled": 89.0,
+  "zero": 39.7,
+  "e_miss": 35.7,
+  "n": 1122
+ },
+ "ted_test|-10": {
+  "real": 36.2,
+  "shuffled": 93.7,
+  "zero": 50.3,
+  "e_miss": 47.4,
+  "n": 1122
+ }
+}
