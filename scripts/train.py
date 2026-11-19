@@ -303,8 +303,11 @@ def train_one_epoch(model, loader, criterion, optimiser, scheduler, scaler, *,
     accum = max(1, int(train_cfg["grad_accum"]))
     total, count = 0.0, 0
     optimiser.zero_grad(set_to_none=True)
+    max_steps = int(train_cfg.get("max_steps") or 0)
 
     for i, batch in enumerate(loader):
+        if max_steps and state["step"] >= max_steps:
+            break
         batch = prepare_batch(to_device(batch, device))
         with torch.autocast(device_type=device.type, enabled=use_amp):
             out = model(batch)
@@ -322,7 +325,8 @@ def train_one_epoch(model, loader, criterion, optimiser, scheduler, scaler, *,
         scaler.scale(loss / accum).backward()
         total += loss.item()
         count += 1
-        if (i + 1) % accum != 0 and (i + 1) != len(loader):
+        final_accumulation = (i + 1) == len(loader) or (max_steps and state["step"] + 1 >= max_steps)
+        if (i + 1) % accum != 0 and not final_accumulation:
             continue
 
         scaler.unscale_(optimiser)
@@ -338,6 +342,8 @@ def train_one_epoch(model, loader, criterion, optimiser, scheduler, scaler, *,
         writer.add_scalar("train/lr", scheduler.get_last_lr()[0], state["step"])
         if out.get("gate") is not None:
             writer.add_scalar("train/gate_mean", _masked_gate_mean(out["gate"], batch), state["step"])
+        if max_steps and state["step"] >= max_steps:
+            break
 
     return total / max(1, count)
 
@@ -464,8 +470,9 @@ def fit(cfg: dict, model: nn.Module, train_loader: Iterable, val_loaders: dict,
     optimiser = torch.optim.AdamW(param_groups(model, tc["weight_decay"], lr=tc["lr"],
                                                lr_mult=tc.get("lr_mult")), lr=tc["lr"])
     steps_per_epoch = math.ceil(len(train_loader) / max(1, int(tc["grad_accum"])))
+    max_steps = int(tc.get("max_steps") or 0)
     scheduler = warmup_cosine(optimiser, warmup_steps=int(tc["warmup_epochs"] * steps_per_epoch),
-                              total_steps=int(tc["max_epochs"] * steps_per_epoch))
+                              total_steps=max_steps or int(tc["max_epochs"] * steps_per_epoch))
     use_amp = bool(tc["amp"]) and device.type == "cuda"
     scaler = torch.amp.GradScaler(device.type, enabled=use_amp)
     criterion = ctc_loss_fn()
@@ -498,6 +505,10 @@ def fit(cfg: dict, model: nn.Module, train_loader: Iterable, val_loaders: dict,
                 model, train_loader, criterion, optimiser, scheduler, scaler,
                 device=device, prepare_batch=prepare_batch, train_cfg=tc,
                 writer=writer, state=state)
+            if max_steps and state["step"] >= max_steps:
+                state["max_steps_reached"] = True
+                print(f"Reached requested optimizer step limit: {state['step']}")
+                break
             val = validate(model, val_loaders, criterion, device=device,
                            prepare_batch=prepare_batch, decode_fn=decode_fn,
                            wer_fn=wer_fn, cer_fn=cer_fn, use_amp=use_amp)
@@ -768,6 +779,8 @@ def parse_args(argv=None) -> argparse.Namespace:
     p.add_argument("--runs-root", default=str(REPO_ROOT / "runs"))
     p.add_argument("--limit", type=int, help="use only the first N utterances per split (smoke runs)")
     p.add_argument("--max-epochs", type=int, help="override train.max_epochs")
+    p.add_argument("--max-steps", type=int,
+                   help="stop after this many optimizer updates; skips end-of-epoch validation")
     p.add_argument("--time-budget-min", type=float,
                    help="wall-clock training budget in minutes (shortens and compresses the schedule)")
     p.add_argument("--no-results", action="store_true",
@@ -794,6 +807,11 @@ def main(argv=None) -> None:
     if args.max_epochs is not None:
         cfg = copy.deepcopy(cfg)
         cfg["train"]["max_epochs"] = args.max_epochs
+    if args.max_steps is not None:
+        if args.max_steps < 1:
+            p.error("--max-steps must be at least 1")
+        cfg = copy.deepcopy(cfg)
+        cfg["train"]["max_steps"] = args.max_steps
     if args.time_budget_min is not None:
         cfg = copy.deepcopy(cfg)
         cfg["train"]["time_budget_min"] = args.time_budget_min
