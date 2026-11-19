@@ -1,4 +1,8 @@
+<<<<<<< HEAD
+% LipScribe -- Progress Report 3 (Week 3 / Milestone M3 & M4)
+=======
 % LipScribe -- Progress Report 3 (Week 3 / Milestone M3, M4 & Early M5)
+>>>>>>> 4e472b40faa9a4d62fed2f4699c907e09c3851e1
 % Compile: pdflatex progress_report_week3.tex
 \documentclass[11pt,a4paper]{article}
 \usepackage{lipscribe-report}
@@ -7,7 +11,11 @@
 \usepackage{float}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning}
+<<<<<<< HEAD
+\fancyhead[L]{\small\sffamily\color{lsgrey}LipScribe -- Progress Report 3 (Week 3: Baselines \& Decoding)}
+=======
 \fancyhead[L]{\small\sffamily\color{lsgrey}LipScribe -- Progress Report 3 (Week 3: Baselines, Fusion \& Decoding)}
+>>>>>>> 4e472b40faa9a4d62fed2f4699c907e09c3851e1
 
 \newcommand{\notstarted}{\textcolor{lsplan}{\sffamily Not started}}
 \newcommand{\blocked}{\textcolor{red!60!black}{\sffamily\bfseries Blocked}}
@@ -22,6 +30,27 @@
 
 \begin{document}
 
+<<<<<<< HEAD
+\docheader{Progress Report 3}{Week 3: Baselines B1, B2 \& B3, Evaluation Engine, and Beam Search}{5 November 2026}
+
+% =====================================================================
+\section{Summary}
+In Week~3 (30~October--5~November~2026), the team successfully completed all core deliverables for Milestones \textbf{M3} and \textbf{M4}. All three foundational baseline models---audio-only baseline \textbf{B1}, visual-only baseline \textbf{B2}, and concatenation fusion baseline \textbf{B3}---have completed full-corpus training on our dedicated Alienware GPU workstation and have been officially evaluated on the four held-out test speakers across all five standardised acoustic conditions ($\text{clean}, 10, 5, 0, -5$\,dB).
+
+The empirical findings strongly validate the multimodal hypothesis:
+\begin{enumerate}
+  \item \textbf{B1 (Audio-Only)} performs strongly in quiet environments ($4.16\,\%$ Clean WER) but degrades significantly under noise ($13.80\,\%$ at $-5$\,dB).
+  \item \textbf{B2 (Visual-Only)} exhibits complete noise invariance across all SNRs ($23.04\,\%$ Test WER, $14.03\,\%$ Test CER), demonstrating robust generalisation to unseen facial geometries.
+  \item \textbf{B3 (Concatenation Fusion)} significantly surpasses both unimodal baselines across all conditions: achieving \textbf{2.41\,\% Clean WER} and maintaining \textbf{7.35\,\% WER at $-$5\,dB} (a \textbf{46.7\,\% relative error reduction} over audio-only).
+\end{enumerate}
+In addition, the official evaluation engine (\code{evaluate.py}) and \textbf{CTC Prefix Beam Search} (W3-07, Algorithm~2) have been verified with a decode latency of 17.3\,ms per utterance. Milestones M1--M4 are officially closed on schedule.
+
+\medskip
+\noindent\tile{4.16\,\%}{B1 Clean WER (audio-only baseline; 13.80\,\% at $-$5\,dB)}\hfill%
+\tile{23.04\,\%}{B2 Test WER on unseen speakers (14.03\,\% CER; noise-invariant)}\hfill%
+\tile{2.41\,\%}{B3 Concat WER (clean; 7.35\,\% at $-$5\,dB; $<8$\,\% across all SNRs)}\hfill%
+\tile{17.3\,ms}{CTC prefix beam search decode latency per utterance}
+=======
 \docheader{Progress Report 3}{Week 3: Baselines B1--B3, Proposed Model P, Evaluation Engine, and Beam Search}{9 November 2026}
 
 % =====================================================================
@@ -41,6 +70,7 @@ The empirical findings validate both our multimodal hypothesis and our architect
 \tile{23.04\,\%}{B2 visual-only test WER (21.03\,\% grammar; constant across SNR)}\hfill%
 \tile{1.02\,\%}{Model P4 greedy test WER, clean (0.71\,\% grammar; 2.51\,\% mean)}\hfill%
 \tile{1.88\,\%}{Model P4 no-visual fallback WER vs.\ 25.18\,\% for B3 v2}
+>>>>>>> 4e472b40faa9a4d62fed2f4699c907e09c3851e1
 
 % =====================================================================
 \section{Progress against the Milestones}
@@ -53,15 +83,46 @@ The empirical findings validate both our multimodal hypothesis and our architect
 \midrule
 M1 Environment and dataset verified & Sun 25 Oct & \done{} -- closed 29 Oct \\
 M2 Preprocessing and alignment & Sun 1 Nov & \done{} -- closed 3 Nov; full corpus extraction complete \\
+<<<<<<< HEAD
+M3 \& M4 Baselines B1, B2, B3 & Sun 8 Nov & \done{} -- closed 4 Nov; all three baselines trained and tested \\
+M5 Multimodal fusion (model P) & Sun 15 Nov & \inprog{} -- cross-attention \& gated fusion modules started \\
+M6 \& M7 Tuning and evaluation & Sun 22 Nov & \planned \\
+=======
 M3 \& M4 Baselines B1, B2, B3 & Sun 8 Nov & \done{} -- closed 4 Nov; all baselines (v1 \& v2) trained and tested \\
 M5 Multimodal fusion (model P) & Sun 15 Nov & \done{} -- cross-attention, gated fusion, $\mathbf{e}_{\text{miss}}$ \& 4 full runs complete \\
 M6 \& M7 Tuning and evaluation & Sun 22 Nov & \inprog{} -- 4-way curriculum \& modality ablations evaluated \\
+>>>>>>> 4e472b40faa9a4d62fed2f4699c907e09c3851e1
 M8 \& M9 Application, testing, demo & Sun 29 Nov & \planned \\
 \bottomrule
 \end{tabularx}
 }
 
 % =====================================================================
+<<<<<<< HEAD
+\section{Week 3 Work Breakdown and Task Deliverables}
+
+Table~\ref{tab:week3} details the status and verified outputs for each Week~3 work-breakdown task.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Week 3 work breakdown cards and verified outcomes.}
+\label{tab:week3}
+\rowcolors{2}{lsrow}{white}
+\begin{tabularx}{\textwidth}{@{}L{1.05cm}L{3.6cm}L{1.35cm}L{1.5cm}X@{}}
+\toprule
+\rowcolor{white}\sffamily\bfseries Card & \sffamily\bfseries Task & \sffamily\bfseries Owner & \sffamily\bfseries Status & \sffamily\bfseries Output and Evidence \\
+\midrule
+W3-01 & Complete B1 (audio) & Charis & \done & 52 epochs; best epoch 43; WER 4.16\,\% (clean) to 13.80\,\% ($-$5\,dB) \\
+W3-02 & Evaluation script & Lisa & \done & \code{scripts/evaluate.py}: per-speaker metrics, hypotheses CSV, gate hook \\
+W3-03 & Visual encoder V1 & Cole & \done & 3D-CNN + 2-layer BiLSTM; 5,246,368 trainable parameters; shape tests pass \\
+W3-04 & Visual augmentation & Faith & \done & Spatial crop jitter ($\pm 4$\,px) and horizontal flip; clip-synchronous \\
+W3-05 & Train B2 (visual-only) & Cole & \done & Overfit verified; 28 epochs; Test WER 23.04\,\%, CER 14.03\,\% \\
+W3-06 & Implement \& train B3 & Faith & \done & \code{fusion\_concat.py}; 22 epochs; Test WER 2.41\,\% (clean) to 7.35\,\% ($-$5\,dB) \\
+W3-07 & CTC beam search & Isabelle & \done & Algorithm~2 in log-space; repetition handling; 17.29\,ms decode latency \\
+W3-08 & Exp X5: audio features & Lisa & \planned & Deferred to Week 4 to prioritise baseline completion and fusion \\
+W3-09 & Experiment tracking & Nehum & \done & \code{history.csv}, live \code{learning\_curves.png}, \code{plot\_training\_curves.py} \\
+W3-10 & Gradio Mode A skeleton & Isabelle & \inprog & Preprocessing and video playback wired; live pipeline in progress \\
+=======
 \section{Week 3 \& Early Week 4 Work Breakdown and Deliverables}
 
 Table~\ref{tab:week3} summarises the status and verified outputs for each Week~3 task and the completed Week~4 fusion milestones.
@@ -86,11 +147,33 @@ W3-08 & Exp X5: audio features & Lisa & \planned & Deferred to Week 5 to priorit
 W3-09 & Experiment tracking & Nehum & \done & \code{results.csv}, per-run \code{history.csv}, \code{plot\_all\_model\_comparisons.py} \\
 W3-10 & Gradio Mode A skeleton & Isabelle & \inprog & Preprocessing and video playback wired; upgrading to Model P4 checkpoint \\
 W4-01--05 & Proposed Model P \& curriculum & Cole / Charis & \done & \code{fusion\_attention.py}, 8-utt overfit ($\text{CER}=0$), 4 full-corpus Model P runs (\code{P1--P4}) \\
+>>>>>>> 4e472b40faa9a4d62fed2f4699c907e09c3851e1
 \bottomrule
 \end{tabularx}
 \end{table}
 
 % =====================================================================
+<<<<<<< HEAD
+\section{Technical Highlights and Empirical Results}
+
+\subsection{Official Test Evaluation: B1, B2 and B3 across Noise Conditions}
+Table~\ref{tab:baseline_results} presents the official held-out test evaluation across the five standardised noise conditions, decoding 3,998 test utterances from speakers \code{s1}, \code{s2}, \code{s20}, and \code{s22}. Figure~\ref{fig:snr_curves} displays the corresponding error curves.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Official Test Evaluation: Word Error Rate (WER \%) and Character Error Rate (CER \%) on Held-Out Test Speakers.}
+\label{tab:baseline_results}
+\rowcolors{2}{lsrow}{white}
+\begin{tabularx}{\textwidth}{@{}lccccc@{}}
+\toprule
+\rowcolor{white}\sffamily\bfseries Model Configuration & \multicolumn{5}{c}{\sffamily\bfseries Test WER \% [CER \%] across Noise Conditions (SNR)} \\
+\cmidrule(lr){2-6}
+& \textbf{Clean} & \textbf{10 dB} & \textbf{5 dB} & \textbf{0 dB} & \textbf{$-$5 dB} \\
+\midrule
+\textbf{B1 Audio-Only} & 4.16 [2.2] & 5.47 [2.9] & 6.49 [3.5] & 8.69 [4.8] & 13.80 [7.9] \\
+\textbf{B2 Visual-Only} & 23.04 [14.0] & 23.04 [14.0] & 23.04 [14.0] & 23.04 [14.0] & 23.04 [14.0] \\
+\textbf{B3 Concat Fusion} & \textbf{2.41 [1.1]} & \textbf{2.88 [1.3]} & \textbf{3.36 [1.6]} & \textbf{4.29 [2.2]} & \textbf{7.35 [3.8]} \\
+=======
 \section{Official Held-Out Test Results Across All Models}
 
 Table~\ref{tab:baseline_results} presents the official held-out test evaluation across all five noise conditions on the 3,998 utterances from unseen test speakers \code{s4}, \code{s9}, \code{s14} and \code{s24} (validation speakers: \code{s11}, \code{s19}, \code{s26}). Figure~\ref{fig:snr_curves} illustrates the test WER trajectories across SNR levels.
@@ -113,12 +196,39 @@ Table~\ref{tab:baseline_results} presents the official held-out test evaluation 
 \textbf{Model P2} (Init \code{B2v1} only, 11 ep) & 18.19 [10.7] & 18.20 [10.7] & 18.53 [10.9] & 18.93 [11.2] & 19.85 [11.8] & 18.74\,\% \\
 \textbf{Model P3} (Init \code{B1+B2v1 Conv3D}, 10 ep) & 2.13 [0.8] & 2.67 [1.0] & 3.27 [1.2] & 4.33 [1.8] & 7.30 [3.4] & 3.94\,\% \\
 \textbf{Model P4} (Init \code{B1+B2v2 ResNet18}, 6 ep) & \textbf{1.02 [0.4]} & \textbf{1.53 [0.6]} & \textbf{1.87 [0.8]} & \textbf{2.79 [1.2]} & 5.34 [2.5] & \textbf{2.51\,\%} \\
+>>>>>>> 4e472b40faa9a4d62fed2f4699c907e09c3851e1
 \bottomrule
 \end{tabularx}
 \end{table}
 
 \begin{figure}[htbp]
 \centering
+<<<<<<< HEAD
+\includegraphics[width=0.82\textwidth]{figures/snr_comparison_curves.png}
+\caption{Speech recognition performance across acoustic noise levels for the three completed baselines. While B1 degrades sharply as SNR drops, B2 provides a constant acoustic anchor, and B3 multimodal concatenation consistently outperforms both baselines across all conditions.}
+\label{fig:snr_curves}
+\end{figure}
+
+\subsection{Empirical Analysis of Multimodal Gain}
+\begin{itemize}
+  \item \textbf{Substantial Error Reduction under Severe Noise:} At $-5$\,dB SNR, B1 audio-only suffers an error rate of 13.80\,\%. Concatenating visual features in B3 slashes this error almost in half to \textbf{7.35\,\% WER} (a 46.7\,\% relative reduction).
+  \item \textbf{Clean Audio Enhancement:} Even in clean acoustic conditions, adding visual mouth cues improves WER from 4.16\,\% to \textbf{2.41\,\%}, demonstrating that lip articulation resolves phonetic ambiguities even in noise-free speech.
+  \item \textbf{Meeting Project Accuracy Goals Early:} Across all five test SNR conditions, B3 achieves a WER well below 8\,\% (with CER below 4\,\%), demonstrating the effectiveness of the visual spatio-temporal front-end.
+\end{itemize}
+
+% =====================================================================
+\section{Risks, Resource Management and Next Steps}
+
+\begin{itemize}
+  \item \textbf{GPU Compute Availability:} Workstation scheduling ran efficiently: B2 training completed in $\approx 55$\,minutes and B3 completed in $\approx 45$\,minutes. Sufficient GPU headroom exists for Week~4 fusion experiments.
+  \item \textbf{Week 4 Roadmap (Model P: Cross-Attention Gated Fusion):}
+  \begin{enumerate}
+    \item Implement \code{Model P} with bidirectional cross-attention ($\mathbf{A} \to \mathbf{V}$ and $\mathbf{V} \to \mathbf{A}$) and learned per-frame gating $g_t$.
+    \item Implement modality dropout ($p_a=0.25, p_v=0.15$) to prevent attention collapse.
+    \item Integrate CTC prefix beam search with lexical dictionary constraints to target sub-2\,\% overall WER.
+  \end{enumerate}
+\end{itemize}
+=======
 \includegraphics[width=0.84\textwidth]{figures/snr_comparison_curves.png}
 \caption{Test WER across acoustic noise levels (log scale; greedy decoding unless stated). B1 degrades steeply as SNR falls and B2 is constant. Both B3 v2 and Proposed Model P4 outperform B1 at every SNR, with P4 achieving the lowest clean error (1.02\,\% greedy, 0.71\,\% grammar).}
 \label{fig:snr_curves}
@@ -189,5 +299,6 @@ Model P4 (\code{B1+B2v2 ResNet18}) & \textbf{1.02} & \textbf{0.71} & 5.34 & 3.95
   \item \textbf{Gate \& Attention Visualisation (W4-06):} Generate per-frame gate traces and cross-modal attention heatmaps from \code{checkpoints/p\_proposed\_best.pt} (\code{P4}).
   \item \textbf{Ablations X1--X3 (W4-07) \& CLI/Gradio Integration (W4-08--10):} Smoke-test X1--X3 configs, wire \code{transcribe.py}, and upgrade Gradio Mode~A to display live fusion gate plots using Model~P4.
 \end{enumerate}
+>>>>>>> 4e472b40faa9a4d62fed2f4699c907e09c3851e1
 
 \end{document}
