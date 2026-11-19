@@ -1,0 +1,54 @@
+# X6 'Flix': fine-tune a COPY of Model P4 (checkpoints/flix_base_p4.pt, md5-identical to
+# p_proposed_best.pt) on mouth clips mined from films/series, mixed with a GRID subset so
+# it does not forget GRID. Same architecture and augmentation as p_init_b1_b2_v2.yaml;
+# Flix train clips are repeated x8 against 1000 GRID clips so roughly 60% of each epoch
+# is film speech (new words) while GRID still anchors the model.
+# Built by scripts/flix_prepare.py; run by scripts/flix_run.sh.
+experiment: flix_finetune_p4
+seed: 1
+data:
+  manifest: data/flix/train_mix.csv
+  splits: data/flix/splits.csv
+  feature_stats: data/stats/feature_norm.npz
+  noise_splits: Data/Noise_splits/splits.csv
+  visual_augment: true
+  visual_aug:
+    max_jitter: 4
+    p_flip: 0.5
+    max_scale: 0.1
+    p_erase: 0.5
+    max_erase_area: 0.15
+    time_masks: 2
+    max_mask_width: 6
+  train_snrs: [clean, 10, 5, 0, -5]
+  eval_snrs:  [clean, 0]
+model:
+  name: p_proposed
+  streams: [audio, visual]
+  audio_features: logmel80
+  visual_encoder: resnet18_bilstm
+  input_norm: clip
+  spatial_dropout: 0.2
+  fusion: cross_attention_gated
+  dropout: 0.3
+  attn_dropout: 0.1
+  num_heads: 4
+  modality_dropout: {audio: 0.25, visual: 0.15}
+  init_from:
+    audio_encoder: checkpoints/flix_base_p4.pt
+    visual_encoder: checkpoints/flix_base_p4.pt
+    fusion: checkpoints/flix_base_p4.pt
+    ctc_head: checkpoints/flix_base_p4.pt
+train:
+  optimiser: adamw
+  lr: 2.0e-4
+  weight_decay: 1.0e-2
+  batch_size: 16
+  grad_accum: 1
+  max_epochs: 40
+  warmup_epochs: 1
+  patience: 10
+  grad_clip: 5.0
+  amp: true
+  num_workers: 8
+decode: {method: greedy}

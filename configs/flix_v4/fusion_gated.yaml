@@ -1,0 +1,81 @@
+# Flix v4 fusion v3 (v4_fusion_gated): symmetric fusion, so neither stream is built in. The
+# audio stream comes from the audio-only twin and the lip stream from fusion_wp, both frozen. Each
+# frame learns a 768-channel gate from both features plus each stream's own confidence (entropy
+# and blank probability of its CTC head). Noise levels are spread evenly from clean to -10 dB, and
+# selection is over all four. Success criterion: no worse than the twin on clean audio, and better in noise.
+experiment: flix_v4_fusion_gated
+seed: 1
+data:
+  manifest: data/flix_v4c/train_mix.csv
+  splits: data/flix_v4c/splits.csv
+  noise_splits: Data/Noise_splits/splits.csv
+  tokenizer: subword
+  val_manifests:
+    film: data/flix_v4c/film_val.csv
+    ted: data/flix_v4c/ted_val.csv
+  visual_augment: true
+  visual_aug:
+    max_jitter: 4
+    p_flip: 0.5
+    max_scale: 0.1
+    p_erase: 0.3
+    max_erase_area: 0.15
+    time_masks: 2
+    max_mask_width: 6
+  train_snrs:
+  - clean
+  - 10
+  - 5
+  - 0
+  - -5
+  - -10
+  eval_snrs:
+  - clean
+  - 0
+  - -5
+  - -10
+model:
+  name: v4_fusion_gated
+  dropout: 0.1
+  num_heads: 8
+  fusion_layers: 3
+  audio_encoder_cfg:
+    name: microsoft/wavlm-base-plus
+    cache_dir: pretrained/hf/hub
+    mask_time_prob: 0.05
+    layerdrop: 0.0
+    freeze_feature_encoder: true
+  visual_encoder_cfg:
+    pretrained: false
+    dropout: 0.1
+    zoom: 1.0
+  modality_dropout:
+    audio: 0.15
+    visual: 0.15
+  aux_ctc:
+    audio: 0.0
+    visual: 0.0
+  freeze:
+  - audio_encoder
+  - audio_pool
+  - audio_head
+  - visual_encoder
+  - visual_head
+  init_streams_from:
+    audio: runs/flix_v4/flix_v4_fusion_wp_audio_20261114-142621/best.pt
+    visual: runs/flix_v4/flix_v4_fusion_wp_20261114-110340/best.pt
+train:
+  optimiser: adamw
+  lr: 0.0003
+  weight_decay: 0.01
+  batch_size: 8
+  grad_accum: 2
+  max_epochs: 15
+  warmup_epochs: 1
+  patience: 4
+  grad_clip: 5.0
+  amp: true
+  num_workers: 8
+  select_metric: wer
+decode:
+  method: greedy

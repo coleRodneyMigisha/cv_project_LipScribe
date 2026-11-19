@@ -1,0 +1,42 @@
+# Flix v4 stage 3: audio-visual model, built the Model P way: both encoders initialised from the
+# stage 1 and stage 2 runs, then cross-modal attention + gated fusion + BiLSTM CTC head trained
+# (encoders at a lower learning rate). Target: WER < 10 % on clean audio and a clear gain over
+# audio-only in noise. INIT paths are filled in by scripts/flix_v4_run.sh when stages 1-2 finish.
+experiment: flix_v4_fusion
+seed: 1
+data:
+  manifest: data/flix_v3/train_mix.csv
+  splits: data/flix_v3/splits.csv
+  noise_splits: Data/Noise_splits/splits.csv
+  val_manifests: {film: data/flix_v3/film_val.csv, ted: data/flix_v3/ted_val.csv}
+  visual_augment: true
+  visual_aug: {max_jitter: 4, p_flip: 0.5, max_scale: 0.1, p_erase: 0.3, max_erase_area: 0.15,
+               time_masks: 2, max_mask_width: 6}
+  train_snrs: [clean, 10, 5, 0, -5]
+  eval_snrs: [clean, 0]
+model:
+  name: v4_fusion
+  dropout: 0.1
+  attn_dropout: 0.1
+  num_heads: 4
+  embed_dim: 256
+  modality_dropout: {audio: 0.25, visual: 0.15}
+  audio_encoder_cfg: {name: microsoft/wavlm-base-plus, cache_dir: pretrained/hf/hub,
+                      mask_time_prob: 0.05, layerdrop: 0.05, freeze_feature_encoder: true}
+  visual_encoder_cfg: {pretrained: false, dropout: 0.1}   # weights come from stage 2 (init_from)
+  init_from: {audio_encoder: AUDIO_BEST, visual_encoder: VISUAL_BEST}
+train:
+  optimiser: adamw
+  lr: 3.0e-4                 # fusion + CTC head (as Model P)
+  lr_mult: {audio_encoder: 0.1, visual_encoder: 0.1}
+  weight_decay: 1.0e-2
+  batch_size: 8
+  grad_accum: 2
+  max_epochs: 20
+  warmup_epochs: 1
+  patience: 5
+  grad_clip: 5.0
+  amp: true
+  num_workers: 8
+  select_metric: wer
+decode: {method: greedy}

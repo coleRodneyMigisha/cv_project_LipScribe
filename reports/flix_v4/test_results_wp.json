@@ -1,0 +1,266 @@
+{
+  "fusion_wp|film_test|clean": {
+    "n": 43,
+    "wer": 0.3453815261044177,
+    "cer": 0.2635726795096322,
+    "epoch": 11
+  },
+  "fusion_wp|film_test|0": {
+    "n": 43,
+    "wer": 0.3895582329317269,
+    "cer": 0.30385288966725044,
+    "epoch": 11
+  },
+  "fusion_wp|film_test|-5": {
+    "n": 43,
+    "wer": 0.4538152610441767,
+    "cer": 0.351138353765324,
+    "epoch": 11
+  },
+  "fusion_wp|film_test|-10": {
+    "n": 43,
+    "wer": 0.4779116465863454,
+    "cer": 0.39316987740805603,
+    "epoch": 11
+  },
+  "fusion_wp-no_visual|film_test|clean": {
+    "n": 43,
+    "wer": 0.3293172690763052,
+    "cer": 0.22416812609457093,
+    "epoch": 11
+  },
+  "fusion_wp-no_visual|film_test|0": {
+    "n": 43,
+    "wer": 0.39759036144578314,
+    "cer": 0.2819614711033275,
+    "epoch": 11
+  },
+  "fusion_wp-no_visual|film_test|-5": {
+    "n": 43,
+    "wer": 0.5060240963855421,
+    "cer": 0.3975481611208406,
+    "epoch": 11
+  },
+  "fusion_wp-no_visual|film_test|-10": {
+    "n": 43,
+    "wer": 0.5943775100401606,
+    "cer": 0.531523642732049,
+    "epoch": 11
+  },
+  "fusion_wp-no_audio|film_test|clean": {
+    "n": 43,
+    "wer": 0.5903614457831325,
+    "cer": 0.4991243432574431,
+    "epoch": 11
+  },
+  "fusion_wp|ted_test|clean": {
+    "n": 1122,
+    "wer": 0.2693165420438148,
+    "cer": 0.201682370475156,
+    "epoch": 11
+  },
+  "fusion_wp|ted_test|0": {
+    "n": 1122,
+    "wer": 0.2987012987012987,
+    "cer": 0.22287619673125017,
+    "epoch": 11
+  },
+  "fusion_wp|ted_test|-5": {
+    "n": 1122,
+    "wer": 0.3317591499409681,
+    "cer": 0.24199863591583096,
+    "epoch": 11
+  },
+  "fusion_wp|ted_test|-10": {
+    "n": 1122,
+    "wer": 0.3624557260920897,
+    "cer": 0.26314194053603457,
+    "epoch": 11
+  },
+  "fusion_wp-no_visual|ted_test|clean": {
+    "n": 1122,
+    "wer": 0.22104158467794832,
+    "cer": 0.15924419632707706,
+    "epoch": 11
+  },
+  "fusion_wp-no_visual|ted_test|0": {
+    "n": 1122,
+    "wer": 0.2777121868030959,
+    "cer": 0.2001414605804936,
+    "epoch": 11
+  },
+  "fusion_wp-no_visual|ted_test|-5": {
+    "n": 1122,
+    "wer": 0.35747081201626657,
+    "cer": 0.2662742819612499,
+    "epoch": 11
+  },
+  "fusion_wp-no_visual|ted_test|-10": {
+    "n": 1122,
+    "wer": 0.4738292011019284,
+    "cer": 0.3876525121883447,
+    "epoch": 11
+  },
+  "fusion_wp-no_audio|ted_test|clean": {
+    "n": 1122,
+    "wer": 0.48104420831693556,
+    "cer": 0.3420567357971051,
+    "epoch": 11
+  },
+  "fusion_wp_audio|film_test|clean": {
+    "n": 43,
+    "wer": 0.30120481927710846,
+    "cer": 0.20490367775831875,
+    "epoch": 11
+  },
+  "fusion_wp_audio|film_test|0": {
+    "n": 43,
+    "wer": 0.3895582329317269,
+    "cer": 0.25569176882662,
+    "epoch": 11
+  },
+  "fusion_wp_audio|film_test|-5": {
+    "n": 43,
+    "wer": 0.46184738955823296,
+    "cer": 0.36252189141856395,
+    "epoch": 11
+  },
+  "fusion_wp_audio|film_test|-10": {
+    "n": 43,
+    "wer": 0.5943775100401606,
+    "cer": 0.5148861646234676,
+    "epoch": 11
+  },
+  "fusion_wp_audio|ted_test|clean": {
+    "n": 1122,
+    "wer": 0.17355371900826447,
+    "cer": 0.11425467956652437,
+    "epoch": 11
+  },
+  "fusion_wp_audio|ted_test|0": {
+    "n": 1122,
+    "wer": 0.23350386986750624,
+    "cer": 0.15734963498118068,
+    "epoch": 11
+  },
+  "fusion_wp_audio|ted_test|-5": {
+    "n": 1122,
+    "wer": 0.3149678604224059,
+    "cer": 0.2211079394750802,
+    "epoch": 11
+  },
+  "fusion_wp_audio|ted_test|-10": {
+    "n": 1122,
+    "wer": 0.43827889282434734,
+    "cer": 0.3396064364564125,
+    "epoch": 11
+  },
+  "fusion_gated|film_test|clean": {
+    "n": 43,
+    "wer": 0.3092369477911647,
+    "cer": 0.22066549912434325,
+    "epoch": 13
+  },
+  "fusion_gated|film_test|0": {
+    "n": 43,
+    "wer": 0.37349397590361444,
+    "cer": 0.26532399299474607,
+    "epoch": 13
+  },
+  "fusion_gated|film_test|-5": {
+    "n": 43,
+    "wer": 0.42971887550200805,
+    "cer": 0.318739054290718,
+    "epoch": 13
+  },
+  "fusion_gated|film_test|-10": {
+    "n": 43,
+    "wer": 0.4457831325301205,
+    "cer": 0.351138353765324,
+    "epoch": 13
+  },
+  "fusion_gated-no_visual|film_test|clean": {
+    "n": 43,
+    "wer": 0.3293172690763052,
+    "cer": 0.2119089316987741,
+    "epoch": 13
+  },
+  "fusion_gated-no_visual|film_test|0": {
+    "n": 43,
+    "wer": 0.39759036144578314,
+    "cer": 0.2635726795096322,
+    "epoch": 13
+  },
+  "fusion_gated-no_visual|film_test|-5": {
+    "n": 43,
+    "wer": 0.46987951807228917,
+    "cer": 0.361646234676007,
+    "epoch": 13
+  },
+  "fusion_gated-no_visual|film_test|-10": {
+    "n": 43,
+    "wer": 0.5983935742971888,
+    "cer": 0.5043782837127846,
+    "epoch": 13
+  },
+  "fusion_gated-no_audio|film_test|clean": {
+    "n": 43,
+    "wer": 0.6104417670682731,
+    "cer": 0.5148861646234676,
+    "epoch": 13
+  },
+  "fusion_gated|ted_test|clean": {
+    "n": 1122,
+    "wer": 0.18509773055227602,
+    "cer": 0.12630408972642534,
+    "epoch": 13
+  },
+  "fusion_gated|ted_test|0": {
+    "n": 1122,
+    "wer": 0.22838777384231929,
+    "cer": 0.16182079975749614,
+    "epoch": 13
+  },
+  "fusion_gated|ted_test|-5": {
+    "n": 1122,
+    "wer": 0.2740390922209104,
+    "cer": 0.19175486902265895,
+    "epoch": 13
+  },
+  "fusion_gated|ted_test|-10": {
+    "n": 1122,
+    "wer": 0.32926669290305655,
+    "cer": 0.23626443024225124,
+    "epoch": 13
+  },
+  "fusion_gated-no_visual|ted_test|clean": {
+    "n": 1122,
+    "wer": 0.18365472910927455,
+    "cer": 0.12218657640134388,
+    "epoch": 13
+  },
+  "fusion_gated-no_visual|ted_test|0": {
+    "n": 1122,
+    "wer": 0.24399842581660763,
+    "cer": 0.16573622653901535,
+    "epoch": 13
+  },
+  "fusion_gated-no_visual|ted_test|-5": {
+    "n": 1122,
+    "wer": 0.32716778171323624,
+    "cer": 0.22929244448935257,
+    "epoch": 13
+  },
+  "fusion_gated-no_visual|ted_test|-10": {
+    "n": 1122,
+    "wer": 0.4460186278368097,
+    "cer": 0.34402707959683737,
+    "epoch": 13
+  },
+  "fusion_gated-no_audio|ted_test|clean": {
+    "n": 1122,
+    "wer": 0.491538764266037,
+    "cer": 0.3530704524212494,
+    "epoch": 13
+  }
+}

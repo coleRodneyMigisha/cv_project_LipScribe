@@ -1,0 +1,48 @@
+experiment: flix_v4_visual_c
+seed: 1
+data:
+  manifest: data/flix_v4c/train_mix.csv
+  splits: data/flix_v4c/splits.csv
+  noise_splits: Data/Noise_splits/splits.csv
+  val_manifests:
+    film: data/flix_v4c/film_val.csv
+    ted: data/flix_v4c/ted_val.csv
+  tokenizer: subword
+  visual_augment: true
+  visual_aug:
+    max_jitter: 4
+    p_flip: 0.5
+    max_scale: 0.1
+    p_erase: 0.3
+    max_erase_area: 0.15
+    time_masks: 2
+    max_mask_width: 6
+  train_snrs:
+  - clean
+  eval_snrs:
+  - clean
+model:
+  name: v4_visual
+  head: avsr_ctc
+  dropout: 0.1
+  visual_encoder_cfg:
+    checkpoint: pretrained/vsr_trlrs3vox2_base.pth
+    dropout: 0.1
+    zoom: 1.0
+train:
+  optimiser: adamw
+  lr: 0.0001
+  lr_mult:
+    visual_encoder: 0.5
+  weight_decay: 0.01
+  batch_size: 8
+  grad_accum: 2
+  max_epochs: 40
+  warmup_epochs: 1
+  patience: 8
+  grad_clip: 5.0
+  amp: true
+  num_workers: 8
+  select_metric: cer
+decode:
+  method: greedy

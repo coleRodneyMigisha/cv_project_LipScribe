@@ -1,0 +1,36 @@
+# Flix v4 stage 1b: the audio-only model again with stronger regularisation. The first run
+# (audio.yaml) overfitted: val loss rose from epoch 3 while train loss kept falling, and val WER
+# stalled near 34 %. Changes: 3x time masking, channel masking, 2x LayerDrop, dropout 0.1 -> 0.2,
+# half the learning rate, 5x weight decay. Same data and seed; starts again from WavLM Base+.
+# The pipeline keeps whichever of the two has the lower mean val WER for the fusion stage.
+experiment: flix_v4_audio_reg
+seed: 1
+data:
+  manifest: data/flix_v3/train_mix.csv
+  splits: data/flix_v3/splits.csv
+  noise_splits: Data/Noise_splits/splits.csv
+  val_manifests: {film: data/flix_v3/film_val.csv, ted: data/flix_v3/ted_val.csv}
+  visual_augment: false
+  train_snrs: [clean, clean, 10, 5, 0]
+  eval_snrs: [clean, 0]
+model:
+  name: v4_audio
+  dropout: 0.2
+  audio_encoder_cfg: {name: microsoft/wavlm-base-plus, cache_dir: pretrained/hf/hub,
+                      mask_time_prob: 0.15, mask_feature_prob: 0.05, layerdrop: 0.1,
+                      freeze_feature_encoder: true}
+train:
+  optimiser: adamw
+  lr: 1.5e-4                 # CTC head
+  lr_mult: {audio_encoder: 0.2}   # WavLM Transformer at 3e-5
+  weight_decay: 5.0e-2
+  batch_size: 16
+  grad_accum: 1
+  max_epochs: 30
+  warmup_epochs: 1
+  patience: 6
+  grad_clip: 5.0
+  amp: true
+  num_workers: 8
+  select_metric: wer
+decode: {method: greedy}

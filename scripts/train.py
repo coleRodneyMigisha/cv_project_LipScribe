@@ -142,6 +142,36 @@ def init_lstm_forget_bias(model: nn.Module, value: float = 1.0) -> None:
                 param[h:2 * h].fill_(value if name.startswith("bias_ih") else 0.0)
 
 
+<<<<<<< HEAD
+=======
+def resolve_init_from(cfg: dict) -> dict:
+    """Resolve pretrained encoder checkpoint paths from ``cfg`` (W4-05).
+
+    Supports both ``model.init_from: {audio_encoder: ..., visual_encoder: ...}``
+    and the shorthand ``init_visual_from`` / ``init_audio_from`` keys (under
+    ``model``, ``train`` or top-level).
+    """
+    model_cfg = cfg.get("model") or {}
+    train_cfg = cfg.get("train") or {}
+    init_from = dict(model_cfg.get("init_from") or cfg.get("init_from") or {})
+    vis_ckpt = (
+        model_cfg.get("init_visual_from")
+        or train_cfg.get("init_visual_from")
+        or cfg.get("init_visual_from")
+    )
+    if vis_ckpt:
+        init_from["visual_encoder"] = vis_ckpt
+    aud_ckpt = (
+        model_cfg.get("init_audio_from")
+        or train_cfg.get("init_audio_from")
+        or cfg.get("init_audio_from")
+    )
+    if aud_ckpt:
+        init_from["audio_encoder"] = aud_ckpt
+    return init_from
+
+
+>>>>>>> 4e472b40faa9a4d62fed2f4699c907e09c3851e1
 def load_pretrained(model: nn.Module, init_from: dict, map_location="cpu") -> dict:
     """Copy sub-module weights from other runs' checkpoints into ``model``.
 
@@ -168,6 +198,16 @@ def load_pretrained(model: nn.Module, init_from: dict, map_location="cpu") -> di
         prefix = module_name + "."
         sub = {k[len(prefix):]: v for k, v in source.items() if k.startswith(prefix)}
         own = target.state_dict()
+<<<<<<< HEAD
+=======
+        for k in own:   # X3: 3D (5x7x7) front-end checkpoint into a 2D (1x7x7) front-end
+            if (k in sub and own[k].ndim == 5 and sub[k].ndim == 5
+                    and own[k].shape[2] == 1 and sub[k].shape[2] > 1
+                    and own[k].shape[:2] == sub[k].shape[:2] and own[k].shape[3:] == sub[k].shape[3:]):
+                sub[k] = sub[k].sum(dim=2, keepdim=True)
+                print(f"{module_name}.{k}: {tuple(source[prefix + k].shape)} -> {tuple(own[k].shape)} "
+                      "by summing over the temporal axis (static clip gives the same response)")
+>>>>>>> 4e472b40faa9a4d62fed2f4699c907e09c3851e1
         missing = [k for k in own if k not in sub]
         bad_shape = [k for k in own if k in sub and sub[k].shape != own[k].shape]
         if missing or bad_shape:
@@ -181,15 +221,41 @@ def load_pretrained(model: nn.Module, init_from: dict, map_location="cpu") -> di
     return loaded
 
 
+<<<<<<< HEAD
 def param_groups(model: nn.Module, weight_decay: float) -> list[dict]:
     """Weight decay on weight matrices only; none on biases or norm parameters."""
     decay, no_decay = [], []
+=======
+def param_groups(model: nn.Module, weight_decay: float, lr: float | None = None,
+                 lr_mult: dict | None = None) -> list[dict]:
+    """Weight decay on weight matrices only; none on biases or norm parameters.
+
+    ``lr_mult`` (optional, ``train.lr_mult``) maps a parameter-name prefix such as
+    ``visual_encoder`` or ``visual_encoder.trunk.6`` to a multiplier of ``lr``; the longest
+    matching prefix wins. Without it the two groups are exactly as before.
+    """
+    lr_mult = dict(lr_mult or {})
+    groups: dict[tuple[bool, float], list] = {}
+>>>>>>> 4e472b40faa9a4d62fed2f4699c907e09c3851e1
     for name, param in model.named_parameters():
         if not param.requires_grad:
             continue
-        (no_decay if param.ndim <= 1 or name.endswith(".bias") else decay).append(param)
-    return [{"params": decay, "weight_decay": weight_decay},
-            {"params": no_decay, "weight_decay": 0.0}]
+        mult = 1.0
+        for prefix in sorted(lr_mult, key=len, reverse=True):
+            if name == prefix or name.startswith(prefix + "."):
+                mult = float(lr_mult[prefix]); break
+        nd = param.ndim <= 1 or name.endswith(".bias")
+        groups.setdefault((nd, mult), []).append(param)
+    out = []
+    for (nd, mult), params in sorted(groups.items(), key=lambda kv: (kv[0][1] != 1.0, kv[0][0])):
+        g = {"params": params, "weight_decay": 0.0 if nd else weight_decay}
+        if mult != 1.0 and lr is not None:
+            g["lr"] = lr * mult
+        out.append(g)
+    if not lr_mult:          # keep the original [decay, no_decay] order (and empty groups)
+        dec = groups.get((False, 1.0), []); nod = groups.get((True, 1.0), [])
+        return [{"params": dec, "weight_decay": weight_decay}, {"params": nod, "weight_decay": 0.0}]
+    return out
 
 
 def warmup_cosine(optimiser: torch.optim.Optimizer, warmup_steps: int,
@@ -227,8 +293,14 @@ def ctc_loss_fn() -> nn.CTCLoss:
 
 def compute_loss(criterion: nn.CTCLoss, out: dict, batch: dict) -> torch.Tensor:
     # CTC runs in float32 even under AMP.
-    return criterion(out["log_probs"].float(), batch["targets"],
+    loss = criterion(out["log_probs"].float(), batch["targets"],
                      out["lengths"], batch["target_lengths"])
+    # Optional auxiliary CTC heads (v4_fusion_wp): [(weight, log_probs [T, B, V]), ...] on
+    # the same frames and targets as the main output.
+    for w, lp in out.get("aux_ctc") or []:
+        if w > 0:
+            loss = loss + w * criterion(lp.float(), batch["targets"], out["lengths"], batch["target_lengths"])
+    return loss
 
 
 # ---------------------------------------------------------------------------
@@ -243,8 +315,11 @@ def train_one_epoch(model, loader, criterion, optimiser, scheduler, scaler, *,
     accum = max(1, int(train_cfg["grad_accum"]))
     total, count = 0.0, 0
     optimiser.zero_grad(set_to_none=True)
+    max_steps = int(train_cfg.get("max_steps") or 0)
 
     for i, batch in enumerate(loader):
+        if max_steps and state["step"] >= max_steps:
+            break
         batch = prepare_batch(to_device(batch, device))
         with torch.autocast(device_type=device.type, enabled=use_amp):
             out = model(batch)
@@ -262,7 +337,8 @@ def train_one_epoch(model, loader, criterion, optimiser, scheduler, scaler, *,
         scaler.scale(loss / accum).backward()
         total += loss.item()
         count += 1
-        if (i + 1) % accum != 0 and (i + 1) != len(loader):
+        final_accumulation = (i + 1) == len(loader) or (max_steps and state["step"] + 1 >= max_steps)
+        if (i + 1) % accum != 0 and not final_accumulation:
             continue
 
         scaler.unscale_(optimiser)
@@ -276,8 +352,10 @@ def train_one_epoch(model, loader, criterion, optimiser, scheduler, scaler, *,
         writer.add_scalar("train/loss", loss.item(), state["step"])
         writer.add_scalar("train/grad_norm", float(grad_norm), state["step"])
         writer.add_scalar("train/lr", scheduler.get_last_lr()[0], state["step"])
-        if "gate" in out:
+        if out.get("gate") is not None:
             writer.add_scalar("train/gate_mean", _masked_gate_mean(out["gate"], batch), state["step"])
+        if max_steps and state["step"] >= max_steps:
+            break
 
     return total / max(1, count)
 
@@ -299,7 +377,7 @@ def validate(model, val_loaders: dict, criterion, *, device, prepare_batch,
                 losses.append(loss.item())
             hyps.extend(decode_fn(out["log_probs"].float(), out["lengths"]))
             refs.extend(batch["texts"])
-            if "gate" in out:
+            if out.get("gate") is not None:
                 gates.append(_masked_gate_mean(out["gate"], batch))
         metrics[snr] = {
             "loss": float(np.mean(losses)) if losses else float("nan"),
@@ -385,13 +463,33 @@ def fit(cfg: dict, model: nn.Module, train_loader: Iterable, val_loaders: dict,
     if resume is None:
         init_lstm_forget_bias(model)
         # After the forget-bias init, so pretrained LSTM biases are not overwritten.
+<<<<<<< HEAD
         if cfg.get("model", {}).get("init_from"):
             load_pretrained(model, cfg["model"]["init_from"])
+=======
+        init_from = resolve_init_from(cfg)
+        if init_from:
+            load_pretrained(model, init_from)
+    # Optional model.freeze: [sub-module, ...] keeps those weights fixed (param_groups
+    # skips parameters with requires_grad=False). Used for small-data fine-tuning (X6 Flix).
+    for module_name in (cfg.get("model") or {}).get("freeze") or []:
+        try:                                  # dotted paths allowed, e.g. visual_encoder.trunk.0
+            sub = model.get_submodule(module_name)
+        except AttributeError:
+            raise ValueError(f"model.freeze: model has no sub-module {module_name!r}") from None
+        sub.requires_grad_(False)
+        print(f"Frozen {module_name}")
+    # train.select_metric: "wer" (default) or "cer" picks best.pt / early stopping.
+    # CER is the useful signal when WER saturates near 100% (open-vocabulary film clips).
+    select_key = "mean_cer" if str(tc.get("select_metric", "wer")).lower() == "cer" else "mean_wer"
+>>>>>>> 4e472b40faa9a4d62fed2f4699c907e09c3851e1
 
-    optimiser = torch.optim.AdamW(param_groups(model, tc["weight_decay"]), lr=tc["lr"])
+    optimiser = torch.optim.AdamW(param_groups(model, tc["weight_decay"], lr=tc["lr"],
+                                               lr_mult=tc.get("lr_mult")), lr=tc["lr"])
     steps_per_epoch = math.ceil(len(train_loader) / max(1, int(tc["grad_accum"])))
+    max_steps = int(tc.get("max_steps") or 0)
     scheduler = warmup_cosine(optimiser, warmup_steps=int(tc["warmup_epochs"] * steps_per_epoch),
-                              total_steps=int(tc["max_epochs"] * steps_per_epoch))
+                              total_steps=max_steps or int(tc["max_epochs"] * steps_per_epoch))
     use_amp = bool(tc["amp"]) and device.type == "cuda"
     scaler = torch.amp.GradScaler(device.type, enabled=use_amp)
     criterion = ctc_loss_fn()
@@ -424,6 +522,10 @@ def fit(cfg: dict, model: nn.Module, train_loader: Iterable, val_loaders: dict,
                 model, train_loader, criterion, optimiser, scheduler, scaler,
                 device=device, prepare_batch=prepare_batch, train_cfg=tc,
                 writer=writer, state=state)
+            if max_steps and state["step"] >= max_steps:
+                state["max_steps_reached"] = True
+                print(f"Reached requested optimizer step limit: {state['step']}")
+                break
             val = validate(model, val_loaders, criterion, device=device,
                            prepare_batch=prepare_batch, decode_fn=decode_fn,
                            wer_fn=wer_fn, cer_fn=cer_fn, use_amp=use_amp)
@@ -432,7 +534,7 @@ def fit(cfg: dict, model: nn.Module, train_loader: Iterable, val_loaders: dict,
                               lr=scheduler.get_last_lr()[0], elapsed=time.time() - t0)
             plot_history(run_dir / "history.csv", run_dir / "learning_curves.png")
 
-            improved = val["mean_wer"] < state["best_wer"]
+            improved = val[select_key] < state["best_cer" if select_key == "mean_cer" else "best_wer"]
             if improved:
                 state.update(best_wer=val["mean_wer"], best_cer=val["mean_cer"],
                              best_epoch=epoch, bad_epochs=0,
@@ -624,11 +726,14 @@ def build_loaders(cfg: dict, limit: int | None = None):
     d, tc = cfg["data"], cfg["train"]
     # Optional data.noise_splits / data.noisy_dir; otherwise the dataset's default locations.
     extra = {k: d[k] for k in ("noise_splits", "noisy_dir") if d.get(k)}
+    if d.get("tokenizer"):                   # "subword": Auto-AVSR word pieces (Flix v4 visual_c)
+        extra["tokenizer"] = d["tokenizer"]
     visual_aug = bool(d.get("visual_augment", False) or cfg.get("augmentation", {}).get("visual", False))
     # Optional data.visual_aug: max_jitter, p_flip, max_scale, time_masks, max_mask_width,
     # p_erase, max_erase_area (lipscribe.data.augmentation.apply_visual_augmentation).
     aug = dict(d.get("visual_aug") or {})
     aug_base = {k: aug.pop(k) for k in ("max_jitter", "p_flip") if k in aug}
+<<<<<<< HEAD
     train_ds = GridDataset(d["manifest"], d["splits"], "train", seed=int(cfg.get("seed", 1)),
                            snrs=[snr_value(s) for s in d["train_snrs"]],
                            visual_augment=visual_aug, visual_aug_params=aug, **aug_base, **extra)
@@ -637,6 +742,33 @@ def build_loaders(cfg: dict, limit: int | None = None):
     val_sets = {str(s): GridDataset(d["manifest"], d["splits"], "val", snr_db=snr_value(s),
                                     visual_augment=False, **extra)
                 for s in d.get("val_snrs") or d["eval_snrs"]}
+=======
+    # data.interference (Flix v6): p_silent / p_replace / p_talkover / sir_db, see GridDataset.
+    train_ds = GridDataset(d["manifest"], d["splits"], "train", seed=int(cfg.get("seed", 1)),
+                           snrs=[snr_value(s) for s in d["train_snrs"]],
+                           visual_augment=visual_aug, visual_aug_params=aug, **aug_base, **extra,
+                           interference=d.get("interference"))
+    # data.val_snrs (default eval_snrs): a visual-only model scores the same at
+    # every SNR, so validating it once on clean audio is enough.
+    # data.val_manifests (optional) {domain: manifest}: one validation set per domain and SNR, so
+    # the mean used for best.pt / early stopping weighs each domain equally (X6: films + TED).
+    vm = d.get("val_manifests") or {}
+    snrs = d.get("val_snrs") or d["eval_snrs"]
+    if vm:
+        val_sets = {f"{name}_{s}": GridDataset(path, d["splits"], "val", snr_db=snr_value(s),
+                                               visual_augment=False, **extra)
+                    for name, path in vm.items() for s in snrs}
+        # data.val_conditions (Flix v6): extra clean-audio val sets per domain, e.g. ted_silent,
+        # ted_replace; they count in the mean that picks best.pt like any other val set.
+        for c in d.get("val_conditions") or []:
+            for name, path in vm.items():
+                val_sets[f"{name}_{c}"] = GridDataset(path, d["splits"], "val", visual_augment=False,
+                                                      condition=c, **extra)
+    else:
+        val_sets = {str(s): GridDataset(d["manifest"], d["splits"], "val", snr_db=snr_value(s),
+                                        visual_augment=False, **extra)
+                    for s in snrs}
+>>>>>>> 4e472b40faa9a4d62fed2f4699c907e09c3851e1
     if limit:
         train_ds = Subset(train_ds, range(min(limit, len(train_ds))))
         val_sets = {s: Subset(ds, range(min(limit, len(ds)))) for s, ds in val_sets.items()}
@@ -675,6 +807,11 @@ def parse_args(argv=None) -> argparse.Namespace:
     p.add_argument("--runs-root", default=str(REPO_ROOT / "runs"))
     p.add_argument("--limit", type=int, help="use only the first N utterances per split (smoke runs)")
     p.add_argument("--max-epochs", type=int, help="override train.max_epochs")
+<<<<<<< HEAD
+=======
+    p.add_argument("--max-steps", type=int,
+                   help="stop after this many optimizer updates; skips end-of-epoch validation")
+>>>>>>> 4e472b40faa9a4d62fed2f4699c907e09c3851e1
     p.add_argument("--time-budget-min", type=float,
                    help="wall-clock training budget in minutes (shortens and compresses the schedule)")
     p.add_argument("--no-results", action="store_true",
@@ -701,6 +838,14 @@ def main(argv=None) -> None:
     if args.max_epochs is not None:
         cfg = copy.deepcopy(cfg)
         cfg["train"]["max_epochs"] = args.max_epochs
+<<<<<<< HEAD
+=======
+    if args.max_steps is not None:
+        if args.max_steps < 1:
+            p.error("--max-steps must be at least 1")
+        cfg = copy.deepcopy(cfg)
+        cfg["train"]["max_steps"] = args.max_steps
+>>>>>>> 4e472b40faa9a4d62fed2f4699c907e09c3851e1
     if args.time_budget_min is not None:
         cfg = copy.deepcopy(cfg)
         cfg["train"]["time_budget_min"] = args.time_budget_min

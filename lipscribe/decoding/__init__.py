@@ -19,7 +19,12 @@ def get_decoder(decode_cfg: dict | None):
     """Return ``fn(log_probs [T,B,V], lengths) -> list[str]`` for a config ``decode`` section.
 
     ``method``: ``greedy`` (default), ``beam`` (prefix beam search, ``beam_width``)
+<<<<<<< HEAD
     or ``grammar`` (GRID grammar-constrained Viterbi).
+=======
+    , ``grammar`` (GRID grammar-constrained Viterbi) or ``lexicon_lm`` (open-vocabulary
+    lexicon + word-bigram LM beam search; ``lm_path``, ``alpha``, ``beta``, ``beam_width``).
+>>>>>>> 4e472b40faa9a4d62fed2f4699c907e09c3851e1
     """
     decode_cfg = decode_cfg or {}
     method = decode_cfg.get("method", "greedy")
@@ -30,4 +35,13 @@ def get_decoder(decode_cfg: dict | None):
     if method == "beam":
         width = int(decode_cfg.get("beam_width", 10))
         return lambda lp, lengths: beam_search_decode(lp, lengths, beam_width=width)
+<<<<<<< HEAD
     raise ValueError(f"Unknown decode method {method!r} (greedy, beam or grammar)")
+=======
+    if method == "lexicon_lm":
+        from lipscribe.decoding.lexicon_lm import LexiconLMDecoder, WordBigramLM
+        return LexiconLMDecoder(WordBigramLM.load(decode_cfg["lm_path"]),
+                                alpha=float(decode_cfg.get("alpha", 0.8)), beta=float(decode_cfg.get("beta", 1.5)),
+                                beam_width=int(decode_cfg.get("beam_width", 32)))
+    raise ValueError(f"Unknown decode method {method!r} (greedy, beam, grammar or lexicon_lm)")
+>>>>>>> 4e472b40faa9a4d62fed2f4699c907e09c3851e1
