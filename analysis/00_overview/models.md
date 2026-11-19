@@ -46,3 +46,24 @@ These were trained on the Alienware in `~/Desktop/lipscribe_flix`. The decision 
 **Final real-world model: ws_v5**
 (`runs/flix_v5/flix_v5_fusion_gated_ws_20261116-093641/best.pt`), with **twin_v5** as its
 audio-only baseline.
+
+## Frozen checkpoints
+
+Frozen in the 16 Nov re-plan (F-00). Nothing below is retrained. Before you report a number,
+check that the checkpoint behind it still has this hash (`sha256sum <file>` on the Alienware).
+The checkpoints are not in Git.
+
+| Model | Role | Checkpoint (on the Alienware) | SHA-256 |
+|---|---|---|---|
+| P4 | GRID benchmark | `~/Desktop/cv_project_LipScribe/checkpoints/p_proposed_best.pt` | `7862172062d79395fd3f8d80982461fee669acd1f2407f3871ab6f2add264f68` |
+| ws_v5 | Real-world model | `~/Desktop/lipscribe_flix/runs/flix_v5/flix_v5_fusion_gated_ws_20261116-093641/best.pt` | `55236c654e6372514c6e3bb71548ad07ffb689698d0e5b16bccc95d6b9b90b3e` |
+| twin_v5 | Real-world baseline | `~/Desktop/lipscribe_flix/runs/flix_v5/flix_v5_fusion_wp_audio_20261116-000004/best.pt` | `a51f6add7b8f000908566c5c7492b42dce52e1c33abe2b84a8f6d5b5c40c7ed6` |
+
+The P4 hash was taken on the checkpoint itself. The ws_v5 and twin_v5 hashes come from the
+release copies (`~/Desktop/lipscribe_release/real_world/SHA256SUMS`, made in F-04), which
+also lists their configs:
+
+| File in `lipscribe_release/real_world/` | SHA-256 |
+|---|---|
+| `ws_v5/config.yaml` | `e5f923e1e90d61f90ed1e76448a570c9d7bad61b87eb3385cd51d0d7258a1980` |
+| `twin_v5/config.yaml` | `341e0262e6535ba51a6584fa977e3bd64533366df6eb561c429e33be70742f9a` |
