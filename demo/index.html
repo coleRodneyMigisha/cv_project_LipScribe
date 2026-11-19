@@ -45,6 +45,7 @@ button { font-family: inherit; color: inherit; }
 .mono { font-family: Doto, ui-monospace, monospace; font-weight: 800; letter-spacing: 0.04em; }
 .display { font-family: 'Space Grotesk', sans-serif; letter-spacing: -0.02em; }
 .muted { color: var(--muted); }
+[hidden] { display: none !important; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 :focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
 
@@ -201,6 +202,44 @@ footer strong { color: var(--text); }
 .conn.ok i { background: var(--teal); }
 .conn.mock i { background: var(--lilac); }
 
+/* ---------- Upload (Clip mode) ---------- */
+.upload { display: flex; flex-direction: column; gap: 10px; padding-top: 18px; border-top: 1px solid var(--line); }
+.upload-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.upload-title { font-weight: 600; font-size: 15px; }
+.upload p { margin: 0; font-size: 13px; line-height: 1.45; }
+.pill-btn.ghost { background: var(--chip); color: var(--text); border: 1px solid var(--border); display: inline-flex; align-items: center; gap: 8px; }
+.pill-btn:disabled { cursor: not-allowed; opacity: 0.55; }
+.camera .file-player { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; display: none; }
+.camera.file .file-player { display: block; }
+.camera.file .mirror, .camera.file .cam-empty { display: none; }
+.camera.file .overlay-caption.show { display: block; bottom: 64px; text-align: center; }
+.bufbar { position: relative; height: 10px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.bufbar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; transition: width 0.4s ease; }
+.bufbar .up { background: var(--lilac); opacity: 0.55; }
+.bufbar .done { background: var(--teal); }
+.bufbar .head { width: 3px !important; margin-left: -1px; background: var(--pink); border-radius: 2px; transition: none; }
+.up-stats { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 14px; font-size: 13px; }
+.up-panel { display: flex; flex-direction: column; gap: 10px; }
+.up-note { font-size: 13px; color: var(--pink-text); }
+.up-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.seg.small button { min-height: 38px; padding: 0 14px; font-size: 13px; }
+.lips-chip { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--chip); border: 1px solid var(--border); }
+.lips-chip.on { color: var(--pink-text); }
+.snr-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 13px; }
+.snr-row select { min-height: 40px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--chip); color: var(--text); font: inherit; font-size: 13px; font-weight: 600; }
+
+/* ---------- Meeting captions (Live mode) ---------- */
+.meeting { display: flex; flex-direction: column; gap: 12px; padding-top: 18px; border-top: 1px solid var(--line); }
+.meeting label { font-size: 13px; }
+.meeting input[type=url], .meeting select { width: 100%; min-height: 42px; padding: 0 14px; border-radius: 14px; border: 1px solid var(--border); background: var(--chip); color: var(--text); font: inherit; font-size: 13px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.zoom-status { font-size: 13px; font-weight: 600; }
+.zoom-status.ok { color: var(--teal-text); }
+.zoom-status.bad { color: var(--pink-text); }
+.consent { font-size: 13px; line-height: 1.45; padding: 10px 14px; border-radius: 14px; background: var(--chip); border: 1px solid var(--border); }
+.camera.screen .mirror { transform: none; }
+.camera.screen .mirror video { object-fit: contain; background: #000; }
+
 /* ---------- Phone ---------- */
 @media (max-width: 640px) {
   .wrap { padding: 20px 16px 40px; gap: 18px; }
@@ -215,6 +254,19 @@ footer strong { color: var(--text); }
   .bars { height: 110px; gap: 1px; }
   .crops-intro { flex-basis: 100%; }
 }
+/* ---------- Large screens ---------- */
+/* Wider layout first, then the whole page scales up (zoom keeps the proportions of every part). */
+@media (min-width: 1600px) {
+  .wrap { max-width: 1520px; padding: 40px 48px 64px; }
+  .main { gap: 28px; }
+}
+@media (min-width: 2200px) { body { zoom: 1.25; } }
+@media (min-width: 2800px) { body { zoom: 1.5; } }
+@media (min-width: 3600px) { body { zoom: 2; } }
+@media (min-width: 1600px) and (min-aspect-ratio: 16/10) {
+  .camera { aspect-ratio: 16 / 10; }     /* landscape monitors: a wider camera and film panel */
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
@@ -266,6 +318,7 @@ footer strong { color: var(--text); }
           <span id="recLabel" style="font-weight:700;letter-spacing:0.08em">LIVE</span>
           <span class="mono" id="timer" style="font-size:16px">00:00.0</span>
         </div>
+        <video class="file-player" id="filePlayer" controls playsinline preload="metadata"></video>
         <div class="cam-pill tr" id="facePill" hidden>Mouth found</div>
         <div class="overlay-caption" id="overlayCaption" aria-hidden="true"></div>
       </div>
@@ -278,6 +331,33 @@ footer strong { color: var(--text); }
         </div>
       </div>
 
+      <div class="meeting" id="meetingBox" hidden>
+        <div class="upload-head">
+          <span class="upload-title">Caption from</span>
+          <div class="seg small" role="group" aria-label="What to caption">
+            <button type="button" data-source="camera" aria-pressed="true">My camera</button>
+            <button type="button" data-source="meeting" aria-pressed="false">A meeting</button>
+          </div>
+        </div>
+        <div id="meetingPanel" class="up-panel" hidden>
+          <p class="muted" style="margin:0;font-size:13px;line-height:1.45">Press the button, then choose the meeting's tab, window or screen. LipScribe captions the people in it and can put the captions into the Zoom meeting itself.</p>
+          <div class="field">
+            <label for="soundSel" class="muted">Meeting sound from</label>
+            <select id="soundSel">
+              <option value="shared">The shared tab or screen (Zoom in a browser, or Windows)</option>
+            </select>
+            <span class="muted" style="font-size:12px;line-height:1.4">Zoom app on a Mac: route its sound through a virtual device such as BlackHole and pick it here. On Linux, pick “Monitor of …”.</span>
+          </div>
+          <div class="field">
+            <label for="zoomUrl" class="muted">Zoom caption API token (optional)</label>
+            <input type="url" id="zoomUrl" placeholder="https://wmcc.zoom.us/closedcaption?id=…" autocomplete="off" spellcheck="false">
+            <span class="muted" style="font-size:12px;line-height:1.4">In the meeting: <strong>CC</strong> → <em>Set up manual captioner</em> → <em>Copy the API token</em>. The host must first turn on <em>Closed captioning</em> and <em>Allow use of caption API token</em> in the Zoom web settings.</span>
+            <span class="zoom-status muted" id="zoomStatus" aria-live="polite"></span>
+          </div>
+          <span class="consent">Tell everyone in the meeting that LipScribe is captioning it. Nothing is saved on the server.</span>
+        </div>
+      </div>
+
       <div class="noise">
         <div class="noise-head">
           <div style="display:flex;align-items:center;gap:8px">
@@ -286,7 +366,7 @@ footer strong { color: var(--text); }
           </div>
           <span class="muted" style="font-size:13px">Measured from your microphone</span>
         </div>
-        <div class="noise-row">
+        <div class="noise-row" id="noiseRow">
           <div class="noise-val">
             <span class="mono" id="noiseDb">--</span>
             <span id="noiseWord">Waiting for sound</span>
@@ -297,6 +377,46 @@ footer strong { color: var(--text); }
           </div>
         </div>
         <span class="muted" style="font-size:13px;line-height:1.45">LipScribe adapts by itself: the louder the room, the more it reads your lips.</span>
+        <div class="snr-row">
+          <label for="snrSel" class="muted">Add test noise before captioning</label>
+          <select id="snrSel">
+            <option value="">None (as recorded)</option>
+            <option value="10">10 dB (some noise)</option>
+            <option value="5">5 dB</option>
+            <option value="0">0 dB (noisy)</option>
+            <option value="-5">−5 dB</option>
+            <option value="-10">−10 dB (very noisy)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="upload" id="uploadBox" hidden>
+        <div class="upload-head">
+          <span class="upload-title">Upload</span>
+          <span class="tag">ANY LENGTH</span>
+        </div>
+        <p class="muted" id="upIntro">Caption a video file instead, even a whole film. It plays here while it uploads, and captions arrive in batches, a little ahead of the picture.</p>
+        <div class="up-row">
+          <label class="pill-btn ghost" id="fileBtn" for="fileInput" tabindex="0" role="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M6 10l6-6 6 6"></path><path d="M4 20h16"></path></svg>
+            Choose a video
+          </label>
+          <input type="file" id="fileInput" accept="video/*,audio/*,.mkv,.mp4,.mov,.webm" class="sr-only">
+          <button type="button" class="pill-btn ghost" id="backBtn" hidden>Back to camera</button>
+        </div>
+        <div id="upPanel" class="up-panel" hidden>
+          <div class="bufbar" aria-hidden="true"><i class="up" id="barUp" style="width:0%"></i><i class="done" id="barCap" style="width:0%"></i><i class="head" id="barHead" style="left:0%"></i></div>
+          <div class="up-stats muted"><span id="upSent">Uploaded --</span><span id="upCap">Captioned to --</span></div>
+          <span class="up-note" id="upNote" hidden>This browser can’t play this file, but the captions are still being made: download them as .srt when they’re done.</span>
+          <div class="up-row">
+            <div class="seg small" role="group" aria-label="Subtitle track">
+              <button type="button" data-track="routed" aria-pressed="true" title="Ears + lips where one frontal face is talking, ears only elsewhere">Best of both</button>
+              <button type="button" data-track="ears" aria-pressed="false">Ears only</button>
+              <button type="button" data-track="lips" aria-pressed="false">Ears + lips</button>
+            </div>
+            <button type="button" class="pill-btn ghost" id="srtBtn" disabled>Download .srt</button>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -355,7 +475,7 @@ footer strong { color: var(--text); }
             <span class="cap-model muted" id="lipsModel">ws_v5</span>
           </div>
           <p class="cap-text" id="lipsText" aria-live="polite"><span class="placeholder">Captions from sound and lips appear here.</span></p>
-          <span class="cap-foot muted" id="lipsFoot">Listens and lip-reads together</span>
+          <span class="cap-foot muted"><span id="lipsFoot">Listens and lip-reads together</span> <span class="lips-chip" id="lipsChip" hidden></span></span>
         </article>
       </div>
 

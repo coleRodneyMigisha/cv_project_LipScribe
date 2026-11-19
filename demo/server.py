@@ -1,117 +1,240 @@
-"""LipScribe web demo backend (FastAPI), runs on the Alienware. See demo/README.md.
+"""LipScribe demo backend (FastAPI, F-05). Runs on the Alienware; see demo/README.md.
 
-POST /caption  multipart: clip (a browser recording, webm/mp4 with audio), model ("grid"|"films"),
-               header X-Demo-Code -> {caption, seconds, face_fraction, lips_trust, warnings, mouth_strip}
-GET  /health   -> loaded models
-GET  /         -> the demo page (demo/index.html)
+WS   /ws/live?code=<access code>   one WebSocket per recording or upload (message format: demo/README.md)
+GET  /health                       loaded models and busy state
+GET  /, /app.js, /mock-backend.js  the page itself (so the backend can also serve it)
 
-Models:
-  grid   Model P4 (p_proposed_best.pt, read-only) + GRID grammar decoder: accurate for GRID
-         sentences ("place blue at f two now") - the trained task.
-  films  experimental open-vocabulary model retrained on film clips + lexicon/bigram LM.
-The caption chain is lipscribe.app.inference.LipScribe (same as evaluate.py, PR #55).
+Models (the page's "mode"):
+  grid  "GRID sentences": P4 + GRID grammar (ears + lips) beside B1 + grammar (ears only)
+  any   "Any speech": ws_v5 (ears + lips) beside its audio-only twin twin_v5, beam + 4-gram LM (F-04)
 
-  DEMO_CODE=<secret> PYTHONPATH=asr_pkgs .venv/bin/python -m uvicorn demo.server:app \
-      --host 127.0.0.1 --port 8800
+Runs: live (camera, captions while you talk), clip (3 s camera clip), upload (a file of any length,
+captioned in batches while it uploads). The work is done by lipscribe.app.session.
+
+  DEMO_CODE=<secret> PYTHONPATH=.:asr_pkgs .venv/bin/python -m uvicorn demo.server:app \
+      --host 127.0.0.1 --port 8800 --ws-max-size 16777216
 Binds to localhost only; reach it through an SSH tunnel or a Cloudflare Tunnel.
 """
 from __future__ import annotations
 
-import base64
-import io
+import asyncio
+import contextlib
 import json
 import os
-import tempfile
 import threading
+import time
+import uuid
 from pathlib import Path
 
-import numpy as np
-from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 
-from lipscribe.app.inference import FriendlyError, LipScribe, mouth_strip
+from lipscribe.app.session import Engines, Session, SessionError
 
 REPO = Path(__file__).resolve().parents[1]
 CODE = os.environ.get("DEMO_CODE", "")
-P4 = Path(os.environ.get("DEMO_P4", REPO.parent / "cv_project_LipScribe/checkpoints/p_proposed_best.pt"))
-FILMS = os.environ.get("DEMO_FILMS")          # checkpoint of the film model (default: best v2 seed)
-LM = REPO / "data/flix_lm.json"
+P4 = Path(os.environ.get("DEMO_P4", REPO / "checkpoints/p_proposed_best.pt"))
+B1 = Path(os.environ.get("DEMO_B1", REPO / "checkpoints/b1_audio_only_best.pt"))
+FACE = REPO / "models/face_landmarker.task"
+MODELS = set(os.environ.get("DEMO_MODELS", "any,grid").split(","))
+CHUNK = 4 << 20                 # upload piece size (well under Cloudflare's 100 MB request limit)
+IN_FLIGHT = 3                   # upload pieces requested at once
+MAX_UPLOAD = 8 << 30            # 8 GB
+MAX_SESSIONS = 3
 
 app = FastAPI(title="LipScribe demo")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
-_engines: dict[str, LipScribe] = {}
-_lock = threading.Lock()                      # one clip at a time on the shared GPU
-
-
-def _films_checkpoint() -> tuple[Path, dict]:
-    if FILMS:
-        return Path(FILMS), {"alpha": 1.5, "beta": 4.0}
-    summ = json.loads((REPO / "reports/flix_v2/lm/lm_summary.json").read_text())
-    best = min((k for k in summ if k.startswith("sweep_s")), key=lambda k: summ[k]["val_wer"])
-    return Path(summ[best]["checkpoint"]), {"alpha": summ[best]["alpha"], "beta": summ[best]["beta"]}
-
-
-def engine(name: str) -> LipScribe:
-    if name not in _engines:
-        if name == "grid":
-            _engines[name] = LipScribe(P4, decode="grammar", face_model=REPO / "models/face_landmarker.task")
-        elif name == "films":
-            from lipscribe.decoding import get_decoder
-            ck, lm = _films_checkpoint()
-            e = LipScribe(ck, decode="greedy", face_model=REPO / "models/face_landmarker.task")
-            e.decode_fn = get_decoder({"method": "lexicon_lm", "lm_path": str(LM), "beam_width": 32, **lm})
-            e.decode_method = "word grammar"
-            _engines[name] = e
-        else:
-            raise HTTPException(400, "model must be 'grid' or 'films'")
-    return _engines[name]
+_engines: Engines | None = None
+_load_error: str | None = None
+_sessions: dict[str, Session] = {}
+_slock = threading.Lock()
 
 
 @app.on_event("startup")
-def _warm() -> None:
-    for n in ("grid", "films"):
+def _load() -> None:
+    def load():
+        global _engines, _load_error
         try:
-            engine(n)
-        except Exception as e:                # the page still works with the other model
-            print(f"could not load {n}: {e}", flush=True)
+            _engines = Engines(REPO, P4, B1, FACE, load_grid="grid" in MODELS, load_any="any" in MODELS)
+            print("models loaded", flush=True)
+        except Exception as e:                           # noqa: BLE001 - shown by /health
+            _load_error = f"{type(e).__name__}: {e}"
+            print("could not load the models:", _load_error, flush=True)
+    threading.Thread(target=load, daemon=True).start()
 
 
 @app.get("/health")
 def health() -> dict:
-    return {"ok": True, "models": {k: v.name for k, v in _engines.items()}}
+    e = _engines
+    models = {}
+    if e is not None:
+        if e.rw is not None:
+            models["any"] = list(e.names("any"))
+        if e.p4 is not None:
+            models["grid"] = list(e.names("grid"))
+    return {"ok": e is not None, "loading": e is None and _load_error is None, "error": _load_error,
+            "models": models, "sessions": len(_sessions),
+            "upload_busy": any(s.run == "upload" for s in _sessions.values())}
 
 
 @app.get("/")
-def page() -> FileResponse:
-    return FileResponse(REPO / "demo/index.html")
+def page() -> HTMLResponse:
+    """The page, told to talk to this server (so the tunnel link alone works on any device)."""
+    html = (REPO / "demo/index.html").read_text(encoding="utf-8")
+    html = html.replace('<script src="mock-backend.js"></script>',
+                        '<script>window.LIPSCRIBE_BACKEND = "self";</script>\n<script src="mock-backend.js"></script>', 1)
+    return HTMLResponse(html, headers={"Cache-Control": "no-cache"})
 
 
-def _png(a: np.ndarray) -> str:
-    from PIL import Image
-    buf = io.BytesIO(); Image.fromarray(a).save(buf, format="PNG")
-    return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
+@app.get("/app.js")
+def app_js() -> FileResponse:
+    return FileResponse(REPO / "demo/app.js", media_type="text/javascript")
 
 
-@app.post("/caption")
-async def caption(clip: UploadFile = File(...), model: str = Form("grid"),
-                  x_demo_code: str = Header("")) -> dict:
-    if CODE and x_demo_code != CODE:
-        raise HTTPException(401, "wrong access code")
-    data = await clip.read()
-    if len(data) > 30_000_000:
-        raise HTTPException(413, "clip too large (max ~10 s)")
-    suffix = ".mp4" if "mp4" in (clip.content_type or "") else ".webm"
-    with tempfile.TemporaryDirectory(prefix="lipscribe_demo_") as tmp:
-        path = Path(tmp) / f"clip{suffix}"
-        path.write_bytes(data)
-        try:
-            with _lock:
-                t = engine(model).transcribe(video_path=path)
-        except FriendlyError as e:
-            raise HTTPException(422, str(e))
-    strip = mouth_strip(t.crops, 8) if t.crops is not None else None
-    lips = float(1 - np.mean(t.gate)) if t.gate is not None and np.size(t.gate) else None
-    return {"caption": t.caption, "seconds": round(t.seconds, 2), "model": engine(model).name,
-            "face_fraction": t.face_fraction, "lips_trust": lips, "warnings": t.warnings,
-            "mouth_strip": _png(strip) if strip is not None else None}
+@app.get("/mock-backend.js")
+def mock_js() -> FileResponse:
+    return FileResponse(REPO / "demo/mock-backend.js", media_type="text/javascript")
+
+
+async def _error(ws: WebSocket, code: str, message: str = "") -> None:
+    with contextlib.suppress(Exception):
+        await ws.send_text(json.dumps({"type": "error", "code": code, "message": message}))
+        await ws.close()
+
+
+def _snr(v) -> float | None:
+    if v in (None, "", "clean"):
+        return None
+    v = float(v)
+    if not -20 <= v <= 40:
+        raise SessionError("bad_request", "snr must be between -20 and 40 dB")
+    return v
+
+
+@app.websocket("/ws/live")
+async def live(ws: WebSocket, code: str = "") -> None:
+    await ws.accept()
+    if CODE and code != CODE:
+        await _error(ws, "bad_code", "wrong or missing access code (add ?code=... to the page address)")
+        return
+    if _engines is None:
+        await _error(ws, "server_busy" if _load_error is None else "server_error",
+                     "the models are still loading" if _load_error is None else _load_error)
+        return
+    try:
+        start = json.loads(await asyncio.wait_for(ws.receive_text(), timeout=15))
+    except (asyncio.TimeoutError, json.JSONDecodeError, WebSocketDisconnect, KeyError):
+        await _error(ws, "bad_request", "expected a start message")
+        return
+    run, mode = start.get("run", "clip"), start.get("mode", "grid")
+    size = start.get("size")
+    with _slock:
+        busy = len(_sessions) >= MAX_SESSIONS or (run == "upload" and any(s.run == "upload" for s in _sessions.values()))
+    if busy:
+        await _error(ws, "server_busy", "another upload is being captioned" if run == "upload" else "too many recordings at once")
+        return
+    if run == "upload" and (not isinstance(size, int) or not 0 < size <= MAX_UPLOAD):
+        await _error(ws, "file_too_large" if isinstance(size, int) and size > MAX_UPLOAD else "bad_request",
+                     f"size must be 1 byte to {MAX_UPLOAD >> 30} GB")
+        return
+
+    loop = asyncio.get_running_loop()
+    out: asyncio.Queue = asyncio.Queue()
+
+    def emit(msg: dict) -> None:
+        loop.call_soon_threadsafe(out.put_nowait, msg)
+
+    sid = uuid.uuid4().hex[:8]
+    try:
+        s = Session(_engines, run, mode, emit, snr=_snr(start.get("snr")), size=size,
+                    mime=start.get("mime", ""), name=start.get("name", ""), sid=sid,
+                    source=start.get("source", "camera"), zoom_url=start.get("zoom_url") or None)
+    except SessionError as e:
+        await _error(ws, e.code, e.message)
+        return
+    with _slock:
+        _sessions[sid] = s
+    s.start()
+    print(f"{time.strftime('%H:%M:%S')} session {sid} start run={run} mode={mode} size={size} snr={start.get('snr')} "
+          f"source={start.get('source', 'camera')} zoom={'yes' if start.get('zoom_url') else 'no'}", flush=True)
+    names = _engines.names(mode)
+    await ws.send_text(json.dumps({"type": "ready", "ears_model": names[0], "lips_model": names[1],
+                                   **({"chunk_bytes": CHUNK} if run == "upload" else {})}))
+    asked: dict[int, float] = {}                     # upload piece -> time requested
+
+    async def receive() -> None:
+        while True:
+            m = await ws.receive()
+            if m["type"] == "websocket.disconnect":
+                raise WebSocketDisconnect()
+            if m.get("bytes") is not None:
+                b = m["bytes"]
+                if run == "upload":
+                    off = int.from_bytes(b[:8], "big")
+                    s.feed_at(off, b[8:])
+                    asked.pop(off // CHUNK, None)
+                else:
+                    s.feed(b)
+            elif m.get("text"):
+                with contextlib.suppress(json.JSONDecodeError):
+                    t = json.loads(m["text"])
+                    if t.get("type") == "stop":
+                        s.stop()
+                    elif t.get("type") == "cancel":
+                        s.cancel()
+                        return
+
+    async def request_pieces() -> None:
+        """Ask the page for the upload pieces the decoder needs first, then the rest in order."""
+        n = (size + CHUNK - 1) // CHUNK
+        last_progress = 0.0
+        while True:
+            src = s.src
+            have = {k for k in range(n) if src.covered(k * CHUNK, min(size, (k + 1) * CHUNK))}
+            now = time.time()
+            for k, t in list(asked.items()):
+                if now - t > 60:                     # lost: ask again
+                    asked.pop(k)
+            want = []
+            if src.wanted is not None:
+                want.append(src.wanted // CHUNK)
+            want += [k for k in range(n) if k not in have]
+            for k in want:
+                if len(asked) >= IN_FLIGHT:
+                    break
+                if k in have or k in asked:
+                    continue
+                asked[k] = now
+                a = k * CHUNK
+                await ws.send_text(json.dumps({"type": "need", "offset": a, "length": min(CHUNK, size - a)}))
+            if now - last_progress > 1.0:
+                await ws.send_text(json.dumps({"type": "progress", "uploaded": src.received(), "size": size}))
+                last_progress = now
+            if len(have) == n:
+                await ws.send_text(json.dumps({"type": "progress", "uploaded": size, "size": size}))
+                return
+            await asyncio.sleep(0.05)
+
+    async def send() -> None:
+        while True:
+            msg = await out.get()
+            await ws.send_text(json.dumps(msg))
+            if msg.get("type") in ("final", "error"):
+                return
+
+    tasks = [asyncio.create_task(receive()), asyncio.create_task(send())]
+    if run == "upload":
+        tasks.append(asyncio.create_task(request_pieces()))
+    try:
+        # ends when the result is sent (sender) or the page goes away (receiver)
+        await asyncio.wait(tasks[:2], return_when=asyncio.FIRST_COMPLETED)
+    finally:
+        for t in tasks:
+            t.cancel()
+        s.cancel()
+        with _slock:
+            _sessions.pop(sid, None)
+        with contextlib.suppress(Exception):
+            await ws.close()
+        print(f"{time.strftime('%H:%M:%S')} session {sid} end ({time.time() - s.started:.1f} s)", flush=True)

@@ -164,3 +164,8 @@ Paired bootstrap, v5 minus v4 model on the same set (WER points, 95 % CI, P(v5 b
 | ws_v5 − twin_v5 | ted_v5 | -5 | -4.47 | [-6.74, -2.21] | 1.00 |
 | ws_v5 − twin_v5 | ted_v5 | -10 | -13.22 | [-16.49, -9.84] | 1.00 |
 - 2026-11-16 10:52 Flix v5 finished.
+
+## F-04: decoder and final numbers (17 Nov 2026)
+
+- 07:20 `scripts/flix_v5_beam.py`: dump twin_v5, ws_v5, ws_v6 and lips_v5 (top-48 word pieces per frame) on film_val/ted_val and the v5 test sets; greedy hypotheses match `reports/flix_v6/hyps.json` clip for clip. Neither LM contains a val or test talk (2 of ~2,000 eval sentences match a training sentence word for word).
+- 07:50 Done. Chosen on validation only: LibriSpeech + own 4-gram for all three models; ws_v5 alpha 0.2, beta 1.0, width 32; twin_v5 alpha 0.2, beta 0.5, width 64; ws_v6 alpha 0.3, beta 2.0, width 64. Test tables and bootstrap CIs: `final_decoder.md`. Per-clip hypotheses: `beam_hyps.json.gz`.

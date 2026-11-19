@@ -975,10 +975,11 @@ The audio-only twin twin_v5 (`runs/flix_v5/flix_v5_fusion_wp_audio_20261116-0000
 - **Description:** Agree this plan, freeze P4 and ws_v5, and book the Alienware GPU for the week.
 - **Checklist:**
   - [ ] Team agrees the plan and the owners below
-  - [ ] Record P4 as the final GRID model (chosen on validation in Week 3; no further tuning)
-  - [ ] Record ws_v5 as the real-world model, with twin_v5 as its baseline and v6 as a negative result
+  - [x] Record P4 as the final GRID model (chosen on validation in Week 3; no further tuning)
+  - [x] Record ws_v5 as the real-world model, with twin_v5 as its baseline and v6 as a negative result
   - [ ] GPU schedule: X1–X3 (Mon–Tue nights), ws_v5 decoder tuning (Tue day), demo and latency (Wed–Thu)
 - **Done when:** The plan is merged to `main` and announced in the group chat.
+- **Status (17 Nov):** The plan was merged to `main` in PR #59 on 16 Nov. Both frozen models are recorded with their paths in the table above and in `analysis/00_overview/models.md`, which now also gives each checkpoint's SHA-256.
 
 ### F-01 · Merge the open branches into `main`
 - **Owner:** Charis Opol
@@ -989,11 +990,12 @@ The audio-only twin twin_v5 (`runs/flix_v5/flix_v5_fusion_wp_audio_20261116-0000
 - **Estimate:** 3 h
 - **Description:** `main` lacks two weeks of work: Flix v3–v6, `demo/` and the Week 4 report live on `cole`, and the progress ticks and the `FEATURE_DIMS` fix are in PR #58.
 - **Checklist:**
-  - [ ] Review and merge PR #58 (`alienware`: this plan, progress ticks and the `FEATURE_DIMS` import fix)
-  - [ ] Merge `main` into `cole` and resolve conflicts (`cole` predates the caption app, `lipscribe/app/`)
-  - [ ] Open and merge the PR `cole` → `main`
-  - [ ] Full test suite passes on `main`
+  - [x] Review and merge PR #58 (`alienware`: this plan, progress ticks and the `FEATURE_DIMS` import fix)
+  - [x] Merge `main` into `cole` and resolve conflicts (`cole` predates the caption app, `lipscribe/app/`)
+  - [x] Open and merge the PR `cole` → `main`
+  - [x] Full test suite passes on `main`
 - **Done when:** `main` holds all work and `pytest` passes on it.
+- **Status (17 Nov):** PR #58 merged on 16 Nov; `main` was merged into `cole` in PR #64 and `cole` into `main` in PR #65, so `cole` has no commit that `main` lacks. On `main` at `44400b5a`, `pytest` gives 273 passed and 1 skipped (Windows, Python 3.13), and the CI `tests` job passes. Work still open in PRs #68–#70 belongs to F-04, F-05 and F-11.
 
 ### F-02 · Ablations X1–X3 on GRID
 - **Owner:** Ainomugisha Faith
@@ -1047,11 +1049,12 @@ The audio-only twin twin_v5 (`runs/flix_v5/flix_v5_fusion_wp_audio_20261116-0000
 - **Estimate:** 4 h
 - **Description:** Pick ws_v5's decoder on validation, then score the locked v5 test sets once more with it. Beam + 4-gram LM gained 0.5–1 point for the v4 models (`reports/flix_v4/beam.md`).
 - **Checklist:**
-  - [ ] Tune beam width and the LM's alpha/beta on `film_val` + `ted_val` (`scripts/flix_v4_beam.py`, `lm/flix_train_4gram.arpa`)
-  - [ ] Score twin_v5 and ws_v5 on the v5 test sets once: greedy and beam + LM at clean, 0, −5, −10 dB
-  - [ ] Table of the v6 wrong-audio conditions (silent, talk-over, replace) for the limitations
-  - [ ] Copy the twin_v5 and ws_v5 checkpoints and configs to the release folder
+  - [x] Tune beam width and the LM's alpha/beta on `film_val` + `ted_val` (`scripts/flix_v4_beam.py`, `lm/flix_train_4gram.arpa`)
+  - [x] Score twin_v5 and ws_v5 on the v5 test sets once: greedy and beam + LM at clean, 0, −5, −10 dB
+  - [x] Table of the v6 wrong-audio conditions (silent, talk-over, replace) for the limitations
+  - [x] Copy the twin_v5 and ws_v5 checkpoints and configs to the release folder
 - **Done when:** `reports/flix_v5/final_decoder.md` holds the decoder settings and the final real-world table.
+- **Status (17 Nov):** Done on 17 Nov, 07:50 (`scripts/flix_v5_beam.py`, run by `scripts/flix_v5_beam_run.sh`). On validation, the LibriSpeech + own-transcript 4-gram won for every model. ws_v5 uses alpha 0.2, beta 1.0, width 32; twin_v5 uses alpha 0.2, beta 0.5, width 64. Test WER % with beam + LM, ws_v5 (twin_v5): TED clean 16.9 (15.7), −10 dB 28.5 (42.3); films clean 27.3 (27.7), −10 dB 49.2 (64.5). The decoder gains 1–3 points over greedy. The lips cut 14–15 points at −10 dB (CIs exclude zero) but cost 1.3 points on clean TED (CI [+0.6, +1.8]). The wrong-audio table is unchanged in kind: ws_v5 still fails on replaced audio (TED 103 %). Checkpoints, configs and the decoder settings are in `~/Desktop/lipscribe_release/real_world/` on the Alienware, with `SHA256SUMS`.
 
 ### F-05 · Demo backend on the real-world model
 - **Owner:** Cole Rodney Migisha
@@ -1062,14 +1065,15 @@ The audio-only twin twin_v5 (`runs/flix_v5/flix_v5_fusion_wp_audio_20261116-0000
 - **Estimate:** 6 h
 - **Description:** The browser demo (`demo/`) is the live application: record a clip on a phone or laptop and get a caption in 2–3 s. Its "Any speech" toggle still runs the old v2 film model. Switch `demo/server.py` to ws_v5 and return everything the new frontend (F-06) shows. The "GRID sentences" toggle stays P4 + grammar.
 - **Checklist:**
-  - [ ] "Any speech" loads ws_v5 with its own preprocessing (Auto-AVSR mouth crop, WavLM audio, word pieces) and the F-04 decoder
-  - [ ] `POST /caption` returns both captions: twin_v5 (audio only) and ws_v5 (audio + lips)
-  - [ ] It returns the per-frame gate and accepts an SNR, adding MUSAN noise to the clip before decoding
-  - [ ] Clear error codes for no face, no audio and too-short clips
-  - [ ] Agree the JSON response with Wakisa Isabelle on Tue, before she builds the page
-  - [ ] Parity: 10 v5 test clips give the same greedy caption as `scripts/flix_v5_eval.py`
-  - [ ] Update the backend part of `demo/README.md`
+  - [x] "Any speech" loads ws_v5 with its own preprocessing (Auto-AVSR mouth crop, WavLM audio, word pieces) and the F-04 decoder
+  - [x] Both captions for every recording: twin_v5 (audio only) and ws_v5 (audio + lips), over the page's WebSocket (`/ws/live`) instead of `POST /caption`
+  - [x] It returns the per-frame gate and accepts an SNR, adding MUSAN noise to the clip before decoding
+  - [x] Clear error codes for no face, no audio and too-short clips
+  - [x] Agree the message format with Wakisa Isabelle (her WebSocket format in `demo/README.md`, extended with `snr`, uploads and new error codes, with her agreement)
+  - [x] Parity: 32 v5 test clips (16 TED, 16 film), batched as in the evaluation, give the same captions as `scripts/flix_v5_eval.py` (greedy, 64 of 64 model outputs) and `scripts/flix_v5_beam.py` (beam + LM, 64 of 64). Run one at a time, as the demo runs them, 37 of 40 match: WavLM's normalisation sees a batch's padding.
+  - [x] Update the backend part of `demo/README.md`
 - **Done when:** The endpoint serves both models with the gate and noise option, and the parity check passes.
+- **Status (17 Nov):** Done. `demo/server.py` now serves `WS /ws/live` for three runs: Live (partials about every 0.5 s), Clip, and **Upload**, which was added at Cole's request. Upload takes a file of any length (a whole film); the backend asks for the 4 MB pieces it needs, so an MP4 with its index at the end starts at once, and it sends captions back in batches as subtitle cues while the file uploads. Each upload cue says whether the lips may be used (the `scripts/mine_flix.py` training-clip rules), and the page's "Best of both" track uses ws_v5 only there. Code: `lipscribe/app/{session,stream,realworld}.py`; tests: `tests/test_stream.py` (281 passed on the Alienware). A 10 min test-film excerpt is captioned in 54 s. Cole also added the Upload section, the test-noise control and `.srt` export to the page, with Wakisa Isabelle's agreement.
 
 ### F-06 · Demo frontend
 - **Owner:** Wakisa Isabelle
@@ -1083,7 +1087,7 @@ The audio-only twin twin_v5 (`runs/flix_v5/flix_v5_fusion_wp_audio_20261116-0000
   - [ ] Model toggle: "GRID sentences" (P4) and "Any speech" (ws_v5)
   - [ ] Side-by-side captions: "Ears only" (twin_v5) and "Ears + lips" (ws_v5)
   - [ ] Per-frame gate plot: how much the model trusted the sound vs the lips
-  - [ ] Noise control: an SNR slider (clean, 10, 5, 0, −5, −10 dB) sent with the clip
+  - [x] Noise control: an SNR slider (clean, 10, 5, 0, −5, −10 dB) sent with the clip (added by Cole with F-05, as a menu)
   - [ ] Mouth-crop strip, recording timer and a loading state while the server works
   - [ ] Friendly messages for the backend's error codes (no face, no audio, clip too short)
   - [ ] Works on a phone and a laptop browser (Chrome, Firefox, Safari)

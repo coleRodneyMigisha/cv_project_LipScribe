@@ -36,7 +36,73 @@ convolution, a ResNet-18 trunk applied to each frame, and the same BiLSTM. V2 le
 and generalised better, so model P4 uses it.
 
 \subsection{Real-world pipeline}
-% TODO (Cole, F-11): the v4-v6 pipeline: Auto-AVSR-style mouth crops, WavLM Base+ audio
-% encoder~\cite{chen2022wavlm}, Auto-AVSR visual encoder~\cite{ma2023}, word-piece CTC; the
-% audio-only twin and the reliability-gated warm start (ws_v5); the v5 re-cut with 0.32 s
-% padding and Whisper word-timestamp labels. Sources: reports/flix_v5/decision_log.md.
+\label{sec:pipelines-real}
+The GRID encoders do not carry over to open-vocabulary speech. Model~P's audio encoder learned
+51~words, and a fused model built from the same parts and trained on about 28~hours of film and
+TED clips (Section~\ref{sec:data}) still made 72~\% character errors from clean audio, no fewer
+than its audio branch alone (\texttt{reports/flix\_v4/decision\_log.md}). We therefore rebuilt the
+real-world model the way Model~P was built: each stream is first trained on its own from a
+pretrained starting point, and fusion starts from the finished streams. Two rules applied
+throughout. Pretrained weights serve only as starting points, so every reported model is our own
+fine-tuning. No Whisper-based audio encoder is used, because the training labels come from
+Whisper~\cite{radford2023whisper}, and such a model would be scored against its own output.
+
+\textit{Audio stream.} WavLM Base+~\cite{chen2022wavlm} is fine-tuned with a CTC loss on the film
+and TED clips, and its 50~frames/s output is pooled to 25~frames/s, so that both streams share
+one time axis. The first run overfitted: its validation loss rose from epoch~3 while the training
+loss kept falling. The run we kept was therefore regularised more strongly: time masking 0.15,
+channel masking 0.05, LayerDrop 0.1, head dropout 0.2, half the learning rate and weight decay
+0.05. This lowered the mean validation WER from 30.1~\% to 29.2~\%.
+
+\textit{Visual stream.} The visual encoder is the lip-reading front end and Conformer of
+Auto-AVSR~\cite{ma2023}. Fine-tuned on our first crops, it fell behind the unmodified model,
+because those tight lip boxes differ from the crops Auto-AVSR was trained on. We re-implemented
+its crop with MediaPipe landmarks (\texttt{lipscribe/preprocessing/avsr\_crop.py}). The landmarks
+are smoothed over 12~frames, eight stable points are aligned to Auto-AVSR's mean face at
+$256 \times 256$, and a $96 \times 96$ grey patch is cut around the mouth. On 142~TED validation
+clips, the unmodified model's WER fell from 67.9~\% with our old crops to 45.3~\% with the new
+ones, so every clip was cropped again. The encoder also keeps Auto-AVSR's pretrained word-piece
+CTC layer, rather than a new character layer, so all our real-world models predict the same
+5,000 word pieces.
+
+\textit{Fusion.} We tried three fusion designs in turn, and kept the last.
+\begin{enumerate}
+\item \textit{Cross-attention fusion, as in Model~P, with a new character head.} A probe showed
+that it ignored the lips: giving each clip another clip's video left WER unchanged, and the gate
+leaned about 90~\% to audio. The pretrained audio dominated from the first epoch.
+\item \textit{Lip-anchored fusion} ($f = v + \mathrm{MLP}([a; v])$, zero-initialised, word-piece
+heads). It started as the visual model and learned to add the audio. It used the lips: shuffling
+the video raised its TED WER at $-10$~dB from 36.2~\% to 93.7~\%. However, it also over-trusted
+them, so it was 9.5~points worse than audio alone on clean TED speech, and fine-tuning could not
+remove the built-in lip path.
+\item \textit{Reliability-gated fusion} (\texttt{V4FusionGated} in
+\texttt{lipscribe/models/pretrained.py}). Both streams are frozen. Each frame's features are
+projected and combined as $f = g \odot a' + (1 - g) \odot v' + \mathrm{MLP}([a'; v'])$, where the
+gate $g$ has one value per channel (768~channels). The gate sees both features and each stream's
+own confidence, which is the entropy and the blank probability of that stream's CTC output.
+Transformer layers and a new word-piece head follow.
+\end{enumerate}
+The final model, \textit{ws\_v5}, is a warm start of the third design. Its audio side is the whole
+frozen path of an \textit{audio-only twin}: the same architecture trained with the lips always
+hidden. The gate starts 95~\% open to audio, the new layer starts as the identity, and the head is
+copied from the twin. At the first step the warm start therefore equals the twin (TED validation
+WER 20.9~\% against 20.8~\%), and training can only add what the lips contribute. The twin,
+\textit{twin\_v5}, is also the baseline for every real-world comparison, since it differs from
+ws\_v5 only by the lips.
+
+\textit{Clip windows (v5).} Our first real-world clips were cut tightly around their words. On the
+TED test set the twin got a clip's first or last word wrong 22~\% of the time, against 11~\% for
+the words inside it, and widening only the test audio by 0.32~s per side lowered the edge-word
+error to 19~\%. Every clip was therefore cut again with 8~frames (0.32~s) more on each side.
+Its mouth crops and audio come from the same source window, and its label is every Whisper
+large-v3-turbo word with at least half its duration inside that window, read from a cut with
+1.5~s of context on each side. The four stages (lips, twin, lip-anchored fusion, warm start) were
+then retrained on these clips, with their recipes unchanged.
+
+\textit{Decoding.} The CTC output is decoded by beam search with a word 4-gram language model
+(KenLM~\cite{heafield2011}). One LM uses our training transcripts only. The other adds 40~million
+words of LibriSpeech's LM text~\cite{panayotov2015}, with our transcripts weighted five times. No
+validation or test talk appears in either. The LM, its weight $\alpha$, the word bonus $\beta$ and
+the beam width were chosen per model on the film and TED validation sets at every noise level.
+The LibriSpeech LM won for every model. For ws\_v5 the choice is $\alpha = 0.2$, $\beta = 1.0$
+and width~32 (\texttt{reports/flix\_v5/final\_decoder.md}).
