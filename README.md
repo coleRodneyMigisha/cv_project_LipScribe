@@ -112,3 +112,147 @@ The [document's README](documentation/2_implementation/implementation_document/R
 ## Project management
 
 The team tracks work on a Trello board built from the [work breakdown structure](documentation/3_project_management/LipScribe_WBS_Trello.md). It covers six weeks and nine milestones (M1–M9), from environment setup and dataset verification to the final report and demonstration. Emotion detection and language identification, the proposal's additional objectives, are optional extensions scheduled only after the core speech-recognition system is complete.
+
+
+## Installation
+
+Tested with **Python 3.11** (the Alienware runs 3.11.17). Newer Pythons such as 3.14 may not have
+wheels for `torch`, `mediapipe` or `kenlm`.
+
+```bash
+git clone https://github.com/coleRodneyMigisha/cv_project_LipScribe.git
+cd cv_project_LipScribe
+
+# Option A: conda
+conda env create -f environment.yml
+conda activate lipscribe
+
+# Option B: venv
+python -m venv .venv
+source .venv/bin/activate          # Windows PowerShell: .venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+pip install -e .
+
+python check_env.py                # checks the install
+python -m pytest tests             # optional
+```
+
+Notes:
+
+- **PyTorch.** `requirements.txt` pins `torch==2.14.1`. For a GPU, install the build that matches
+  your CUDA driver from pytorch.org first (the Alienware uses `2.14.1+cu130`), then run
+  `pip install -r requirements.txt`. Without a GPU, everything runs on CPU, only slower.
+- **MediaPipe.** `mediapipe==1.1.1` finds the face for mouth cropping. The face model file
+  `models/face_landmarker.task` is downloaded the first time you run
+  `python -m scripts.extract_mouths`. The real-world model reads it from the same place.
+- **kenlm** (needed for the real-world model's 4-gram language model) has no Windows wheel and must
+  be compiled. On Windows install the "Desktop development with C++" build tools first, or use
+  WSL or Linux. Without it, GRID training and evaluation still work. Only ws_v5 beam search needs it.
+- **ffmpeg.** `imageio-ffmpeg` is in `requirements.txt` and supplies it. No system install is needed.
+- **Not in the repository.** Checkpoints (`*.pt`), `runs/`, `Data/`, `lm/` and `models/` are
+  git-ignored because they are large. See [Where things live](#where-things-live).
+
+## GRID: data, preprocessing, training and evaluation
+
+Run every command from the repository root. Every step except downloading can be re-run safely.
+
+```bash
+# 1. Download GRID speakers (interactive: asks for the first and last speaker, 1 to 34)
+python downlaod_data.py
+
+# 2. Check the data, then make the speaker-independent split (done once; do not regenerate)
+python -m scripts.verify_dataset
+python -m scripts.make_splits
+
+# 3. Audio to 16 kHz mono WAV, and cached 96x96 mouth crops
+python scripts/prepare_audio.py --workers 8
+python -m scripts.extract_mouths --workers 8
+
+# 4. One index of the whole dataset
+python -m scripts.build_manifest
+
+# 5. Noise for the noisy test sets (needs the MUSAN corpus), then normalisation statistics
+python scripts/make_noise_splits.py
+python scripts/compute_norm_stats.py --noise-splits Data/Noise_splits/splits.csv
+
+# 6. Train one model from one config (the frozen P4 model uses configs/p_proposed.yaml)
+python -m scripts.train --config configs/p_proposed.yaml
+#    quick smoke test:  python -m scripts.train --config configs/b1_audio_only.yaml --limit 64 --max-epochs 2
+
+# 7. Evaluate on the held-out test speakers at every noise level
+python -m scripts.evaluate --checkpoint runs/<run>/best.pt
+python -m scripts.evaluate --checkpoint runs/<run>/best.pt --decode grammar
+```
+
+Each training run writes `runs/<experiment>_<timestamp>/` (config, Git commit, `best.pt`, logs) and
+appends a row to `experiments/results.csv`. Evaluation writes to `reports/<run>/`. Configs for every
+model are in `configs/` (B1 audio-only, B2 visual-only, B3 concat, P1 to P4 and the X ablations).
+
+## Real-world model (ws_v5)
+
+P4 is trained on GRID, whose speakers are filmed face-on in a studio. **ws_v5** is the model for
+ordinary speech. It was fine-tuned on "Flix" data, which is clips mined from films and TED talks.
+
+**Data pipeline** (scripts in `scripts/`): `mine_flix.py` and `ted_harvest.py` find clips that show
+one large, frontal, speaking face with no camera cut. `flix_v5_recut.py` re-cuts them and
+`flix_recrop.py` produces the mouth crops in the same way as the live demo
+(25 fps, at most 640 px wide, MediaPipe landmarks, Auto-AVSR 96x96 crop). A 4-gram language model
+is built by `flix_lm.py`.
+
+**Models.** ws_v5 (audio and lips, gated fusion) and its audio-only twin twin_v5. Both are decoded
+with beam search and the 4-gram LM; the settings chosen on validation are in
+[`reports/flix_v5/final_decoder.md`](reports/flix_v5/final_decoder.md).
+
+**Run ws_v5** on prepared segments through `lipscribe.app.realworld.RealWorld`. To score the
+models on the Flix test sets:
+
+```bash
+PYTHONPATH=. python scripts/flix_v5_eval.py --run twin_v5=<run dir> ws_v5=<run dir>
+PYTHONPATH=. python scripts/flix_v5_beam.py dump --run twin_v5=<run dir> ws_v5=<run dir>
+```
+
+ws_v5 only learned from clips that pass the filter above. On other footage, such as reaction
+shots, profiles or a second face, it can do worse than audio alone, so the demo falls back to twin_v5
+there. See [`demo/README.md`](demo/README.md).
+
+## Transcribe a clip and run the demo
+
+Caption one clip from the command line (works with the GRID models P4 and B1):
+
+```bash
+python -m scripts.transcribe --checkpoint checkpoints/p_proposed_best.pt --video clip.mp4
+python -m scripts.transcribe --checkpoint checkpoints/p_proposed_best.pt --video clip.mpg --audio clip.wav
+```
+
+Options: `--decode {beam,greedy,grammar}` (default `beam`), `--device {cpu,cuda}`,
+`--snr <dB>` (mix in MUSAN test noise), `--noise-splits <csv>`. It prints the caption, and the
+preprocess, model and decode times on stderr.
+
+Run the web demo backend (needs the checkpoints, `lm/` and `models/` in place):
+
+```bash
+DEMO_CODE=<secret> PYTHONPATH=.:asr_pkgs python -m uvicorn demo.server:app \
+    --host 127.0.0.1 --port 8800 --ws-max-size 16777216
+```
+
+Check `http://127.0.0.1:8800/health`, then open `http://127.0.0.1:8800/?code=<secret>`. Test
+without a browser: `python scripts/demo_ws_client.py "ws://127.0.0.1:8800/ws/live?code=<secret>" clip any clip.mp4`.
+Full details are in [`demo/README.md`](demo/README.md).
+
+## Where things live
+
+| What | Where | In Git? |
+|---|---|---|
+| Library code | `lipscribe/` (`data`, `preprocessing`, `models`, `decoding`, `evaluation`, `app`) | yes |
+| Commands | `scripts/` | yes |
+| Training configs | `configs/` | yes |
+| Speaker split, noise split | `data/splits.csv`, `data/noise_splits.csv` | yes |
+| Experiment table | `experiments/results.csv` | yes |
+| Results, plots, reports | `reports/` (final decoder and Flix numbers: `reports/flix_v5/`) | yes |
+| Frozen GRID checkpoints | `checkpoints/` (`p_proposed_best.pt` = P4, `b1_audio_only_best.pt` = B1) | **no** (`*.pt`) |
+| Training runs | `runs/<experiment>_<timestamp>/` (ws_v5, twin_v5: `runs/flix_v5/`) | **no** |
+| GRID, MUSAN, cached crops | `Data/`, `data/processed/` | **no** |
+| 4-gram LM, face model | `lm/flix_libri_4gram.arpa`, `models/face_landmarker.task` | **no** |
+| Latency benchmarks | `reports/latency/` | yes |
+
+**Getting the files that are not in Git:** TODO: link to the shared drive or release.

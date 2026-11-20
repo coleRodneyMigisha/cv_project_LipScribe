@@ -107,3 +107,5 @@ urllib3==2.8.0
 uvicorn==0.54.0
 websockets==17.4
 Werkzeug==3.1.9
+kenlm==0.2.0
+pyctcdecode==0.5.0
