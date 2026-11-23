@@ -1,4 +1,16 @@
-% Author: Charis Opol (F-11).
+% Author: Charis Opol (F-11). Draft of 23 Nov 2026. Numbers repeat Sections 08 and 09.
 \section{Conclusion}
 \label{sec:conclusion}
-% TODO (F-11): answer the two research questions in one paragraph each.
+
+On GRID, lip-assisted fusion reduced errors at every noise level. P4 lowered the WER of the
+audio-only baseline on four unseen speakers from 1.96~\% to 1.02~\% on clean audio and from
+9.45~\% to 5.34~\% at $-5$~dB, and its gate shifted towards the lips as the SNR fell. Modality
+dropout and the 3-D lip front end contributed most; attention with gating added a smaller but
+consistent gain, and a concatenation model built from the same pretrained encoders came within a few
+tenths of a point.
+
+On real speech, the gain carried over in noise but not on clean audio. Against an audio-only twin,
+ws\_v5 reduced WER at $-10$~dB from 42.3~\% to 28.5~\% on TED and from 64.5~\% to 49.2~\% on films,
+and cost 1.3 points on clean TED speech. It failed when the audio did not belong to the visible
+speaker, and retraining on such audio cost more on clean speech than it recovered. Future work
+should give the fusion gate an explicit audio-visual synchrony signal.

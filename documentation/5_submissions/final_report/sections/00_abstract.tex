@@ -1,11 +1,28 @@
-% Author: Lisa Lusinga Namugenyi (editor). Write last, after the results are final (F-11).
+% Author: Lisa Lusinga Namugenyi (editor). Draft written by Charis Opol on 23 Nov 2026.
+% IEEE Access rules (template access.tex): one paragraph, 150-250 words, self-contained, no
+% abbreviations, footnotes, references, equations or tables. Every number also appears in
+% Sections 08 and 09.
 \begin{abstract}
-% TODO (F-11): 150-250 words. Problem; approach (lip-assisted audio-visual speech recognition with
-% cross-modal attention, gated fusion and modality dropout); GRID results of model P4 at five
-% noise levels; real-world results of ws_v5 on films and TED; the live demo; one limitation.
+Automatic speech recognition degrades sharply in acoustic noise, which limits its use for live
+captioning. This paper evaluates whether visual information from the speaker's lips recovers that
+loss, first on the GRID corpus with added noise and then on open-vocabulary speech from films and
+TED talks. The proposed model combines an audio encoder and a residual-network lip encoder through
+bidirectional cross-modal attention, a per-frame fusion gate, a learned embedding for a missing
+stream, and modality dropout. On four
+unseen speakers it reduces the word error rate of an audio-only baseline by 44 to 51 percent at
+every noise level, from 1.96 to 1.02 percent on clean audio and from 9.45 to 5.34 percent at
+a signal-to-noise ratio of \textminus5~dB. Ablations attribute most of this gain to modality
+dropout and to the three-dimensional convolutional front end. For real speech, a
+second model fuses pretrained self-supervised audio and lip-reading encoders through a
+reliability-gated fusion that is initialised as its audio-only twin. On 67 held-out TED talks at
+\textminus10~dB it reduces the word error rate from 42.3 to 28.5 percent, at a cost of 1.3
+percentage points on clean speech. When the audio does not belong to the visible speaker, the model
+transcribes the wrong voice, and retraining on such audio removes this error only at a cost of 15.9
+points on clean speech. A shared inference engine serves a command-line tool, a browser
+demonstration, and a live capture mode.
 \end{abstract}
 
 \begin{keywords}
-Audio-visual speech recognition, lip reading, multimodal fusion, cross-modal attention,
-connectionist temporal classification, live captioning, noise robustness.
+Audio-visual speech recognition, connectionist temporal classification, cross-modal attention,
+lip reading, live captioning, multimodal fusion, noise robustness.
 \end{keywords}

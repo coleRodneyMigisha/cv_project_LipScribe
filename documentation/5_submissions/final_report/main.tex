@@ -1,7 +1,12 @@
 % LipScribe final technical report (W4-11 skeleton, F-11).
-% Template: IEEE Access, as in the project proposal. Copy ieeeaccess.cls, the logo files
-% (logo.png, notaglinelogo.png, bullet.png) and the spotcolor/T1-font files from the proposal's
-% Overleaf project into this folder before compiling.
+% Template: IEEE Access (official access.tex sample), as in the project proposal. Copy
+% ieeeaccess.cls, the logo files (logo.png, notaglinelogo.png, bullet.png) and the spotcolor/T1-font
+% files from the proposal's Overleaf project, or from the official IEEE Access LaTeX template zip,
+% into this folder before compiling. They are not in the repository.
+% Template rules followed here: abstract of 150-250 words in one paragraph with no abbreviations,
+% references or equations; keywords in alphabetical order; abbreviations defined at first use in the
+% body; "Fig." in running text; table captions above, figure captions below; Acknowledgment unnumbered
+% after any appendices.
 % Build: latexmk -pdf main.tex
 % Each section file names its author; the editor is Lisa Lusinga Namugenyi.
 \documentclass{ieeeaccess}
@@ -41,7 +46,7 @@ Computer Vision and Deep Learning course, Group~4.}
 
 \input{sections/00_abstract}
 
-\titlepgskip=-21pt
+\titlepgskip=-15pt
 
 \maketitle
 
@@ -56,6 +61,11 @@ Computer Vision and Deep Learning course, Group~4.}
 \input{sections/09_real_world}
 \input{sections/10_limitations}
 \input{sections/11_conclusion}
+
+\section*{Acknowledgment}
+The authors thank the course lecturers for guidance on problem formulation, evaluation standards,
+and responsible computer-vision practice, and for access to the GPU workstation on which the models
+were trained \textbf{[AQ4]}.
 
 \bibliographystyle{IEEEtran}
 \bibliography{references}

@@ -4,7 +4,7 @@
 
 \subsection{Mouth crops}
 The visual input is a sequence of grey $96 \times 96$ mouth crops at 25~frames/s
-(\texttt{lipscribe/preprocessing/crop.py}). MediaPipe Face Mesh finds the lip landmarks in every
+(\texttt{lipscribe/\allowbreak{}preprocessing/\allowbreak{}crop.py}). MediaPipe Face Mesh finds the lip landmarks in every
 frame; a square box around them, enlarged by a 25~\% margin, is smoothed over time with a
 centred moving average, and frames where the face is lost take the box of their neighbours.
 The crop is padded by repeating edge pixels when the box leaves the frame, and a per-frame
@@ -19,11 +19,15 @@ application use the crops unchanged.
 \subsection{Audio features}
 Audio is resampled to 16~kHz mono and converted on the GPU to 80-band log-Mel features with a
 25~ms window, a 10~ms hop and a 512-point FFT, then standardised with the mean and standard
-deviation of the training set (\texttt{lipscribe/preprocessing/features.py}). Experiment X5
+deviation of the training set (\texttt{lipscribe/\allowbreak{}preprocessing/\allowbreak{}features.py}). Experiment X5
 compared these features with 39 MFCCs and with log-Mel plus MFCC on the audio-only baseline;
 log-Mel plus MFCC lowered the mean validation WER from 7.72~\% to 6.90~\%
-(\texttt{reports/w3\_08\_audio\_features\_decision.md}).
-% TODO (Cole): say whether P4 keeps log-Mel 80 (it does: configs/p_init_b1_b2_v2.yaml) and why.
+(\texttt{reports/\allowbreak{}w3\_\allowbreak{}08\_\allowbreak{}audio\_\allowbreak{}features\_\allowbreak{}decision.md}).
+P4 nevertheless keeps the 80 log-Mel features (\texttt{configs/\allowbreak{}p\_\allowbreak{}init\_\allowbreak{}b1\_\allowbreak{}b2\_\allowbreak{}v2.yaml}). P4 was
+trained on 5~Nov from the B1 audio encoder of 3~Nov, before the X5 runs of 10~Nov, and its
+checkpoint was frozen on 16~Nov. Switching features would have meant retraining B1 and then P4, and
+the X5 gain was measured on validation for the audio-only model only. Every GRID model compared in
+Section~\ref{sec:results} therefore uses log-Mel 80, so the comparisons between them are unaffected.
 
 \subsection{Encoders}
 The audio encoder applies two strided 1-D convolutions ($80 \rightarrow 256 \rightarrow 256$,
@@ -40,7 +44,7 @@ and generalised better, so model P4 uses it.
 The GRID encoders do not carry over to open-vocabulary speech. Model~P's audio encoder learned
 51~words, and a fused model built from the same parts and trained on about 28~hours of film and
 TED clips (Section~\ref{sec:data}) still made 72~\% character errors from clean audio, no fewer
-than its audio branch alone (\texttt{reports/flix\_v4/decision\_log.md}). We therefore rebuilt the
+than its audio branch alone (\texttt{reports/\allowbreak{}flix\_\allowbreak{}v4/\allowbreak{}decision\_\allowbreak{}log.md}). We therefore rebuilt the
 real-world model the way Model~P was built: each stream is first trained on its own from a
 pretrained starting point, and fusion starts from the finished streams. Two rules applied
 throughout. Pretrained weights serve only as starting points, so every reported model is our own
@@ -57,7 +61,7 @@ channel masking 0.05, LayerDrop 0.1, head dropout 0.2, half the learning rate an
 \textit{Visual stream.} The visual encoder is the lip-reading front end and Conformer of
 Auto-AVSR~\cite{ma2023}. Fine-tuned on our first crops, it fell behind the unmodified model,
 because those tight lip boxes differ from the crops Auto-AVSR was trained on. We re-implemented
-its crop with MediaPipe landmarks (\texttt{lipscribe/preprocessing/avsr\_crop.py}). The landmarks
+its crop with MediaPipe landmarks (\texttt{lipscribe/\allowbreak{}preprocessing/\allowbreak{}avsr\_\allowbreak{}crop.py}). The landmarks
 are smoothed over 12~frames, eight stable points are aligned to Auto-AVSR's mean face at
 $256 \times 256$, and a $96 \times 96$ grey patch is cut around the mouth. On 142~TED validation
 clips, the unmodified model's WER fell from 67.9~\% with our old crops to 45.3~\% with the new
@@ -70,13 +74,13 @@ CTC layer, rather than a new character layer, so all our real-world models predi
 \item \textit{Cross-attention fusion, as in Model~P, with a new character head.} A probe showed
 that it ignored the lips: giving each clip another clip's video left WER unchanged, and the gate
 leaned about 90~\% to audio. The pretrained audio dominated from the first epoch.
-\item \textit{Lip-anchored fusion} ($f = v + \mathrm{MLP}([a; v])$, zero-initialised, word-piece
+\item \textit{Lip-anchored fusion} ($f = v + \mathrm{MLP}([a; v])$, where MLP is a multilayer perceptron, zero-initialised, word-piece
 heads). It started as the visual model and learned to add the audio. It used the lips: shuffling
 the video raised its TED WER at $-10$~dB from 36.2~\% to 93.7~\%. However, it also over-trusted
 them, so it was 9.5~points worse than audio alone on clean TED speech, and fine-tuning could not
 remove the built-in lip path.
 \item \textit{Reliability-gated fusion} (\texttt{V4FusionGated} in
-\texttt{lipscribe/models/pretrained.py}). Both streams are frozen. Each frame's features are
+\texttt{lipscribe/\allowbreak{}models/\allowbreak{}pretrained.py}). Both streams are frozen. Each frame's features are
 projected and combined as $f = g \odot a' + (1 - g) \odot v' + \mathrm{MLP}([a'; v'])$, where the
 gate $g$ has one value per channel (768~channels). The gate sees both features and each stream's
 own confidence, which is the entropy and the blank probability of that stream's CTC output.
@@ -100,9 +104,9 @@ large-v3-turbo word with at least half its duration inside that window, read fro
 then retrained on these clips, with their recipes unchanged.
 
 \textit{Decoding.} The CTC output is decoded by beam search with a word 4-gram language model
-(KenLM~\cite{heafield2011}). One LM uses our training transcripts only. The other adds 40~million
+(LM) built with KenLM~\cite{heafield2011}. One LM uses our training transcripts only. The other adds 40~million
 words of LibriSpeech's LM text~\cite{panayotov2015}, with our transcripts weighted five times. No
 validation or test talk appears in either. The LM, its weight $\alpha$, the word bonus $\beta$ and
 the beam width were chosen per model on the film and TED validation sets at every noise level.
 The LibriSpeech LM won for every model. For ws\_v5 the choice is $\alpha = 0.2$, $\beta = 1.0$
-and width~32 (\texttt{reports/flix\_v5/final\_decoder.md}).
+and width~32 (\texttt{reports/\allowbreak{}flix\_\allowbreak{}v5/\allowbreak{}final\_\allowbreak{}decoder.md}).

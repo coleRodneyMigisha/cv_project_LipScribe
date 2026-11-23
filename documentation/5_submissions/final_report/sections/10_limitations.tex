@@ -1,6 +1,42 @@
-% Author: Lisa Lusinga Namugenyi with Cole Rodney Migisha (F-11).
+% Author: Lisa Lusinga Namugenyi with Cole Rodney Migisha (F-11). Draft written by Charis Opol on
+% 23 Nov 2026 from Sections 08 and 09; for Lisa and Cole to check.
 \section{Limitations and Future Work}
 \label{sec:limitations}
-% TODO (F-11): GRID's closed 51-word vocabulary and studio recordings; synthetic noise; edge
-% words in real clips; voices that do not belong to the face (an audio-visual synchrony signal);
-% frontal faces only; latency on CPU.
+
+\textit{GRID is a narrow benchmark.} Its sentences follow one six-slot grammar over 51 words, its
+speakers face the camera in a studio, and our test set has only four speakers. The GRID results
+show that fusion helps under controlled conditions, not that it helps in a lecture hall. Our
+confidence intervals resample sentences, so they do not capture how much the gain varies from one
+speaker to another; with four speakers, that cannot be estimated.
+
+\textit{The noise is synthetic.} All noise is MUSAN audio added at a fixed SNR. Real rooms add
+reverberation, distance from the microphone and people talking at the same time. Babble and
+competing speech are the hardest cases for audio-only recognition~\cite{shi2022robust}, and we test
+them only in the wrong-audio conditions of Section~\ref{sec:realworld}.
+
+\textit{The real-world references come from Whisper.} TED and most film labels are Whisper
+transcripts of the clip's own audio, so real-world WER measures agreement with Whisper rather than
+with a human transcript. This is also why no Whisper-based encoder was used. The film test set has
+only 41 clips from three films, and its intervals are wide.
+
+\textit{Single runs.} Each GRID model and ablation was trained once, within a fixed budget.
+Differences of a few tenths of a point, such as P4 against B3~v2, may change with another seed.
+
+\textit{Edge words.} ws\_v5 still gets a clip's first or last word wrong about three times as
+often as an inner word (30.6~\% against 10.8~\%), even after the clips were re-cut with 0.32~s of
+padding. Live captioning cuts speech into windows, so the same problem will appear at every window
+boundary unless the windows overlap.
+
+\textit{Voices that do not belong to the face.} ws\_v5 trusts any audio it hears, so it transcribes
+a second speaker or a dubbed voice as if the person on screen said it. Training on mismatched audio
+(ws\_v6) fixed this only by trusting the audio less everywhere. A more promising route is an explicit
+audio-visual synchrony signal, such as a SyncNet-style score~\cite{chung2017}, given to the gate as
+one more reliability input, in the way AV-RelScore scores each stream~\cite{hong2023}.
+
+\textit{Frontal faces and visual corruption.} Every training clip shows one large, frontal face.
+Turned heads, hands over the mouth, masks and poor light are not tested, and the lips can be
+corrupted as well as the audio~\cite{hong2023}. P4 falls back to $e_{\text{miss}}$ only when the face
+is lost in more than half of a clip's frames.
+
+\textit{Latency.} The browser demo returns a caption in 2 to 3~s on our GPU workstation. Latency and
+real-time factor on a CPU or a phone have not yet been measured (F-08) \textbf{[AQ3]}.

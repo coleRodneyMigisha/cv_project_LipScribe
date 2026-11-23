@@ -13,6 +13,7 @@ The report answers two questions:
 **Done when:** the PDF is final and every number matches its source.
 
 Status is from the repository on 23 Nov 2026. Update it as work lands.
+Author queries and what the 23 Nov draft changed: `documentation/5_submissions/final_report/DRAFT_NOTES.md`.
 
 ---
 
@@ -39,18 +40,18 @@ Word counts are from 23 Nov. "Stub" means the file holds only a TODO comment.
 
 | # | File | Section | Author | Words | Status |
 |---|---|---|---|---|---|
-| 00 | `00_abstract.tex` | Abstract (150–250 words) | Lisa (editor) | 77 | Stub |
-| 01 | `01_introduction.tex` | Introduction | **Charis** | 58 | Stub |
-| 02 | `02_related_work.tex` | Related work | **Charis** | 41 | Stub |
+| 00 | `00_abstract.tex` | Abstract (150–250 words) | Lisa (editor) | ~200 | Drafted 23 Nov (Charis); Lisa to review |
+| 01 | `01_introduction.tex` | Introduction | **Charis** | ~520 | Drafted 23 Nov |
+| 02 | `02_related_work.tex` | Related work | **Charis** | ~1100 | Drafted 23 Nov; 3 papers cited from title only |
 | 03 | `03_data.tex` | Data and noise: GRID, MUSAN, Flix film and TED pipeline | Faith | 360 | Partial; TODO on out-of-domain data |
 | 04 | `04_pipelines.tex` | Visual and audio pipelines; real-world model; v4–v6 story | Cole | 1242 | Drafted; one TODO (log-Mel 80 in P4) |
-| 05 | `05_model.tex` | Model P and training | **Charis** | 383 | Partial; TODO on ablations X1–X3 |
+| 05 | `05_model.tex` | Model P and training | **Charis** | ~620 | Drafted; X1–X3 added 23 Nov |
 | 06 | `06_application.tex` | Application and latency (F-05 to F-08) | Nehum, frontend paragraph by Isabelle | 270 | Partial; TODOs for frontend and latency |
 | 07 | `07_testing.tex` | Testing (F-09) | Nehum | 145 | Partial; TODO on final test counts |
-| 08 | `08_results.tex` | GRID results, ablations, fusion analysis (F-03) | Lisa | 1624 | Drafted |
+| 08 | `08_results.tex` | GRID results, ablations, fusion analysis (F-03) | Lisa | ~1500 | Was a stub on `charis`; drafted 23 Nov (Charis), Lisa to check |
 | 09 | `09_real_world.tex` | Real-world results (F-04), v6 as a negative result | Cole | 1097 | Drafted |
-| 10 | `10_limitations.tex` | Limitations and future work | Lisa with Cole | 52 | Stub |
-| 11 | `11_conclusion.tex` | Conclusion: answer both questions | Lisa (editor) | 19 | Stub |
+| 10 | `10_limitations.tex` | Limitations and future work | Lisa with Cole | ~520 | Drafted 23 Nov (Charis); Lisa, Cole to check |
+| 11 | `11_conclusion.tex` | Conclusion: answer both questions | Lisa (editor) | ~200 | Drafted 23 Nov (Charis) |
 
 ### Checklist per section
 - [ ] **00 Abstract.** Problem, approach, headline GRID and real-world numbers.
