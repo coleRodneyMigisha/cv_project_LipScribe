@@ -14,7 +14,9 @@ FROM python:${PYTHON_VERSION}-slim
 
 # Match these to the Alienware's working .venv (DEPLOYMENT.md, step 2) and to its NVIDIA driver:
 # cu128 wheels need driver 570 or newer (nvidia-smi shows the driver version).
-ARG TORCH_VERSION=2.14.1
+# (The repository's requirements.txt says torch 2.14.1, which has no CUDA wheel; torchaudio 2.11.0
+# pairs with torch 2.11.0, the newest on the cu128 index as of 26 Nov 2026.)
+ARG TORCH_VERSION=2.11.0
 ARG TORCHAUDIO_VERSION=2.11.0
 ARG TORCH_INDEX=https://download.pytorch.org/whl/cu128
 
