@@ -1,0 +1,63 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
+\@writefile{toc}{\contentsline {section}{\numberline {1}Summary}{1}{section.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {2}The Journey So Far (Weeks 1--4)}{2}{section.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces What we have built, week by week.}}{2}{table.caption.1}\protected@file@percent }
+\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
+\newlabel{tab:journey}{{1}{2}{What we have built, week by week}{table.caption.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3}Growth Since the Week 3 Report}{2}{section.3}\protected@file@percent }
+\newlabel{sec:growth}{{3}{2}{Growth Since the Week 3 Report}{section.3}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}GRID: What Grammar Decoding Really Does}{2}{section.4}\protected@file@percent }
+\newlabel{sec:grammar}{{4}{2}{GRID: What Grammar Decoding Really Does}{section.4}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Week 3 report (9 Nov) compared with today (12 Nov).}}{3}{table.caption.2}\protected@file@percent }
+\newlabel{tab:growth}{{2}{3}{Week 3 report (9 Nov) compared with today (12 Nov)}{table.caption.2}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5}Experiment X6 ``Flix'': Does Model P Work Outside GRID?}{3}{section.5}\protected@file@percent }
+\newlabel{sec:flix}{{5}{3}{Experiment X6 ``Flix'': Does Model P Work Outside GRID?}{section.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Building the film dataset}{3}{subsection.5.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces The clip-mining pipeline used for films, Whisper-labelled films and TED talks. About 7--8\,\% of subtitle lines survive the filters; the rest show slides, the audience, two people, a turned head or a camera cut.}}{4}{figure.caption.3}\protected@file@percent }
+\newlabel{fig:pipeline}{{1}{4}{The clip-mining pipeline used for films, Whisper-labelled films and TED talks. About 7--8\,\% of subtitle lines survive the filters; the rest show slides, the audience, two people, a turned head or a camera cut}{figure.caption.3}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Real mouth crops found by the miner (7 moments per line) with the subtitle that labels them. Note how much more varied the lighting and pose are than in GRID's studio clips.}}{4}{figure.caption.4}\protected@file@percent }
+\newlabel{fig:mouths}{{2}{4}{Real mouth crops found by the miner (7 moments per line) with the subtitle that labels them. Note how much more varied the lighting and pose are than in GRID's studio clips}{figure.caption.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Three ways of using the data}{4}{subsection.5.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}Results}{4}{subsection.5.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{How to read these results.}{4}{paragraph*.7}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Film test (43 clips, 3 unseen films, clean sound). WER/CER in \%. ``New words'' = non-GRID words written correctly, out of 223.}}{5}{table.caption.5}\protected@file@percent }
+\newlabel{tab:flix}{{3}{5}{Film test (43 clips, 3 unseen films, clean sound). WER/CER in \%. ``New words'' = non-GRID words written correctly, out of 223}{table.caption.5}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Words and letters wrong on the film test. WER can exceed 100\,\% when the model adds words. Letters improve as data grows; the word grammar is the first to bring WER below 100\,\%.}}{5}{figure.caption.6}\protected@file@percent }
+\newlabel{fig:flix}{{3}{5}{Words and letters wrong on the film test. WER can exceed 100\,\% when the model adds words. Letters improve as data grows; the word grammar is the first to bring WER below 100\,\%}{figure.caption.6}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Overfitting, seen directly (v1, seed 1, 150 epochs). The loss on the 193 training clips keeps falling, while the loss on unseen films starts rising after about round 10. The best validation CER came at round 46. We keep that checkpoint, not the last one.}}{5}{figure.caption.8}\protected@file@percent }
+\newlabel{fig:curve}{{4}{5}{Overfitting, seen directly (v1, seed 1, 150 epochs). The loss on the 193 training clips keeps falling, while the loss on unseen films starts rising after about round 10. The best validation CER came at round 46. We keep that checkpoint, not the last one}{figure.caption.8}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Excerpt from the real training log of the same run (Alienware). ``Error'' is the CTC loss; letters wrong is the validation CER on unseen films.}}{6}{table.caption.9}\protected@file@percent }
+\newlabel{tab:log}{{4}{6}{Excerpt from the real training log of the same run (Alienware). ``Error'' is the CTC loss; letters wrong is the validation CER on unseen films}{table.caption.9}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}An open-vocabulary ``word grammar''}{6}{subsection.5.4}\protected@file@percent }
+\newlabel{sec:lm}{{5.4}{6}{An open-vocabulary ``word grammar''}{subsection.5.4}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Captions generated on the unseen test films. On the left are the mouth crops the model actually read for the line (7 of its frames); on the right, the real subtitle and the captions of P4, the retrained model, and the retrained model with the word grammar (seed 1). Two are the best of the 43 test clips and one is typical.}}{6}{figure.caption.10}\protected@file@percent }
+\newlabel{fig:scenes}{{5}{6}{Captions generated on the unseen test films. On the left are the mouth crops the model actually read for the line (7 of its frames); on the right, the real subtitle and the captions of P4, the retrained model, and the retrained model with the word grammar (seed 1). Two are the best of the 43 test clips and one is typical}{figure.caption.10}{}}
+\gdef \LT@i {\LT@entry 
+    {1}{99.89418pt}\LT@entry 
+    {1}{125.81102pt}\LT@entry 
+    {1}{202.32384pt}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.5}Tuning the eyes: 11 ways of training the ResNet}{7}{subsection.5.5}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Validation CER for the 11 eye-training variations on the v2 film data (80 epochs, patience 40).}}{7}{figure.caption.11}\protected@file@percent }
+\newlabel{fig:resnet}{{6}{7}{Validation CER for the 11 eye-training variations on the v2 film data (80 epochs, patience 40)}{figure.caption.11}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {6}Setbacks Met Today, and What They Taught Us}{7}{section.6}\protected@file@percent }
+\newlabel{sec:setbacks}{{6}{7}{Setbacks Met Today, and What They Taught Us}{section.6}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces Setbacks on 12 November, their effect and the fix.}}{7}{table.5}\protected@file@percent }
+\newlabel{tab:setbacks}{{5}{7}{Setbacks on 12 November, their effect and the fix}{table.5}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {7}The Plan: Training on TED Talks (v3)}{8}{section.7}\protected@file@percent }
+\newlabel{sec:ted}{{7}{8}{The Plan: Training on TED Talks (v3)}{section.7}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.1}Why TED}{8}{subsection.7.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}How the data is collected}{8}{subsection.7.2}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces Labelled out-of-domain training speech per version (log scale). At 19:34 on 12 Nov the harvester had mined 1,878 of the 3,040 talks: 29,455 clips (20.3\,h).}}{9}{figure.caption.12}\protected@file@percent }
+\newlabel{fig:growth}{{7}{9}{Labelled out-of-domain training speech per version (log scale). At 19:34 on 12 Nov the harvester had mined 1,878 of the 3,040 talks: 29,455 clips (20.3\,h)}{figure.caption.12}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}The v3 experiment}{9}{subsection.7.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{What we expect, and how we will judge it.}{9}{paragraph*.13}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {8}The Demo}{9}{section.8}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces Screenshots of the web demo. \textbf  {Left:} \emph  {GRID sentences} mode (P4 + GRID grammar) writes \textbf  {``bin blue at j five please''}, exactly the spoken sentence, in 3.3\,s. The face was found in 100\,\% of frames, and the model gave the lips 25\,\% of the trust (clean audio). \textbf  {Right:} \emph  {Any speech (experimental)} mode on the same clip writes ``i these'': the film-trained model has forgotten GRID (Table~\ref {tab:flix}) and leans almost entirely on the sound (lips 1\,\%).}}{10}{figure.caption.14}\protected@file@percent }
+\newlabel{fig:demo}{{8}{10}{Screenshots of the web demo. \textbf {Left:} \emph {GRID sentences} mode (P4 + GRID grammar) writes \textbf {``bin blue at j five please''}, exactly the spoken sentence, in 3.3\,s. The face was found in 100\,\% of frames, and the model gave the lips 25\,\% of the trust (clean audio). \textbf {Right:} \emph {Any speech (experimental)} mode on the same clip writes ``i these'': the film-trained model has forgotten GRID (Table~\ref {tab:flix}) and leans almost entirely on the sound (lips 1\,\%)}{figure.caption.14}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {9}Lessons Learned}{10}{section.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {10}Next Steps (Weeks 4--5)}{10}{section.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {A}Glossary}{11}{appendix.A}\protected@file@percent }
+\gdef \@abspage@last{11}
