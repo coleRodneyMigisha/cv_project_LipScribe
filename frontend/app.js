@@ -2,11 +2,14 @@
  * LipScribe demo page (F-06) — owner: Wakisa Isabelle, reviewer: Cole Rodney Migisha
  *
  * Talks to the backend over one WebSocket. Message format: backend/README.md.
- *   - No ?backend=... in the address  -> the pretend backend in mock-backend.js
- *   - ?backend=wss://host/ws/live      -> the real backend on the Alienware
- *   - ?backend=self                    -> the backend that served this page (SSH tunnel, localhost:8800)
+ * Which backend, in order of precedence:
+ *   - ?backend=wss://host/ws/live      -> that backend (remembered in this browser)
+ *   - ?backend=self                    -> the backend that served this page
+ *   - config.js (window.LIPSCRIBE_BACKEND) -> the deployed default; 'self' when the backend serves the page
+ *   - the address remembered from an earlier ?backend=...
+ *   - ?backend=default                 -> forget the remembered address and use config.js
  *   - ?code=...                        -> the access code, passed on to the backend (remembered)
- * The default backend address is set in config.js (DEPLOYMENT.md).
+ * With no backend at all, the page says so instead of recording (DEPLOYMENT.md, step 8).
  * Upload (in Clip mode): the file plays here from disk; the backend asks for the bytes it needs
  * ("need"), and subtitle cues come back in batches ("cues") while the rest uploads.
  */
@@ -46,7 +49,7 @@
     no_meeting_audio: ['The shared screen has no sound', 'Share again and tick “Share tab audio” (or “Share system audio” on Windows), or pick a sound device under “Meeting sound from”.'],
     display_denied: ['Screen sharing was cancelled', 'Press the button again and choose the meeting’s tab, window or screen.'],
     bad_zoom_link: ['That isn’t a Zoom caption link', 'Paste the caption API token from Zoom (CC → Set up manual captioner → Copy the API token), or leave the box empty.'],
-    needs_backend: ['Uploads need the real backend', 'Open the page with ?backend=… to caption a file; the pretend backend only does camera captions.'],
+    no_backend: ['LipScribe is not connected yet', 'This page has no backend address. Use the link the team shared (it ends in ?code=…), or set the address in config.js.'],
     model_unavailable: ['That model isn’t loaded', 'Switch model, or ask the team to start the server with both models.'],
     server_error: ['The server hit a problem', 'Try again. If it keeps happening, tell the team what you did.'],
     unknown: ['Something went wrong', 'Try again. If it keeps happening, tell the team what you did.']
@@ -77,11 +80,13 @@
 
   // ---------- State ----------
   var params = new URLSearchParams(location.search);
-  // A ?backend=wss://... address is remembered in this browser, so a Pages link works on later visits too.
+  // A ?backend=wss://... address is remembered in this browser. The config.js address comes first, so an
+  // old remembered address (for example a quick-tunnel link) cannot hide the deployed backend.
   var givenBackend = params.get('backend');
-  if (givenBackend && givenBackend !== 'self') store('lipscribe-backend', givenBackend === 'mock' ? '' : givenBackend);
-  var backendUrl = toWs(givenBackend || (DEFAULT_BACKEND === 'self' ? 'self' : store('lipscribe-backend') || DEFAULT_BACKEND));
-  var useMock = !backendUrl || backendUrl === 'mock';
+  if (givenBackend === 'default') { store('lipscribe-backend', ''); givenBackend = null; }
+  else if (givenBackend && givenBackend !== 'self') store('lipscribe-backend', givenBackend);
+  var backendUrl = toWs(givenBackend || DEFAULT_BACKEND || store('lipscribe-backend') || '');
+  var noBackend = !backendUrl;
   if (params.get('code')) store('lipscribe-code', params.get('code'));
   var accessCode = params.get('code') || store('lipscribe-code') || '';
   function socketUrl() {
@@ -101,7 +106,6 @@
   // ---------- Helpers ----------
   function toWs(u) {
     if (!u) return '';
-    if (u === 'mock') return 'mock';
     if (u === 'self') return (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/live';
     if (u.indexOf('https://') === 0) return 'wss://' + u.slice(8);
     if (u.indexOf('http://') === 0) return 'ws://' + u.slice(7);
@@ -349,8 +353,8 @@
     el.loading.style.display = showLoading ? 'flex' : 'none';
     el.cards.style.display = showLoading ? 'none' : '';
 
-    el.conn.className = 'conn ' + (useMock ? 'mock' : S.socket && S.socket.readyState === 1 ? 'ok' : '');
-    el.connText.textContent = useMock ? 'Pretend backend (sample captions)' : S.socket && S.socket.readyState === 1 ? 'Connected to ' + safeHost(backendUrl) : 'Backend: ' + safeHost(backendUrl);
+    el.conn.className = 'conn ' + (!noBackend && S.socket && S.socket.readyState === 1 ? 'ok' : '');
+    el.connText.textContent = noBackend ? 'No backend set' : S.socket && S.socket.readyState === 1 ? 'Connected to ' + safeHost(backendUrl) : 'Backend: ' + safeHost(backendUrl);
     renderCaptions();
   }
   function safeHost(u) { try { return new URL(u).host; } catch (e) { return u; } }
@@ -378,7 +382,6 @@
       el.video.srcObject = stream;
       var p = el.video.play(); if (p && p.catch) p.catch(function () {});
       el.camEmpty.style.display = 'none';
-      if (window.LipScribeMockSocket) window.LipScribeMockSocket.video = el.video;
       S.phase = 'ready';
       hideError();
       render();
@@ -416,10 +419,11 @@
   });
 
   function startRun() {
-    if (!window.MediaRecorder && !useMock) { showError('unsupported'); return; }
+    if (noBackend) { showError('no_backend'); return; }
+    if (!window.MediaRecorder) { showError('unsupported'); return; }
     resetResults();
     var sock;
-    try { sock = useMock ? new window.LipScribeMockSocket('mock://pretend-backend') : new WebSocket(socketUrl()); }
+    try { sock = new WebSocket(socketUrl()); }
     catch (e) { showError('server_unreachable', e); return; }
     S.socket = sock;
     S.phase = 'waiting'; // until the socket opens
@@ -602,7 +606,6 @@
       el.video.srcObject = stream;
       var p = el.video.play(); if (p && p.catch) p.catch(function () {});
       el.camEmpty.style.display = 'none';
-      if (window.LipScribeMockSocket) window.LipScribeMockSocket.video = el.video;
       stream.getVideoTracks()[0].addEventListener('ended', function () { if (S.phase === 'recording') stopRun(); });
       el.zoomStatus.textContent = el.zoomUrl.value.trim() ? 'Waiting for the first line…' : '';
       el.zoomStatus.className = 'zoom-status muted';
@@ -644,7 +647,7 @@
 
   function startUpload(file) {
     if (!file) return;
-    if (useMock) { showError('needs_backend'); return; }
+    if (noBackend) { showError('no_backend'); return; }
     if (S.phase === 'recording' || S.phase === 'waiting') return;
     var track = S.up ? S.up.track : 'routed';
     if (S.up) stopUpload();

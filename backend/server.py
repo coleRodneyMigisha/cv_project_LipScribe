@@ -2,7 +2,7 @@
 
 WS   /ws/live?code=<access code>   one WebSocket per recording or upload (message format: backend/README.md)
 GET  /health                       loaded models and busy state
-GET  /, /app.js, /config.js, /mock-backend.js  the page itself (so the backend can also serve it)
+GET  /, /app.js, /config.js  the page itself (so the backend can also serve it)
 
 Models (the page's "mode"):
   grid  "GRID sentences": P4 + GRID grammar (ears + lips) beside B1 + grammar (ears only)
@@ -14,7 +14,7 @@ captioned in batches while it uploads). The work is done by lipscribe.app.sessio
   DEMO_CODE=<secret> PYTHONPATH=.:asr_pkgs .venv/bin/python -m uvicorn backend.server:app \
       --host 127.0.0.1 --port 8800 --ws-max-size 16777216
 Locally it binds to localhost only (backend/run_local.sh). In the Coolify container it listens on
-0.0.0.0:8800 behind Coolify's proxy (backend/Dockerfile, DEPLOYMENT.md).
+0.0.0.0:1442 behind Coolify's proxy (backend/Dockerfile, DEPLOYMENT.md).
 
 Environment (all optional):
   DEMO_CODE         access code the page must send (?code=...); empty means no code
@@ -90,21 +90,16 @@ def health() -> dict:
 
 @app.get("/")
 def page() -> HTMLResponse:
-    """The page, told to talk to this server (so the tunnel link alone works on any device)."""
+    """The page, told to talk to this server (so the backend's own link works on any device)."""
     html = (FRONTEND / "index.html").read_text(encoding="utf-8")
-    html = html.replace('<script src="mock-backend.js"></script>',
-                        '<script>window.LIPSCRIBE_BACKEND = "self";</script>\n<script src="mock-backend.js"></script>', 1)
+    html = html.replace('<script src="config.js"></script>',
+                        '<script src="config.js"></script>\n<script>window.LIPSCRIBE_BACKEND = "self";</script>', 1)
     return HTMLResponse(html, headers={"Cache-Control": "no-cache"})
 
 
 @app.get("/app.js")
 def app_js() -> FileResponse:
     return FileResponse(FRONTEND / "app.js", media_type="text/javascript")
-
-
-@app.get("/mock-backend.js")
-def mock_js() -> FileResponse:
-    return FileResponse(FRONTEND / "mock-backend.js", media_type="text/javascript")
 
 
 @app.get("/config.js")

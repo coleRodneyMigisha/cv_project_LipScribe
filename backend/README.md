@@ -7,7 +7,7 @@ shows how much the model trusted the sound and the lips, frame by frame, and the
 ```
  phone / laptop browser                         Alienware (backend)
  ┌─────────────────────────────┐  WebSocket   ┌──────────────────────────────────────────────┐
- │ frontend/index.html, app.js │ ───────────▶ │ backend/server.py  (FastAPI, port 8800)      │
+ │ frontend/index.html, app.js │ ───────────▶ │ backend/server.py  (FastAPI, port 1442)      │
  │ Live / Clip: MediaRecorder  │ chunks, or   │   lipscribe.app.session   one per recording  │
  │   chunks every 1 s          │ the pieces   │   lipscribe.app.stream    bytes → PyAV →     │
  │ Upload: the file plays from │ of a file    │                           16 kHz + 25 fps    │
@@ -25,8 +25,7 @@ Deploying this backend on Coolify (the Alienware): [`../DEPLOYMENT.md`](../DEPLO
 
 | File | What it is |
 |---|---|
-| `frontend/index.html`, `frontend/app.js` | The page (one static page, no build step). Owner: Wakisa Isabelle. |
-| `frontend/mock-backend.js` | A pretend backend for building the page without the Alienware. |
+| `frontend/index.html`, `frontend/app.js`, `frontend/config.js` | The page (one static page, no build step). Owner: Wakisa Isabelle. |
 | `backend/server.py` | The backend: `WS /ws/live`, `GET /health`, and `GET /` (serves the page too). |
 | `backend/Dockerfile`, `backend/docker-compose.yml` | The container Coolify builds and runs (DEPLOYMENT.md). |
 | `backend/run_local.sh` | Runs the backend without Docker, with a Cloudflare quick tunnel (the setup before Coolify). |

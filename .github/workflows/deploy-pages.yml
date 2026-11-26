@@ -28,7 +28,7 @@ jobs:
           else echo "ok=false" >> "$GITHUB_OUTPUT"; echo "::notice::Cloudflare secrets not set; skipping the Pages upload."; fi
       - name: Collect the page files
         if: steps.secrets.outputs.ok == 'true'
-        run: mkdir site && cp frontend/index.html frontend/app.js frontend/config.js frontend/mock-backend.js site/
+        run: mkdir site && cp frontend/index.html frontend/app.js frontend/config.js site/
       - name: Upload to Cloudflare Pages
         if: steps.secrets.outputs.ok == 'true'
         uses: cloudflare/wrangler-action@v3
