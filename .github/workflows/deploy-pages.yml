@@ -1,0 +1,38 @@
+# Deploy the demo page to Cloudflare Pages (https://lipscribe.pages.dev) whenever main changes it.
+# Uploads only the page files in frontend/ (as frontend/deploy-pages.ps1 does), never the backend code.
+#
+# Needs two repository secrets (Settings -> Secrets and variables -> Actions); until both are set,
+# the job skips the upload and passes:
+#   CLOUDFLARE_API_TOKEN   a Cloudflare API token with "Cloudflare Pages: Edit" permission
+#   CLOUDFLARE_ACCOUNT_ID  the account that owns the "lipscribe" Pages project
+name: deploy-pages
+
+on:
+  push:
+    branches: [main]
+    paths: ["frontend/**", ".github/workflows/deploy-pages.yml"]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the Cloudflare secrets
+        id: secrets
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -n "$TOKEN" ] && [ -n "$ACCOUNT" ]; then echo "ok=true" >> "$GITHUB_OUTPUT";
+          else echo "ok=false" >> "$GITHUB_OUTPUT"; echo "::notice::Cloudflare secrets not set; skipping the Pages upload."; fi
+      - name: Collect the page files
+        if: steps.secrets.outputs.ok == 'true'
+        run: mkdir site && cp frontend/index.html frontend/app.js frontend/config.js frontend/mock-backend.js site/
+      - name: Upload to Cloudflare Pages
+        if: steps.secrets.outputs.ok == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy site --project-name lipscribe --branch main --commit-dirty=true

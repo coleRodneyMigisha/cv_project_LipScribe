@@ -30,15 +30,7 @@ if [ -f scripts/flix_v6_run.sh ] && [ ! -f reports/flix_v6/ALL_DONE ] && [ ! -f 
   (setsid nohup bash scripts/flix_v6_run.sh >> logs/flix_v6.log 2>&1 < /dev/null &)   # waits for v5 itself
   echo "started flix v6 pipeline"
 fi
-# web demo (demo/README.md): backend on localhost; the public Cloudflare quick tunnel only if
-# opted in with `touch .demo_tunnel` (a new https://*.trycloudflare.com address each start -> .demo_url)
-if [ -f .demo_code ] && ! pgrep -f "uvicorn demo.server:app" > /dev/null; then
-  (DEMO_CODE="$(cat .demo_code)" PYTHONPATH=asr_pkgs setsid nohup .venv/bin/python -m uvicorn demo.server:app \
-      --host 127.0.0.1 --port 8800 >> logs/demo_server.log 2>&1 < /dev/null &)
-  echo "started demo server"
-fi
-if [ -f .demo_tunnel ] && [ -x "$HOME/bin/cloudflared" ] && ! pgrep -f "cloudflared tunnel --no-autoupdate --url http://127.0.0.1:8800" > /dev/null; then
-  (setsid nohup "$HOME/bin/cloudflared" tunnel --no-autoupdate --url http://127.0.0.1:8800 > logs/cloudflared.log 2>&1 < /dev/null &)
-  for i in $(seq 30); do u=$(grep -oE "https://[a-z0-9-]+\.trycloudflare\.com" logs/cloudflared.log | head -1); [ -n "$u" ] && break; sleep 2; done
-  echo "$u" > .demo_url; echo "started demo tunnel: $u"
-fi
+# web demo (backend/README.md): runs from the clean checkout ~/Desktop/lipscribe_demo; backend/run_local.sh starts
+# the backend on 127.0.0.1:8800 and the public tunnel (address in that folder's .demo_url)
+D="$HOME/Desktop/lipscribe_demo"
+[ -x "$D/backend/run_local.sh" ] && bash "$D/backend/run_local.sh"

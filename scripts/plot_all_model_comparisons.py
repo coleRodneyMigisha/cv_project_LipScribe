@@ -205,7 +205,7 @@ def plot_all_models_comparison(out_path: Path) -> None:
 
 
 def plot_week3_snr_figure(out_path: Path) -> None:
-    """Clean log-scale SNR curve for the Week 3 report (documentation/5_submissions/week3_report/figures/snr_comparison_curves.png)."""
+    """Clean log-scale SNR curve for the Week 3 report (docs/5_submissions/week3_report/figures/snr_comparison_curves.png)."""
     snr_labels = ["Clean", "10 dB", "5 dB", "0 dB", "\u22125 dB"]
     x = np.arange(len(snr_labels))
 
@@ -313,7 +313,7 @@ def plot_gate_vs_snr(out_path: Path) -> None:
 def main() -> None:
     p1 = REPORTS_DIR / "model_p_4way_curriculum.png"
     p2 = REPORTS_DIR / "all_models_snr_and_summary.png"
-    p3 = REPO_ROOT / "documentation" / "5_submissions" / "week3_report" / "figures" / "snr_comparison_curves.png"
+    p3 = REPO_ROOT / "docs" / "5_submissions" / "week3_report" / "figures" / "snr_comparison_curves.png"
     p4 = REPORTS_DIR / "model_p_gate_vs_snr.png"
     plot_model_p_4way(p1)
     plot_all_models_comparison(p2)

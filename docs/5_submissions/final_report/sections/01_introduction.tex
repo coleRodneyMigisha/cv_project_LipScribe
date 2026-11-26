@@ -1,0 +1,50 @@
+% Author: Charis Opol (F-11). Draft of 23 Nov 2026, built from the proposal's introduction and
+% the repository. Numbers: analysis/01_grid/tables/test_wer_greedy.md, Table~\ref{tab:realworld}
+% (reports/flix_v5/final_decoder.md) and Section~\ref{sec:results}.
+\section{Introduction}
+\label{sec:introduction}
+
+\PARstart{A}{utomatic} speech recognition (ASR) performs well on clean audio, but its error rate
+rises quickly with background noise. For live captioning, used by deaf and hard-of-hearing people
+in lectures and meetings, these errors make captions least reliable where they are most needed.
+Visual speech information is unaffected by acoustic noise. Lip movements alone are ambiguous, since
+phonemes such as /p/ and /b/ share a mouth shape, but they complement the audio in exactly the
+conditions where the audio fails. Audio-visual speech recognition (AVSR) exploits this, and
+published systems report their largest gains at low signal-to-noise ratios (SNRs)
+(Section~\ref{sec:related}).
+
+This paper addresses two research questions:
+\begin{enumerate}
+\item Does lip-assisted fusion reduce recognition errors across noise levels on a controlled
+benchmark, the GRID corpus~\cite{cooke2006} with MUSAN noise~\cite{snyder2015} from clean to
+$-5$~dB, tested on unseen speakers?
+\item Does the gain carry over to open-vocabulary speech, measured on held-out film and TED clips
+against an audio-only model that differs only in the absence of the lips?
+\end{enumerate}
+The project proposal also listed emotion detection and spoken-language identification. These were
+removed from the core system in the implementation plan, because GRID provides no emotion labels
+and a single language.
+
+The contributions are as follows.
+\begin{itemize}
+\item Model P4, a model trained with connectionist temporal classification (CTC) that fuses an audio encoder and a ResNet-18 lip encoder through
+bidirectional cross-modal attention, a per-frame gate, a learned missing-stream embedding and
+modality dropout (Section~\ref{sec:model}). On unseen GRID speakers it roughly halves the word error
+rate (WER) of the audio-only baseline at every noise level (Section~\ref{sec:results}).
+\item Ablations of modality dropout, attention with gating, and the 3-D front end, each with a
+paired bootstrap interval.
+\item A real-world model, ws\_v5, that fuses pretrained audio and lip encoders through a
+reliability-gated fusion initialised as its audio-only twin (Section~\ref{sec:pipelines-real}).
+On held-out TED talks at $-10$~dB it reduces WER from 42.3~\% to 28.5~\% (Section~\ref{sec:realworld}).
+\item A negative result: when the audio does not belong to the visible speaker, ws\_v5 transcribes
+the wrong voice, and retraining on mismatched audio trades this error for a large loss on clean
+speech.
+\item An application in which a command-line tool, a Gradio interface, a browser demo and a live
+capture mode share one inference engine with the evaluation code (Section~\ref{sec:application}).
+\end{itemize}
+
+Section~\ref{sec:related} reviews related work. Sections~\ref{sec:data} to~\ref{sec:model} describe
+the data, pipelines and models, and Sections~\ref{sec:application} and~\ref{sec:testing} the
+application and its tests. Sections~\ref{sec:results} and~\ref{sec:realworld} report results on
+GRID and on real speech. Section~\ref{sec:limitations} discusses limitations, and
+Section~\ref{sec:conclusion} concludes.

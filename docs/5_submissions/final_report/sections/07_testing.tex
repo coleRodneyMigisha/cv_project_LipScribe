@@ -1,0 +1,13 @@
+% Author: Ansasire Nehum Naamaye (first draft written 16 Nov from the repository; check and extend).
+\section{Testing}
+\label{sec:testing}
+The repository carries an automated test suite (\texttt{tests/}, run with \texttt{pytest}) of
+over 170 test functions across 31 files. Unit tests cover each module against the shapes and
+conventions of \texttt{docs/\allowbreak{}INTERFACES.md}: transcript normalisation and the tokeniser, the
+noise mixer (achieved SNR within tolerance), feature extraction, mouth cropping and its failure
+handling, the dataset and collate function, every encoder and fusion block (including no NaN
+when a whole modality is dropped), CTC decoding and the WER/CER metrics. Integration tests check
+that a tiny model overfits eight utterances, that training resumes from a checkpoint, and that
+the application gives the same caption as the evaluation script. Continuous integration runs
+the suite on every pull request (\texttt{.github/\allowbreak{}workflows/\allowbreak{}tests.yml}).
+% TODO (Nehum, F-11): final test counts and the fresh-clone reproducibility result (F-09).

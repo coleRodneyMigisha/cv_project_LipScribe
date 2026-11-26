@@ -1,0 +1,48 @@
+% Author: Ainomugisha Faith (first draft written 16 Nov from the repository; check and extend).
+\section{Data and Noise}
+\label{sec:data}
+
+\subsection{GRID corpus}
+LipScribe is trained and tested on the GRID audio-visual corpus~\cite{cooke2006}. Every GRID
+sentence follows a six-slot command grammar (command, colour, preposition, letter, digit,
+adverb) drawn from 51 words, and lasts 3~s: 75 video frames at 25~frames/s with 16~kHz audio.
+The team verified every utterance before use (\texttt{scripts/\allowbreak{}verify\_\allowbreak{}dataset.py}): video,
+audio and alignment files present; $75 \pm 2$ decodable frames; audio duration within 40~ms of
+the video; a six-word transcript from the GRID word list; audio neither silent nor clipped
+throughout; and a Face Mesh success rate of at least 90~\% of frames.
+
+The split is speaker-independent (\texttt{data/\allowbreak{}splits.csv}), so no test speaker is ever seen in
+training: 26 speakers for training (25,891 usable utterances), 3 for validation (3,000) and 4
+for testing (3,999), 32,890 in total. Speaker s21 is excluded because its video is missing.
+The split was fixed in Week~1 and never regenerated.
+
+\subsection{Noise}
+Background noise comes from the MUSAN corpus~\cite{snyder2015}. Its 930 noise files are split
+by file into separate pools for training (651), validation (139) and testing (140), so no noise
+recording appears in more than one pool. During training each utterance is mixed with a random
+training-pool segment at a signal-to-noise ratio (SNR) drawn uniformly from clean, 10, 5, 0 and
+$-5$~dB. Validation and test use fixed noisy copies of every utterance at the same five levels,
+made once with deterministic seeds (\texttt{scripts/\allowbreak{}make\_\allowbreak{}noisy\_\allowbreak{}test.py}), so every model is
+scored on identical audio. After mixing, each waveform is scaled to $-25$~dBFS RMS with the
+gain capped at 20~dB, so near-silent clips are not amplified into pure noise.
+
+\subsection{Real-world data}
+% Drafted by Charis Opol on 23 Nov for Faith to check. Sources: Week 4 report (mining pipeline),
+% reports/flix_v4/decision_log.md (relabelling) and reports/flix_v5/decision_log.md (manifests).
+The real-world clips are mined from films, series and TED talks by
+\texttt{scripts/\allowbreak{}mine\_\allowbreak{}flix.py}, which writes them in the same format as GRID: 25~frames/s mouth
+crops, 16~kHz audio and a transcript. A candidate line is kept only if the video shows exactly one
+large, frontal face, the lips move and there is no camera cut, so only about 7 to 8~\% of
+candidate lines survive. The rest show slides, the audience, two people, a turned head or a cut.
+Subtitled films are labelled by their subtitles; films without subtitles and all TED talks are
+labelled with Whisper large-v3-turbo word timestamps~\cite{radford2023whisper}. TED subtitle times
+did not match the cut clips, so on 13~Nov every TED clip was relabelled from its own audio. TED
+talks are harvested by downloading, mining and deleting each talk in turn, so only the mouth crops
+and the clip audio are kept.
+
+The test titles (three films) and 67 test talks are never used for training, validation or the
+language models. After the v5 re-cut (Section~\ref{sec:pipelines-real}) and the removal of clips
+with no speech, unspellable text, Whisper hallucinations or labels too long for CTC, the sets hold
+37,634 training clips from films and TED, 805 TED and 67 film validation clips, and 1,094 TED and
+41 film test clips (\texttt{reports/\allowbreak{}flix\_\allowbreak{}v5/\allowbreak{}decision\_\allowbreak{}log.md}). MUSAN noise is again added at test
+time, at clean, 0, $-5$ and $-10$~dB.
