@@ -1,9 +1,9 @@
-"""Drive the demo backend (demo/server.py) the way the page does, for tests and latency checks.
+"""Drive the demo backend (backend/server.py) the way the page does, for tests and latency checks.
 
-  python scripts/demo_ws_client.py "ws://127.0.0.1:8800/ws/live?code=CODE" clip grid clip.webm
-  python scripts/demo_ws_client.py "ws://127.0.0.1:8800/ws/live?code=CODE" clip any clip.webm --snr -5
-  python scripts/demo_ws_client.py "ws://127.0.0.1:8800/ws/live?code=CODE" live any talk.webm --realtime
-  python scripts/demo_ws_client.py "ws://127.0.0.1:8800/ws/live?code=CODE" upload any film.mp4
+  python backend/ws_client.py "ws://127.0.0.1:8800/ws/live?code=CODE" clip grid clip.webm
+  python backend/ws_client.py "ws://127.0.0.1:8800/ws/live?code=CODE" clip any clip.webm --snr -5
+  python backend/ws_client.py "ws://127.0.0.1:8800/ws/live?code=CODE" live any talk.webm --realtime
+  python backend/ws_client.py "ws://127.0.0.1:8800/ws/live?code=CODE" upload any film.mp4
 
 live/clip send the file in 1 s pieces like MediaRecorder (--realtime: one piece a second), then
 "stop"; upload answers the backend's "need" messages. Prints every message with its arrival time.

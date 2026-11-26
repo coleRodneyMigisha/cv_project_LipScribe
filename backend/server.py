@@ -1,8 +1,8 @@
-"""LipScribe demo backend (FastAPI, F-05). Runs on the Alienware; see demo/README.md.
+"""LipScribe demo backend (FastAPI, F-05). Runs on the Alienware; see backend/README.md.
 
-WS   /ws/live?code=<access code>   one WebSocket per recording or upload (message format: demo/README.md)
+WS   /ws/live?code=<access code>   one WebSocket per recording or upload (message format: backend/README.md)
 GET  /health                       loaded models and busy state
-GET  /, /app.js, /mock-backend.js  the page itself (so the backend can also serve it)
+GET  /, /app.js, /config.js, /mock-backend.js  the page itself (so the backend can also serve it)
 
 Models (the page's "mode"):
   grid  "GRID sentences": P4 + GRID grammar (ears + lips) beside B1 + grammar (ears only)
@@ -11,9 +11,17 @@ Models (the page's "mode"):
 Runs: live (camera, captions while you talk), clip (3 s camera clip), upload (a file of any length,
 captioned in batches while it uploads). The work is done by lipscribe.app.session.
 
-  DEMO_CODE=<secret> PYTHONPATH=.:asr_pkgs .venv/bin/python -m uvicorn demo.server:app \
+  DEMO_CODE=<secret> PYTHONPATH=.:asr_pkgs .venv/bin/python -m uvicorn backend.server:app \
       --host 127.0.0.1 --port 8800 --ws-max-size 16777216
-Binds to localhost only; reach it through an SSH tunnel or a Cloudflare Tunnel.
+Locally it binds to localhost only (backend/run_local.sh). In the Coolify container it listens on
+0.0.0.0:8800 behind Coolify's proxy (backend/Dockerfile, DEPLOYMENT.md).
+
+Environment (all optional):
+  DEMO_CODE         access code the page must send (?code=...); empty means no code
+  DEMO_MODELS       "any,grid" (default), "any" or "grid"
+  DEMO_ORIGINS      comma-separated origins allowed by CORS, e.g. https://lipscribe.pages.dev (default "*")
+  DEMO_P4, DEMO_B1  GRID checkpoints (default checkpoints/p_proposed_best.pt, checkpoints/b1_audio_only_best.pt)
+  DEMO_FACE         MediaPipe face landmarker (default models/face_landmarker.task)
 """
 from __future__ import annotations
 
@@ -36,7 +44,9 @@ REPO = Path(__file__).resolve().parents[1]
 CODE = os.environ.get("DEMO_CODE", "")
 P4 = Path(os.environ.get("DEMO_P4", REPO / "checkpoints/p_proposed_best.pt"))
 B1 = Path(os.environ.get("DEMO_B1", REPO / "checkpoints/b1_audio_only_best.pt"))
-FACE = REPO / "models/face_landmarker.task"
+FACE = Path(os.environ.get("DEMO_FACE", REPO / "models/face_landmarker.task"))
+FRONTEND = REPO / "frontend"
+ORIGINS = [o.strip() for o in os.environ.get("DEMO_ORIGINS", "*").split(",") if o.strip()]
 MODELS = set(os.environ.get("DEMO_MODELS", "any,grid").split(","))
 CHUNK = 4 << 20                 # upload piece size (well under Cloudflare's 100 MB request limit)
 IN_FLIGHT = 3                   # upload pieces requested at once
@@ -44,7 +54,7 @@ MAX_UPLOAD = 8 << 30            # 8 GB
 MAX_SESSIONS = 3
 
 app = FastAPI(title="LipScribe demo")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(CORSMiddleware, allow_origins=ORIGINS, allow_methods=["*"], allow_headers=["*"])
 _engines: Engines | None = None
 _load_error: str | None = None
 _sessions: dict[str, Session] = {}
@@ -81,7 +91,7 @@ def health() -> dict:
 @app.get("/")
 def page() -> HTMLResponse:
     """The page, told to talk to this server (so the tunnel link alone works on any device)."""
-    html = (REPO / "demo/index.html").read_text(encoding="utf-8")
+    html = (FRONTEND / "index.html").read_text(encoding="utf-8")
     html = html.replace('<script src="mock-backend.js"></script>',
                         '<script>window.LIPSCRIBE_BACKEND = "self";</script>\n<script src="mock-backend.js"></script>', 1)
     return HTMLResponse(html, headers={"Cache-Control": "no-cache"})
@@ -89,12 +99,17 @@ def page() -> HTMLResponse:
 
 @app.get("/app.js")
 def app_js() -> FileResponse:
-    return FileResponse(REPO / "demo/app.js", media_type="text/javascript")
+    return FileResponse(FRONTEND / "app.js", media_type="text/javascript")
 
 
 @app.get("/mock-backend.js")
 def mock_js() -> FileResponse:
-    return FileResponse(REPO / "demo/mock-backend.js", media_type="text/javascript")
+    return FileResponse(FRONTEND / "mock-backend.js", media_type="text/javascript")
+
+
+@app.get("/config.js")
+def config_js() -> FileResponse:
+    return FileResponse(FRONTEND / "config.js", media_type="text/javascript")
 
 
 async def _error(ws: WebSocket, code: str, message: str = "") -> None:

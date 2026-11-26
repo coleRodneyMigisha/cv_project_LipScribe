@@ -5,7 +5,7 @@
 **Depends on:** F-03, F-04 · **Replaces:** W6-06 · **Estimate:** 5 h
 
 Reuse the 12 Nov progress presentation wherever it still holds:
-`documentation/2_implementation/presentation/`
+`docs/2_implementation/presentation/`
 (`LipScribe_Implementation_Presentation.pptx`, `_5min.pptx`, and their presenter notes).
 
 **Done when:** the deck is reviewed and every member knows their slides.
@@ -20,8 +20,8 @@ Status is from the repository on 23 Nov 2026.
 |---|---|---|
 | F-03 GRID results, ablations, gate analysis | Landed | `analysis/`, `reports/gate_analysis/` |
 | F-04 real-world results | Landed | `reports/flix_v5/`, `reports/flix_v6/` |
-| 12 Nov progress deck | Available | `documentation/2_implementation/presentation/` |
-| Report draft (for matching numbers) | Partly drafted | `documentation/5_submissions/final_report/` |
+| 12 Nov progress deck | Available | `docs/2_implementation/presentation/` |
+| Report draft (for matching numbers) | Partly drafted | `docs/5_submissions/final_report/` |
 
 - [ ] Go through the 12 Nov deck and mark each slide as keep, update or drop
 
@@ -39,7 +39,7 @@ Status is from the repository on 23 Nov 2026.
 | 6 | Gate behaviour | The gate shifts toward the lips as SNR drops | `reports/model_p_gate_vs_snr.png`, `reports/gate_analysis/` | | [ ] |
 | 7 | Real-world results | twin_v5 vs ws_v5 in noise; lips-gain CIs; wrong-audio conditions | `reports/flix_v5/`, `09_real_world.tex` | | [ ] |
 | 8 | v6 negative result | What was tried and why it didn't help | `reports/flix_v6/` | | [ ] |
-| 9 | Demo | Live and clip captions in the web app | `demo/`, F-05 / F-06 | | [ ] |
+| 9 | Demo | Live and clip captions in the web app | `frontend/` and `backend/`, F-05 / F-06 | | [ ] |
 | 10 | Limitations and future work | Closed vocabulary, synthetic noise, edge words, voice and face mismatch | `10_limitations.tex` | | [ ] |
 
 Add or merge slides as needed. Keep the table in step with the deck.

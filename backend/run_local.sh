@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Keep the LipScribe demo up on the Alienware: the backend on 127.0.0.1:8800 and a public
-# Cloudflare quick tunnel to it (demo/README.md). Safe to run any number of times: it starts only
+# Cloudflare quick tunnel to it (backend/README.md). Safe to run any number of times: it starts only
 # what is not running. Run at boot (scripts/flix_boot.sh) and every 5 minutes from cron.
 #
-#   bash scripts/demo_up.sh            start what is missing, print the share link
-#   bash scripts/demo_up.sh stop       stop the backend and the tunnel
+#   bash backend/run_local.sh            start what is missing, print the share link
+#   bash backend/run_local.sh stop       stop the backend and the tunnel
 #   touch .demo_no_tunnel              keep the backend private (no tunnel)
 #
 # Files (not in git): .demo_code (access code), .demo_url (current tunnel address), logs/demo_*.pid
@@ -23,7 +23,7 @@ fi
 
 if ! alive logs/demo_server.pid; then
   DEMO_CODE="$(cat .demo_code)" PYTHONPATH=.:asr_pkgs HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 setsid nohup \
-    .venv/bin/python -m uvicorn demo.server:app --host 127.0.0.1 --port $PORT --ws-max-size 16777216 \
+    .venv/bin/python -m uvicorn backend.server:app --host 127.0.0.1 --port $PORT --ws-max-size 16777216 \
     >> logs/demo_server.log 2>&1 < /dev/null &
   echo $! > logs/demo_server.pid
   echo "$(date '+%F %T') started backend (pid $!)"

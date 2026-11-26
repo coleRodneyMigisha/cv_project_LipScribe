@@ -1,0 +1,31 @@
+# What the demo backend (backend/server.py) needs at runtime, and nothing for training or plots.
+# torch and torchaudio are installed separately in backend/Dockerfile, from the CUDA wheel index.
+# Versions match the repository's requirements.txt where it lists the package. The four marked
+# "check" are not in it: pin them to what the Alienware's working .venv has (DEPLOYMENT.md, step 2).
+
+# web server
+fastapi==0.161.1
+uvicorn==0.54.0
+websockets==17.4
+
+# media in: uploads, camera chunks, voice activity
+av==18.1.0
+silero-vad==6.2.3
+imageio-ffmpeg==0.8.1
+soundfile==0.14.0
+soxr==1.1.0
+
+# vision: face landmarks and mouth crops
+mediapipe==1.1.1
+opencv-contrib-python==5.0.0.93   # what mediapipe pulls in anyway; needs libgl1 (Dockerfile)
+
+# models and decoding
+numpy==2.4.6
+scipy==1.17.1
+PyYAML==6.0.3
+jiwer==4.0.0
+matplotlib==3.11.2     # imported by scripts/train.py, which the GRID engine loads checkpoints with
+transformers           # check: WavLM in ws_v5 and twin_v5
+sentencepiece          # check: Auto-AVSR word pieces
+pyctcdecode            # check: beam search
+kenlm                  # check: 4-gram language model (built from source; needs build-essential)

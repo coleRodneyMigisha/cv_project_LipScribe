@@ -1,19 +1,19 @@
 /*
  * LipScribe demo page (F-06) — owner: Wakisa Isabelle, reviewer: Cole Rodney Migisha
  *
- * Talks to the backend over one WebSocket. Message format: demo/README.md.
+ * Talks to the backend over one WebSocket. Message format: backend/README.md.
  *   - No ?backend=... in the address  -> the pretend backend in mock-backend.js
  *   - ?backend=wss://host/ws/live      -> the real backend on the Alienware
  *   - ?backend=self                    -> the backend that served this page (SSH tunnel, localhost:8800)
  *   - ?code=...                        -> the access code, passed on to the backend (remembered)
- * You can also set DEFAULT_BACKEND below once Cole's address is fixed.
+ * The default backend address is set in config.js (DEPLOYMENT.md).
  * Upload (in Clip mode): the file plays here from disk; the backend asks for the bytes it needs
  * ("need"), and subtitle cues come back in batches ("cues") while the rest uploads.
  */
 (function () {
   'use strict';
 
-  // e.g. 'wss://lipscribe-api.example.com/ws/live'. When the backend serves this page itself, it sets
+  // Set in config.js (e.g. 'wss://lipscribe-api.ucu-dct.org/ws/live'). When the backend serves this page itself, it sets
   // window.LIPSCRIBE_BACKEND = 'self', so the page talks to wherever it was loaded from.
   var DEFAULT_BACKEND = window.LIPSCRIBE_BACKEND || '';
   var CHUNK_MS = 1000;        // how often a piece of audio+video is sent

@@ -2,7 +2,7 @@
  * LipScribe pretend backend (F-06)
  * --------------------------------
  * A fake WebSocket that speaks the same messages the real backend will send
- * (see "Message format" in demo/README.md). The page uses it whenever no
+ * (see "Message format" in backend/README.md). The page uses it whenever no
  * ?backend=wss://... address is given, so the frontend can be built and tested
  * without the Alienware.
  *

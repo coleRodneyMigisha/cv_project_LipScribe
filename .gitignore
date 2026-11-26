@@ -1,113 +1,18 @@
-# LaTeX build outputs (implementation document)
-documentation/**/*.aux
-documentation/**/*.log
-documentation/**/*.toc
-documentation/**/*.lof
-documentation/**/*.lot
-documentation/**/*.loa
-documentation/**/*.out
-documentation/**/*.fls
-documentation/**/*.fdb_latexmk
-documentation/**/*.synctex.gz
-documentation/2_implementation/implementation_document/main.pdf
+# LaTeX build outputs (reports and documents under docs/)
+docs/**/*.aux
+docs/**/*.log
+docs/**/*.toc
+docs/**/*.lof
+docs/**/*.lot
+docs/**/*.loa
+docs/**/*.out
+docs/**/*.fls
+docs/**/*.fdb_latexmk
+docs/**/*.synctex.gz
+docs/2_implementation/implementation_document/main.pdf
 
-# Office lock files created while a document is open
-~$*
-
-# LipScribe: data and artifacts (anchored to repo root)
-/Data/*
-/runs/
-/recordings/
-*.npy
-*.pt
-*.wav
-*.mp4
-*.avi
-*.mpg
-checkpoints/
-/gridcorpus
-
-# Allow tiny test fixtures
-!tests/fixtures/*.npy
-!tests/fixtures/*.wav
-
-# Environments and editor files
-.venv/
-.idea/
-.DS_Store
-
-# Python build artifacts
-__pycache__/
-*.egg-info/
-*.pyc
-.pytest_cache/
-# LaTeX build outputs (implementation document)
-documentation/**/*.aux
-documentation/**/*.log
-documentation/**/*.toc
-documentation/**/*.lof
-documentation/**/*.lot
-documentation/**/*.loa
-documentation/**/*.out
-documentation/**/*.fls
-documentation/**/*.fdb_latexmk
-documentation/**/*.synctex.gz
-documentation/2_implementation/implementation_document/main.pdf
-
-# Office lock files created while a document is open
-~$*
-
-# LipScribe: data and artifacts (anchored to repo root)
-/data/*
-/runs/
-/recordings/
-*.npy
-*.pt
-*.wav
-*.mp4
-*.avi
-checkpoints/
-
-# Allow tiny test fixtures
-!tests/fixtures/*.npy
-!tests/fixtures/*.wav
-
-# Environments and editor files
-.venv/
-.idea/
-.DS_Store
-
-# Python build artifacts
-__pycache__/
-*.egg-info/
-*.pyc
-.pytest_cache/
-
-# Models
-/models/
-
-# Scratch/download artifacts not part of the repo
-tectonic.zip
-
-# Committed data files (small, fixed once): speaker split and noise pools
-!/data/splits.csv
-!/data/noise_splits.csv
-
-#processed audio wav
-audio_processing/processed/audio16k/s*/
-.venv311/
-# LaTeX build outputs
-documentation/**/*.aux
-documentation/**/*.log
-documentation/**/*.toc
-documentation/**/*.lof
-documentation/**/*.lot
-documentation/**/*.loa
-documentation/**/*.out
-documentation/**/*.fls
-documentation/**/*.fdb_latexmk
-documentation/**/*.synctex.gz
-documentation/2_implementation/implementation_document/main.pdf
+# Downloaded papers for the related-work section (kept locally, not in git)
+docs/5_submissions/final_report/papers/
 
 # Office lock files created while a document is open
 ~$*
@@ -139,6 +44,18 @@ checkpoints/
 /runs/**/*.tmp
 /runs/**/tensorboard/
 
+# Models and pretrained weights (mounted into the backend container, never in git)
+/models/
+/pretrained/
+/lm/
+
+# Backend runtime files (backend/run_local.sh)
+/logs/
+.demo_code
+.demo_url
+.demo_no_tunnel
+.env
+
 # Environments and editor files
 .venv/
 .venv311/
@@ -151,8 +68,8 @@ __pycache__/
 *.pyc
 .pytest_cache/
 
-# Models
-/models/
+# Scratch/download artifacts not part of the repo
+tectonic.zip
 
 # Local AI-assistant settings
 .claude/

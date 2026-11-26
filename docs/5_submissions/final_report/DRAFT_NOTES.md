@@ -1,6 +1,6 @@
 # Final report: notes on the 23 Nov draft
 
-Drafted with Claude Code (AI assistance) from the repository and the PDFs in `final report/`. The
+Drafted with Claude Code (AI assistance) from the repository and the PDFs in `papers/` (kept locally, not in git). The
 section owners should check and rewrite their sections in their own words before submission. Any
 AI-use statement the course requires must say that AI assistance was used.
 
@@ -58,7 +58,7 @@ Not applied (team decision):
 
 - Every GRID number comes from `analysis/01_grid/tables/*.md`, `analysis/01_grid/bootstrap.txt` or `reports/gate_analysis/summary.md`; every real-world number from Tables III and IV (`reports/flix_v5/`, `reports/flix_v6/`). The bootstrap reproduces the table WERs exactly.
 - Effective SNR gains use linear interpolation of the beam + LM WERs in Table III.
-- Each related-work finding was checked against the paper's abstract or text in `final report/`. LCANet's overlapped-speaker split was confirmed in its text (255 test sentences per speaker).
+- Each related-work finding was checked against the paper's abstract or text in `papers/`. LCANet's overlapped-speaker split was confirmed in its text (255 test sentences per speaker).
 - All 23 new BibTeX entries were checked against Crossref by DOI; LipNet was checked against arXiv.
 - **Compile.** `LipScribe_final_report_DRAFT.pdf` (10 pages) was built with Tectonic 0.15 (XeTeX), using the IEEE Access class from a GitHub mirror (`erwinrmendez/ieee-access-template`). The mirror's class is edited: logos are read from `images/`. The result has no errors and no undefined references or citations. It is a **preview, not the submission build**:
   - Tectonic runs XeTeX, but the class's `spotcolor` package needs pdfTeX. The scratch copy therefore swaps the Pantone header blue for its CMYK values and loads T1 font encoding. The repository files are unchanged.

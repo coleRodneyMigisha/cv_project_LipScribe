@@ -118,7 +118,7 @@ In Cards **W1-10** and **W2-01**, I built the mouth-cropping pipeline using **Me
 * **The Trap**: If MediaPipe fails to detect a face on frame 42 of a 75-frame clip and you simply *drop* frame 42, the video now has 74 frames and falls out of sync with the audio!
 * **Decision taken**: **Never drop frames.** In [`lipscribe/preprocessing/crop.py`](../lipscribe/preprocessing/crop.py), if detection fails on a frame, we **linearly interpolate** the crop bounding box from the nearest valid frames before and after it, mark `valid[t] = False` in the validity mask, and keep $T = 75$ intact. If $> 10\%$ of frames in a clip fail detection, the utterance is flagged and excluded from training.
 
-![Mouth Crop Contact Sheet and Blank-Frame Interpolation Proof](../documentation/5_submissions/week1%20and%202%20report/figures/s20_contact_sheet.png)
+![Mouth Crop Contact Sheet and Blank-Frame Interpolation Proof](5_submissions/week1%20and%202%20report/figures/s20_contact_sheet.png)
 ![Blank Frame Interpolation Validation](../docs/mouth_crop/clip_6_blank_validity.png)
 
 ```bash
@@ -330,7 +330,7 @@ As noise increases from `Clean` to `-5 dB`, **Model P4 monotonically lowers the 
 ### 7.1 Master Scoreboard Across All 9 Full-Corpus Trained Models
 
 ![Master Comparison Across All 9 Full Models](../reports/all_models_snr_and_summary.png)
-![Log-Scale Test WER vs SNR Curve](../documentation/5_submissions/week3_report/figures/snr_comparison_curves.png)
+![Log-Scale Test WER vs SNR Curve](5_submissions/week3_report/figures/snr_comparison_curves.png)
 
 | Model | Experiment ID | Visual Front End | Audio / Visual Init | Epochs (Best) | Best Val WER [CER] | Clean Test WER (Greedy / Grammar) | `10 dB` Test WER (Grd / Grm) | `5 dB` Test WER (Grd / Grm) | `0 dB` Test WER (Grd / Grm) | `-5 dB` Test WER (Grd / Grm) | Mean Test WER (Grd / Grm) | No-Audio (`-A`) Test WER | No-Visual (`-V`, Clean) |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
@@ -428,7 +428,7 @@ bash scripts/run_all_model_p.sh
 #   - reports/model_p_4way_curriculum.png
 #   - reports/all_models_snr_and_summary.png
 #   - reports/model_p_gate_vs_snr.png
-#   - documentation/5_submissions/week3_report/figures/snr_comparison_curves.png
+#   - docs/5_submissions/week3_report/figures/snr_comparison_curves.png
 .venv/bin/python -m scripts.plot_all_model_comparisons
 ```
 

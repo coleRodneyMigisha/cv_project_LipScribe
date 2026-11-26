@@ -1,5 +1,5 @@
-# Deploys the LipScribe demo page (only the 3 frontend files) to Cloudflare Pages.
-# Run from the repository root:  powershell -ExecutionPolicy Bypass -File demo\deploy-pages.ps1
+# Deploys the LipScribe demo page (only the 4 page files in frontend/) to Cloudflare Pages.
+# Run from the repository root:  powershell -ExecutionPolicy Bypass -File frontend\deploy-pages.ps1
 # First time only:  npx wrangler login
 
 $ErrorActionPreference = "Stop"
@@ -8,7 +8,7 @@ $site = Join-Path $env:TEMP "lipscribe-site"
 
 if (Test-Path $site) { Remove-Item $site -Recurse -Force }
 New-Item -ItemType Directory -Path $site | Out-Null
-Copy-Item demo\index.html, demo\app.js, demo\mock-backend.js -Destination $site
+Copy-Item frontend\index.html, frontend\app.js, frontend\config.js, frontend\mock-backend.js -Destination $site
 
 # Create the Pages project the first time (ignored if it already exists).
 $ErrorActionPreference = "Continue"

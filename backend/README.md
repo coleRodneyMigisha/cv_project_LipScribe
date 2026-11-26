@@ -1,4 +1,4 @@
-# LipScribe web demo
+# LipScribe web demo: backend
 
 The page records you with the camera and microphone, or plays a video file you choose, and shows
 two captions side by side: **Ears only** (sound alone) and **Ears + lips** (sound and lips). It also
@@ -7,7 +7,7 @@ shows how much the model trusted the sound and the lips, frame by frame, and the
 ```
  phone / laptop browser                         Alienware (backend)
  ┌─────────────────────────────┐  WebSocket   ┌──────────────────────────────────────────────┐
- │ demo/index.html + app.js    │ ───────────▶ │ demo/server.py  (FastAPI, 127.0.0.1:8800)    │
+ │ frontend/index.html, app.js │ ───────────▶ │ backend/server.py  (FastAPI, port 8800)      │
  │ Live / Clip: MediaRecorder  │ chunks, or   │   lipscribe.app.session   one per recording  │
  │   chunks every 1 s          │ the pieces   │   lipscribe.app.stream    bytes → PyAV →     │
  │ Upload: the file plays from │ of a file    │                           16 kHz + 25 fps    │
@@ -18,13 +18,19 @@ shows how much the model trusted the sound and the lips, frame by frame, and the
                                               └──────────────────────────────────────────────┘
 ```
 
+How to use the page and deploy it to Cloudflare Pages: [`../frontend/README.md`](../frontend/README.md).
+Deploying this backend on Coolify (the Alienware): [`../DEPLOYMENT.md`](../DEPLOYMENT.md).
+
 ## Files
 
 | File | What it is |
 |---|---|
-| `demo/index.html`, `demo/app.js` | The page (one static page, no build step). Owner: Wakisa Isabelle. |
-| `demo/mock-backend.js` | A pretend backend for building the page without the Alienware. |
-| `demo/server.py` | The backend: `WS /ws/live`, `GET /health`, and `GET /` (serves the page too). |
+| `frontend/index.html`, `frontend/app.js` | The page (one static page, no build step). Owner: Wakisa Isabelle. |
+| `frontend/mock-backend.js` | A pretend backend for building the page without the Alienware. |
+| `backend/server.py` | The backend: `WS /ws/live`, `GET /health`, and `GET /` (serves the page too). |
+| `backend/Dockerfile`, `backend/docker-compose.yml` | The container Coolify builds and runs (DEPLOYMENT.md). |
+| `backend/run_local.sh` | Runs the backend without Docker, with a Cloudflare quick tunnel (the setup before Coolify). |
+| `backend/ws_client.py` | Drives the WebSocket like the page does, for tests. |
 | `lipscribe/app/session.py` | One recording or upload: segments, captions and the messages to the page. |
 | `lipscribe/app/stream.py` | The growing upload file, the PyAV reader, the timeline and Silero VAD. |
 | `lipscribe/app/realworld.py` | ws_v5 and twin_v5 with the Flix v5 preprocessing and the F-04 decoder. |
@@ -85,15 +91,15 @@ the large assets in `~/Desktop/lipscribe_flix` and `~/Desktop/cv_project_LipScri
 `silero-vad`. They were installed on 17 Nov, `silero-vad` with `--no-deps` so that torch stays as
 it is.
 
-Since 17 Nov the demo is **always on**: `scripts/demo_up.sh` starts the backend on 127.0.0.1:8800
+Since 17 Nov the demo is **always on**: `backend/run_local.sh` starts the backend on 127.0.0.1:8800
 and a public Cloudflare quick tunnel to it, and starts only what is not already running. It runs
 at boot (`scripts/flix_boot.sh`, crontab `@reboot`) and every 5 minutes from cron, so a crash or a
 dropped tunnel is repaired within 5 minutes.
 
 ```bash
 cd ~/Desktop/lipscribe_demo
-bash scripts/demo_up.sh          # prints the share links
-bash scripts/demo_up.sh stop     # stops both (cron starts them again unless you also edit crontab)
+bash backend/run_local.sh          # prints the share links
+bash backend/run_local.sh stop     # stops both (cron starts them again unless you also edit crontab)
 touch .demo_no_tunnel            # keep it private: no public tunnel from now on
 curl -s http://127.0.0.1:8800/health
 ```
@@ -134,7 +140,7 @@ Uploads work from any browser.
 `cloudflared` is in `~/bin` on the Alienware (the official release, sha256 checked). It connects
 **out** to Cloudflare, so no port is opened on the university network, and no account is needed.
 
-`demo_up.sh` starts and stops it (it tracks the process by its PID).
+`backend/run_local.sh` starts and stops it (it tracks the process by its PID).
 
 - **Other tunnel:** the Alienware also runs **another user's** `cloudflared` (`--url http://web:8081`).
   Never stop cloudflared by name; leave that one alone.
@@ -148,18 +154,18 @@ Uploads work from any browser.
 
 ### Test it without a browser
 
-`scripts/demo_ws_client.py` drives the WebSocket exactly as the page does (start message, binary
+`backend/ws_client.py` drives the WebSocket exactly as the page does (start message, binary
 chunks or `need` replies, stop) and prints every message with its arrival time:
 
 ```bash
-.venv/bin/python scripts/demo_ws_client.py "ws://127.0.0.1:8800/ws/live?code=$(cat .demo_code)" clip grid clip.webm --snr -5
-.venv/bin/python scripts/demo_ws_client.py "ws://127.0.0.1:8800/ws/live?code=$(cat .demo_code)" upload any film.mp4
+.venv/bin/python backend/ws_client.py "ws://127.0.0.1:8800/ws/live?code=$(cat .demo_code)" clip grid clip.webm --snr -5
+.venv/bin/python backend/ws_client.py "ws://127.0.0.1:8800/ws/live?code=$(cat .demo_code)" upload any film.mp4
 ```
  The 17 Nov tests used held-out GRID speaker s4 and test-film
 excerpts. At −5 dB of MUSAN noise, B1 heard *"bin blue at l five please"* as "bin blue at **f** five
 please", and P4 got it exactly right.
 
-`legacy.html`, the first page, used the old `POST /caption` endpoint, which has been removed.
+`frontend/legacy.html`, the first page, used the old `POST /caption` endpoint, which has been removed.
 
 ## Captions in a Zoom meeting
 
@@ -189,46 +195,6 @@ the speaker, so most lines come from the ears alone.
 Tested on 17 Nov in Chrome, with a tab playing a film clip and its sound from an audio input: live
 captions on the page, and the backend's posts reached Zoom's caption server, which refused the test
 token (403) as expected. Not yet tested in a real Zoom meeting.
-
-## Using the page
-
-1. Open the page and press **Turn on camera & mic**. Allow both when the browser asks.
-2. Pick how you want captions:
-   - **Live**: press the glowing button and talk normally. Words appear while you speak. Press it again (or Esc) to stop.
-   - **Clip**: press the button and say one sentence. It stops by itself after 3 seconds, and the captions arrive 2–3 seconds later.
-   - **Upload** (in Clip mode): choose a video file instead, of any length, even a whole film. It plays in the page while it uploads, and captions arrive in batches a little ahead of the picture. If playback catches up with them, the video pauses until they are ahead again. Pick the subtitle track (**Best of both**, **Ears only** or **Ears + lips**) and download it as an `.srt` file.
-3. Pick the model:
-   - **GRID sentences**: the six-word GRID commands, e.g. "bin blue at j five please".
-   - **Any speech**: open vocabulary (experimental).
-4. Read the results:
-   - **Ears only** (sound alone) and **Ears + lips** (sound and lips) are shown side by side. Words where Ears only disagrees with Ears + lips are underlined in pink.
-   - **Room noise** is measured automatically. The louder the room, the more the model leans on the lips.
-   - **Add test noise before captioning** mixes MUSAN noise into the sound at the chosen level (10 to −10 dB) before the models hear it, the same noise as the test sets. It shows what the lips add when the sound gets bad.
-   - In an upload, the small label under **Ears + lips** says whether the lips were used for the line playing now, and why not when they were not.
-   - **Who the model trusted**: each bar is one frame (25 a second). Teal is the sound's share of the model's trust and pink is the lips' share.
-   - **What the eyes saw**: the 96×96 mouth crops the model used.
-
-The page works on phones and laptops in Chrome, Edge, Firefox and Safari. Browsers only give a page the camera when it is opened on `https://…` or on `localhost`.
-
-### Light and dark
-
-The page follows the device's theme. Use the moon/sun button to switch, or add `?theme=dark` or `?theme=light` to the address.
-
-## Pretend backend vs real backend
-
-| Address | What it talks to |
-|---|---|
-| `…/` (nothing added) | The **pretend backend** in `mock-backend.js`. It shows sample captions, and the mouth crops come from your own camera. |
-| `…/?backend=wss://HOST/ws/live&code=CODE` | The **real backend** on the Alienware. The code is remembered in this browser. |
-| `…/?backend=self&code=CODE` | The backend that served the page (e.g. `http://localhost:8800` through the SSH tunnel) |
-
-Once the backend address stops changing, set `DEFAULT_BACKEND` at the top of `app.js`.
-
-Testing switches for the pretend backend:
-
-- `?mock_error=no_face` (also `no_audio`, `clip_too_short`, `server_busy`) shows each error message.
-- `?mock_noise=quiet` or `?mock_noise=noisy` fixes the room noise. In a quiet room both captions match, which is expected.
-- `?run=clip` and `?mode=any` open the page in Clip mode or Any speech mode.
 
 ## Message format (for the backend)
 
@@ -329,31 +295,3 @@ The page has friendly text for these codes: `no_face`, `no_audio`, `clip_too_sho
 | `gate`, `crops` | The lips' share of trust for each frame of the speech, and 4 mouth crops. |
 | `captioned_s` | Everything before this time has been captioned. |
 | `lips_share` | The fraction of the speech time whose line came from ws_v5. |
-
-## Run it on your laptop
-
-```bash
-cd demo
-python -m http.server 8000
-```
-
-Then open http://localhost:8000.
-
-## Put it online (Cloudflare Pages)
-
-Run this once:
-
-```bash
-npx wrangler login
-```
-
-Then deploy, from the repository root, on Windows PowerShell:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File demo\deploy-pages.ps1
-```
-
-The page goes live at https://lipscribe.pages.dev. Only `index.html`, `app.js` and `mock-backend.js` are uploaded, never the backend code.
-
-**Automatic deploys.** `.github/workflows/deploy-pages.yml` does the same upload whenever a merge to `main` changes one of those three files, so an approved and merged pull request goes live by itself. It needs two repository secrets, set once by the owner of the Cloudflare account: `CLOUDFLARE_API_TOKEN` (a token with *Cloudflare Pages: Edit*) and `CLOUDFLARE_ACCOUNT_ID`. Until both are set, the workflow skips the upload, and the manual script above still works.
-

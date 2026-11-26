@@ -57,7 +57,7 @@ Use this file to create one Trello board.
 | **Cole Rodney Migisha** | Model lead | Mouth cropping, visual encoder, audio encoder, attention fusion, modality dropout |
 | **Ainomugisha Faith** | Data lead | GRID download, integrity checks, speaker splits, manifest, crop extraction, augmentation, ablation runs; from 16 Nov also `transcribe.py` and the demo video |
 | **Lisa Lusinga Namugenyi** | Audio & evaluation lead | MUSAN noise pools, noise mixing, transcripts/tokeniser, `evaluate.py`, statistics, final-report editor |
-| **Wakisa Isabelle** | Frontend lead (from 16 Nov; earlier application lead) | The demo page `demo/index.html`: recording, captions, gate plot, noise control. Earlier: decoding, metrics, Gradio Mode A |
+| **Wakisa Isabelle** | Frontend lead (from 16 Nov; earlier application lead) | The demo page `frontend/index.html`: recording, captions, gate plot, noise control. Earlier: decoding, metrics, Gradio Mode A |
 | **Ansasire Nehum Naamaye** | QA & live-systems lead | Repository, environment, CI/tests, plots, live Mode B, latency, README |
 
 **Pairs** (from the implementation document; each pair reviews the other's work first):
@@ -79,7 +79,7 @@ Use this file to create one Trello board.
 
 ### REF-02 · Key reference files
 - **Labels:** PM, Docs
-- **Description:** Links to keep on the board: the project proposal PDF, the implementation document (`documentation/2_implementation/implementation_document/`), the GitHub repository, the GPU access instructions, and the shared results sheet/TensorBoard.
+- **Description:** Links to keep on the board: the project proposal PDF, the implementation document (`docs/2_implementation/implementation_document/`), the GitHub repository, the GPU access instructions, and the shared results sheet/TensorBoard.
 
 ### REF-03 · Drop order if the schedule slips
 - **Labels:** PM
@@ -928,7 +928,7 @@ Use this file to create one Trello board.
   - [x] Model and training — Charis Opol
   - [x] Application — Wakisa Isabelle
   - [x] Testing — Ansasire Nehum Naamaye
-- **Status (16 Nov):** Done on 16 Nov: skeleton in `documentation/5_submissions/final_report/` with first drafts of all five methods sections; each author checks and extends theirs in F-11.
+- **Status (16 Nov):** Done on 16 Nov: skeleton in `docs/5_submissions/final_report/` with first drafts of all five methods sections; each author checks and extends theirs in F-11.
 - **Done when:** All methods sections have a first draft.
 
 ### W4-M · MILESTONE M5 — Multimodal fusion
@@ -936,7 +936,7 @@ Use this file to create one Trello board.
 - **Reviewer:** All
 - **Labels:** Milestone, PM
 - **Due:** Sun 15 Nov 2026
-- **Status (16 Nov):** Closed on 16 Nov: X1–X3 configs ready (W4-07); GPU plan in `documentation/6_compute/compute.md`, Section 4.
+- **Status (16 Nov):** Closed on 16 Nov: X1–X3 configs ready (W4-07); GPU plan in `docs/6_compute/compute.md`, Section 4.
 - **Checklist:**
   - [x] Fusion unit tests pass
   - [x] No NaN under full-modality dropout
@@ -1063,17 +1063,17 @@ The audio-only twin twin_v5 (`runs/flix_v5/flix_v5_fusion_wp_audio_20261116-0000
 - **Due:** Wed 18 Nov 2026
 - **Depends on:** F-04
 - **Estimate:** 6 h
-- **Description:** The browser demo (`demo/`) is the live application: record a clip on a phone or laptop and get a caption in 2–3 s. Its "Any speech" toggle still runs the old v2 film model. Switch `demo/server.py` to ws_v5 and return everything the new frontend (F-06) shows. The "GRID sentences" toggle stays P4 + grammar.
+- **Description:** The browser demo (`frontend/` and `backend/`) is the live application: record a clip on a phone or laptop and get a caption in 2–3 s. Its "Any speech" toggle still runs the old v2 film model. Switch `backend/server.py` to ws_v5 and return everything the new frontend (F-06) shows. The "GRID sentences" toggle stays P4 + grammar.
 - **Checklist:**
   - [x] "Any speech" loads ws_v5 with its own preprocessing (Auto-AVSR mouth crop, WavLM audio, word pieces) and the F-04 decoder
   - [x] Both captions for every recording: twin_v5 (audio only) and ws_v5 (audio + lips), over the page's WebSocket (`/ws/live`) instead of `POST /caption`
   - [x] It returns the per-frame gate and accepts an SNR, adding MUSAN noise to the clip before decoding
   - [x] Clear error codes for no face, no audio and too-short clips
-  - [x] Agree the message format with Wakisa Isabelle (her WebSocket format in `demo/README.md`, extended with `snr`, uploads and new error codes, with her agreement)
+  - [x] Agree the message format with Wakisa Isabelle (her WebSocket format in `backend/README.md`, extended with `snr`, uploads and new error codes, with her agreement)
   - [x] Parity: 32 v5 test clips (16 TED, 16 film), batched as in the evaluation, give the same captions as `scripts/flix_v5_eval.py` (greedy, 64 of 64 model outputs) and `scripts/flix_v5_beam.py` (beam + LM, 64 of 64). Run one at a time, as the demo runs them, 37 of 40 match: WavLM's normalisation sees a batch's padding.
-  - [x] Update the backend part of `demo/README.md`
+  - [x] Update the backend part of `backend/README.md`
 - **Done when:** The endpoint serves both models with the gate and noise option, and the parity check passes.
-- **Status (17 Nov):** Done. `demo/server.py` now serves `WS /ws/live` for three runs: Live (partials about every 0.5 s), Clip, and **Upload**, which was added at Cole's request. Upload takes a file of any length (a whole film); the backend asks for the 4 MB pieces it needs, so an MP4 with its index at the end starts at once, and it sends captions back in batches as subtitle cues while the file uploads. Each upload cue says whether the lips may be used (the `scripts/mine_flix.py` training-clip rules), and the page's "Best of both" track uses ws_v5 only there. Code: `lipscribe/app/{session,stream,realworld}.py`; tests: `tests/test_stream.py` (281 passed on the Alienware). A 10 min test-film excerpt is captioned in 54 s. Cole also added the Upload section, the test-noise control and `.srt` export to the page, with Wakisa Isabelle's agreement.
+- **Status (17 Nov):** Done. `backend/server.py` now serves `WS /ws/live` for three runs: Live (partials about every 0.5 s), Clip, and **Upload**, which was added at Cole's request. Upload takes a file of any length (a whole film); the backend asks for the 4 MB pieces it needs, so an MP4 with its index at the end starts at once, and it sends captions back in batches as subtitle cues while the file uploads. Each upload cue says whether the lips may be used (the `scripts/mine_flix.py` training-clip rules), and the page's "Best of both" track uses ws_v5 only there. Code: `lipscribe/app/{session,stream,realworld}.py`; tests: `tests/test_stream.py` (281 passed on the Alienware). A 10 min test-film excerpt is captioned in 54 s. Cole also added the Upload section, the test-noise control and `.srt` export to the page, with Wakisa Isabelle's agreement.
 
 ### F-06 · Demo frontend
 - **Owner:** Wakisa Isabelle
@@ -1082,7 +1082,7 @@ The audio-only twin twin_v5 (`runs/flix_v5/flix_v5_fusion_wp_audio_20261116-0000
 - **Due:** Thu 19 Nov 2026
 - **Depends on:** F-05 (response format agreed on Tue)
 - **Estimate:** 8 h
-- **Description:** The page people see in the demo, `demo/index.html` (one static page, no build step). It replaces the Gradio Mode A upgrades of W4-09.
+- **Description:** The page people see in the demo, `frontend/index.html` (one static page, no build step). It replaces the Gradio Mode A upgrades of W4-09.
 - **Checklist:**
   - [ ] Model toggle: "GRID sentences" (P4) and "Any speech" (ws_v5)
   - [ ] Side-by-side captions: "Ears only" (twin_v5) and "Ears + lips" (ws_v5)
@@ -1091,7 +1091,7 @@ The audio-only twin twin_v5 (`runs/flix_v5/flix_v5_fusion_wp_audio_20261116-0000
   - [ ] Mouth-crop strip, recording timer and a loading state while the server works
   - [ ] Friendly messages for the backend's error codes (no face, no audio, clip too short)
   - [ ] Works on a phone and a laptop browser (Chrome, Firefox, Safari)
-  - [ ] Update the user part of `demo/README.md`
+  - [ ] Update the user part of `backend/README.md`
 - **Done when:** A phone recording shows both captions, the gate plot and the noise control, on two browsers.
 
 ### F-07 · `transcribe.py` for both models

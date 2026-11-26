@@ -4,7 +4,7 @@ Numbers are copied from their source files (do not edit by hand):
   GRID  (greedy):       analysis/01_grid/tables/test_wer_greedy.md (B1, P4)
   TED, films (beam+LM): reports/flix_v5/final_decoder.md, as in Table tab:realworld (twin_v5, ws_v5)
 Run from the repository root:
-  python documentation/5_submissions/final_report/figures/make_wer_snr.py
+  python docs/5_submissions/final_report/figures/make_wer_snr.py
 """
 import os
 import matplotlib

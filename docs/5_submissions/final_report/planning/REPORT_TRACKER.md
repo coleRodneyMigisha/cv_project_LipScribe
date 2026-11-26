@@ -4,7 +4,7 @@
 **Due:** Draft Thu 19 Nov, final Sat 21 Nov 2026. **Both dates have passed as of 23 Nov.**
 **Depends on:** F-03, F-04, F-08 · **Replaces:** W4-11, W5-10, W6-05
 **Template:** IEEE Access (`\documentclass{ieeeaccess}`)
-**Source:** `documentation/5_submissions/final_report/` (`main.tex`, `sections/`, `references.bib`)
+**Source:** `docs/5_submissions/final_report/` (`main.tex`, `sections/`, `references.bib`)
 
 The report answers two questions:
 1. Does lip-assisted fusion help on GRID (P4)?
@@ -13,7 +13,7 @@ The report answers two questions:
 **Done when:** the PDF is final and every number matches its source.
 
 Status is from the repository on 23 Nov 2026. Update it as work lands.
-Author queries and what the 23 Nov draft changed: `documentation/5_submissions/final_report/DRAFT_NOTES.md`.
+Author queries and what the 23 Nov draft changed: `docs/5_submissions/final_report/DRAFT_NOTES.md`.
 
 ---
 
@@ -60,7 +60,7 @@ Word counts are from 23 Nov. "Stub" means the file holds only a TODO comment.
 - [ ] **03 Data (Faith).** GRID, MUSAN mixing over SNR, Flix film and TED pipeline; out-of-domain data paragraphs.
 - [ ] **04 Pipelines (Cole).** Resolve the log-Mel 80 TODO (`configs/p_init_b1_b2_v2.yaml`).
 - [ ] **05 Model P (Charis).** One line each for ablations X1–X3 (`configs/x1_*.yaml`, `x2_*.yaml`, `x3_*.yaml`); cite fusion and gating work (Tao & Busso, Abdelaziz, Zhou, Zhang).
-- [ ] **06 Application (Nehum, Isabelle).** Frontend (`demo/index.html`): recording, two captions, gate display. Latency and RTF from F-08.
+- [ ] **06 Application (Nehum, Isabelle).** Frontend (`frontend/index.html`): recording, two captions, gate display. Latency and RTF from F-08.
 - [ ] **07 Testing (Nehum).** Final test counts and the fresh-clone result from F-09.
 - [ ] **08 GRID results (Lisa).** WER vs SNR, ablations, gate behaviour.
 - [ ] **09 Real-world results (Cole).** twin_v5 vs ws_v5 in noise, lips-gain CIs, wrong-audio conditions, v6 negative result.
@@ -116,5 +116,5 @@ Every number in the PDF must trace to one of:
 - [ ] Charis reviews
 - [ ] Whole team proofreads (Sat)
 - [ ] PDF compiles cleanly with no undefined references or citations
-- [ ] Final PDF committed to `documentation/5_submissions/final_report/`
+- [ ] Final PDF committed to `docs/5_submissions/final_report/`
 - [ ] Close W4-11, W5-10, W6-05 and F-11
