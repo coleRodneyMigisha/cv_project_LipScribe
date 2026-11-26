@@ -22,7 +22,9 @@ ARG TORCH_INDEX=https://download.pytorch.org/whl/cu128
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PIP_NO_CACHE_DIR=1 \
+    PIP_DEFAULT_TIMEOUT=120 \
+    PIP_RETRIES=10 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PYTHONPATH=/app \
     HF_HUB_OFFLINE=1 \
     TRANSFORMERS_OFFLINE=1 \
@@ -39,12 +41,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # torch first, from the CUDA index; the constraints file stops later packages (silero-vad) from
-# replacing it with a different build.
-RUN pip install torch==${TORCH_VERSION} torchaudio==${TORCHAUDIO_VERSION} --index-url ${TORCH_INDEX} \
+# replacing it with a different build. The pip cache is a BuildKit cache mount: it is not part of
+# the image, but wheels downloaded by a failed build (about 3 GB for CUDA torch) are reused by the
+# next one, so a dropped connection does not mean starting the download again.
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install torch==${TORCH_VERSION} torchaudio==${TORCHAUDIO_VERSION} --index-url ${TORCH_INDEX} \
     && pip freeze | grep -iE "^(torch|torchaudio)==" > /tmp/torch-constraints.txt
 
 COPY backend/requirements.txt backend/requirements.txt
-RUN pip install -r backend/requirements.txt -c /tmp/torch-constraints.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -r backend/requirements.txt -c /tmp/torch-constraints.txt
 
 # Code only (.dockerignore at the repository root keeps everything else out).
 COPY pyproject.toml ./
