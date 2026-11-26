@@ -1,6 +1,6 @@
 # LipScribe demo page (frontend)
 
-One static page, no build step: `index.html`, `app.js`, `config.js` and `mock-backend.js`. It is
+One static page, no build step: `index.html`, `app.js` and `config.js`. It is
 deployed to Cloudflare Pages (https://lipscribe.pages.dev). The backend it talks to is in
 [`../backend/`](../backend/README.md), which also documents the WebSocket message format.
 Deployment, step by step: [`../DEPLOYMENT.md`](../DEPLOYMENT.md).
@@ -9,7 +9,6 @@ Deployment, step by step: [`../DEPLOYMENT.md`](../DEPLOYMENT.md).
 |---|---|
 | `index.html`, `app.js` | The page. Owner: Wakisa Isabelle. |
 | `config.js` | The backend address the Pages copy uses by default (`window.LIPSCRIBE_BACKEND`). |
-| `mock-backend.js` | A pretend backend for building the page without the Alienware. |
 | `legacy.html` | The first page; it used the old `POST /caption` endpoint, which has been removed. |
 | `deploy-pages.ps1` | Manual upload to Cloudflare Pages. |
 
@@ -37,32 +36,35 @@ The page works on phones and laptops in Chrome, Edge, Firefox and Safari. Browse
 
 The page follows the device's theme. Use the moon/sun button to switch, or add `?theme=dark` or `?theme=light` to the address.
 
-## Pretend backend vs real backend
+## Which backend the page talks to
+
+There is no pretend backend: the page always talks to the real one. It picks the address in this
+order:
 
 | Address | What it talks to |
 |---|---|
-| `…/` (nothing added) | The **pretend backend** in `mock-backend.js`. It shows sample captions, and the mouth crops come from your own camera. |
-| `…/?backend=wss://HOST/ws/live&code=CODE` | The **real backend** on the Alienware. The code is remembered in this browser. |
-| `…/?backend=self&code=CODE` | The backend that served the page (e.g. `http://localhost:8800` through the SSH tunnel) |
+| `…/?backend=wss://HOST/ws/live&code=CODE` | That backend. The address and the code are remembered in this browser. |
+| `…/?backend=self&code=CODE` | The backend that served the page. |
+| `…/?code=CODE` | The address in `config.js`. When the backend serves the page itself, this is the backend's own address. |
+| `…/?backend=default` | Forgets a remembered `?backend=` address and goes back to `config.js`. |
 
-The default address (used when the link has no `?backend=`) is set in `config.js`. A browser that
-was once given a `?backend=` address remembers it and uses it instead; open the page once with
-`?backend=mock` to forget it.
+`config.js` comes before a remembered address, so an old link (for example a quick-tunnel address)
+cannot hide the deployed backend. If there is no address at all, the page says *LipScribe is not
+connected yet* and does not record.
 
-Testing switches for the pretend backend:
-
-- `?mock_error=no_face` (also `no_audio`, `clip_too_short`, `server_busy`) shows each error message.
-- `?mock_noise=quiet` or `?mock_noise=noisy` fixes the room noise. In a quiet room both captions match, which is expected.
 - `?run=clip` and `?mode=any` open the page in Clip mode or Any speech mode.
 
 ## Run it on your laptop
 
+The page needs a backend. The simplest way is to let the backend serve it: run the backend
+(`backend/README.md`) and open `http://localhost:<port>/?code=<code>`. To work on the page with
+the files served from your laptop instead, point it at a running backend:
+
 ```bash
 cd frontend
 python -m http.server 8000
+# then open http://localhost:8000/?backend=wss://<backend domain>/ws/live&code=<code>
 ```
-
-Then open http://localhost:8000.
 
 ## Put it online (Cloudflare Pages)
 
@@ -78,6 +80,6 @@ Then deploy, from the repository root, on Windows PowerShell:
 powershell -ExecutionPolicy Bypass -File frontend\deploy-pages.ps1
 ```
 
-The page goes live at https://lipscribe.pages.dev. Only `index.html`, `app.js`, `config.js` and `mock-backend.js` are uploaded, never the backend code.
+The page goes live at https://lipscribe.pages.dev. Only `index.html`, `app.js` and `config.js` are uploaded, never the backend code.
 
 **Automatic deploys.** `.github/workflows/deploy-pages.yml` does the same upload whenever a merge to `main` changes a file in `frontend/`, so an approved and merged pull request goes live by itself. It needs two repository secrets, set once by the owner of the Cloudflare account: `CLOUDFLARE_API_TOKEN` (a token with *Cloudflare Pages: Edit*) and `CLOUDFLARE_ACCOUNT_ID`. Until both are set, the workflow skips the upload, and the manual script above still works.

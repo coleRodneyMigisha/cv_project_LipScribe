@@ -10,7 +10,7 @@ services:
       dockerfile: backend/Dockerfile
     restart: unless-stopped
     expose:
-      - "8800"                       # reached through Coolify's proxy only; no port opened on the host
+      - "1442"                       # reached through Coolify's proxy only; no port opened on the host
     environment:
       - DEMO_CODE=${DEMO_CODE:-}
       - DEMO_MODELS=${DEMO_MODELS:-any,grid}

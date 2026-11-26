@@ -66,9 +66,9 @@ COPY backend/ backend/
 RUN useradd --create-home --uid 1000 lipscribe && mkdir -p /app/logs && chown lipscribe /app/logs
 USER lipscribe
 
-EXPOSE 8800
+EXPOSE 1442
 # /health answers as soon as the server is up (the models then take about 30 s; "loading": true).
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
-    CMD curl -fsS http://127.0.0.1:8800/health || exit 1
+    CMD curl -fsS http://127.0.0.1:1442/health || exit 1
 
-CMD ["uvicorn", "backend.server:app", "--host", "0.0.0.0", "--port", "8800", "--ws-max-size", "16777216"]
+CMD ["uvicorn", "backend.server:app", "--host", "0.0.0.0", "--port", "1442", "--ws-max-size", "16777216"]

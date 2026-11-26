@@ -9,7 +9,7 @@ reached through a Cloudflare quick tunnel whose address changes) to a fixed one:
     └──wss──▶ lipscribe-api.ucu-dct.org/ws/live   (Cloudflare, then Coolify's proxy)
                     │
                     ▼
-              Alienware: Docker container "backend" (backend/Dockerfile), port 8800, GPU
+              Alienware: Docker container "backend" (backend/Dockerfile), port 1442, GPU
                          models mounted read-only from /srv/lipscribe/assets
 ```
 
@@ -270,15 +270,15 @@ from Cloudflare), so the new name is made there by the domain's manager.
    - They add a **public hostname** to the existing tunnel: `lipscribe-api.ucu-dct.org`, service
      `http://localhost:80` (Coolify's proxy on the Alienware), or whatever the Coolify hostname
      already points to.
-   - In Coolify, set the `backend` service's **Domains** to `http://lipscribe-api.ucu-dct.org:8800`.
+   - In Coolify, set the `backend` service's **Domains** to `http://lipscribe-api.ucu-dct.org:1442`.
      Use `http`: Cloudflare provides https to the browser, and an https domain in Coolify behind a
-     tunnel causes a redirect loop. `:8800` tells Coolify's proxy which container port to use; it
+     tunnel causes a redirect loop. `:1442` tells Coolify's proxy which container port to use; it
      is not part of the public address.
 
    **Option B: a DNS record to the Alienware's public IP** (ports 80 and 443 open).
    - They add an `A` record `lipscribe-api` pointing to the Alienware's public IP, proxied
      (orange cloud), with SSL/TLS mode **Full**.
-   - In Coolify, set **Domains** to `https://lipscribe-api.ucu-dct.org:8800`. Coolify obtains the
+   - In Coolify, set **Domains** to `https://lipscribe-api.ucu-dct.org:1442`. Coolify obtains the
      certificate from Let's Encrypt.
 
 3. Save.
@@ -348,12 +348,12 @@ The Pages site is the four files in `frontend/`. Only `config.js` changes.
    `DEMO_ORIGINS` in Coolify and redeploy the backend.
 
 **Check:** open https://lipscribe.pages.dev/?code=<code>. The footer shows *Connected* once you
-start a recording, and the captions come from the real models (not the sample sentences of the
-pretend backend).
+start a recording, and both captions arrive from the models. Before `config.js` is set, the page
+says *LipScribe is not connected yet* instead.
 
 A browser that was once given an old `?backend=...trycloudflare.com` address remembers it and
-keeps using it. Open `https://lipscribe.pages.dev/?backend=mock` once in that browser to forget
-it, then open the normal link again.
+uses it only while `config.js` is empty; once `config.js` is set, that address wins. To forget a
+remembered address anyway, open `https://lipscribe.pages.dev/?backend=default` once.
 
 ---
 
@@ -436,9 +436,9 @@ code is given on request.
 | Container exits with `could not select device driver "nvidia"` | NVIDIA Container Toolkit missing | step 1 |
 | `/health` shows `"error": "FileNotFoundError: ..."` | a model file is missing under `/srv/lipscribe/assets` | copy it to the path named in the error, then Restart |
 | `/health` shows `"error": "... CUDA out of memory"` | training is using the GPU | set `DEMO_MODELS=any` (or `grid`), or wait for the training job; the demo shares one GPU |
-| `/health` works, the page says *Not connected* | wrong address in `config.js`, or the browser remembers an old one | check `config.js` on the live site; open `?backend=mock` once, then the normal link |
+| `/health` works, the page says *Not connected* | wrong address in `config.js`, or the browser remembers an old one | check `config.js` on the live site; open `?backend=default` once, then the normal link |
 | The page says *wrong or missing access code* | `?code=` missing or old | use the current code from Coolify |
-| `502 Bad Gateway` from the domain | Coolify's proxy cannot reach the container | the domain in Coolify must end in `:8800`; check that the container is *Running (healthy)* |
+| `502 Bad Gateway` from the domain | Coolify's proxy cannot reach the container | the domain in Coolify must end in `:1442`; check that the container is *Running (healthy)* |
 | Redirect loop (`ERR_TOO_MANY_REDIRECTS`) | https domain in Coolify behind a Cloudflare Tunnel, or Cloudflare SSL mode *Flexible* | step 6: `http://` domain with a tunnel; SSL mode *Full* with a DNS record |
 | Long uploads stop after a few minutes | a proxy timeout on long WebSockets | note the time it stops after and ask the Coolify or domain admin to raise the proxy's idle timeout for this host |
 | "Add test noise" gives an error | the test noise files were not copied | step 3, the noise part |
@@ -452,7 +452,7 @@ code is given on request.
 Checked:
 
 - After the reorganisation, the full test suite passes (290 passed, 1 skipped).
-- `backend/server.py` serves the page, `app.js`, `config.js` and `mock-backend.js` from
+- `backend/server.py` serves the page, `app.js` and `config.js` from
   `frontend/`, and `/health` answers. The page loads `config.js` before the server's `"self"`
   setting, so the backend's own link still points the page at itself.
 - `backend/docker-compose.yml` is valid (`docker compose config`).

@@ -20,27 +20,21 @@ The demo runs the real models on the team's GPU machine (the Alienware) and work
 laptop browser. It can caption your camera live, a 3-second clip, an uploaded video of any length
 (even a whole film), or a Zoom meeting, where the captions appear inside the meeting.
 
-**How to open it this week:** ask the team for the current link. It has the form
-`https://<address>.trycloudflare.com/?code=<access code>` and opens the current page, already
-connected to the models. The link is kept out of this repository because the access code is in it.
+**How it is deployed (26 November 2026):**
 
-**What does not work yet:**
+- **Backend:** a Docker container on the Alienware, run by Coolify (`backend/`). It listens on port
+  1442 inside the container, and Coolify's proxy gives it a public https address.
+- **Page:** a static site on Cloudflare Pages, `https://lipscribe.pages.dev` (`frontend/`). It
+  always talks to the real backend; there is no pretend backend any more.
+- **Access code:** the link carries `?code=<access code>`. Ask the team for it. It is kept out of
+  this repository.
 
-- **`https://lipscribe.pages.dev` on its own does not use the real models yet.** It still shows an
-  older version of the page, which runs on a built-in pretend backend with sample captions. It will
-  use the real models once three things are done:
-  1. pull request #69 is merged;
-  2. the site is redeployed, either by hand (`frontend/deploy-pages.ps1`) or automatically once the
-     Cloudflare secrets are added (see [`frontend/README.md`](frontend/README.md));
-  3. the backend has a fixed address (on Coolify, see [`DEPLOYMENT.md`](DEPLOYMENT.md)), written
-     into `frontend/config.js`.
-- **The link above can change.** The backend is reached through a free Cloudflare quick tunnel,
-  whose address changes whenever the tunnel restarts, for example after a reboot. The backend
-  restarts itself within 5 minutes, and `bash backend/run_local.sh` on the Alienware prints the new
-  link.
-- **A fixed address waits for the Alienware's clustering,** planned for the weekend of
-  21–22 November 2026. After that, the backend gets a permanent address (Tailscale Funnel or a
-  Cloudflare named tunnel). Then `lipscribe.pages.dev` alone will open the real demo.
+**What is still open:**
+
+- **The backend's public address is not decided yet.** Until it is written into
+  `frontend/config.js`, the Pages site says *LipScribe is not connected yet*. A link of the form
+  `https://lipscribe.pages.dev/?backend=wss://<backend address>/ws/live&code=<code>` works in the
+  meantime.
 - **It is a demo, not a service.** It shares one GPU with training, and takes at most 3 users at
   once and one upload at a time.
 
