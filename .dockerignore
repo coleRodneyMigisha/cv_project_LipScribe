@@ -1,0 +1,12 @@
+# The backend image (backend/Dockerfile) is built from the repository root. Send Docker only the
+# code it copies; data, runs, reports, docs and the 33,000 align files stay out.
+*
+!pyproject.toml
+!lipscribe/
+!scripts/
+!configs/
+!frontend/
+!backend/
+**/__pycache__/
+**/*.pyc
+**/*.pt

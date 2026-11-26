@@ -1,4 +1,4 @@
-"""One demo recording or upload, from bytes to caption events (F-05). Used by demo/server.py.
+"""One demo recording or upload, from bytes to caption events (F-05). Used by backend/server.py.
 
 Runs (the page's ``run``):
   live    MediaRecorder chunks while the person talks; every finished stretch of speech is captioned

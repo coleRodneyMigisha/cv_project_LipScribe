@@ -1,5 +1,5 @@
 # Deploy the demo page to Cloudflare Pages (https://lipscribe.pages.dev) whenever main changes it.
-# Uploads only the three page files, as demo/deploy-pages.ps1 does, never the backend code.
+# Uploads only the page files in frontend/ (as frontend/deploy-pages.ps1 does), never the backend code.
 #
 # Needs two repository secrets (Settings -> Secrets and variables -> Actions); until both are set,
 # the job skips the upload and passes:
@@ -10,7 +10,7 @@ name: deploy-pages
 on:
   push:
     branches: [main]
-    paths: ["demo/index.html", "demo/app.js", "demo/mock-backend.js", ".github/workflows/deploy-pages.yml"]
+    paths: ["frontend/**", ".github/workflows/deploy-pages.yml"]
   workflow_dispatch:
 
 jobs:
@@ -28,7 +28,7 @@ jobs:
           else echo "ok=false" >> "$GITHUB_OUTPUT"; echo "::notice::Cloudflare secrets not set; skipping the Pages upload."; fi
       - name: Collect the page files
         if: steps.secrets.outputs.ok == 'true'
-        run: mkdir site && cp demo/index.html demo/app.js demo/mock-backend.js site/
+        run: mkdir site && cp frontend/index.html frontend/app.js frontend/config.js frontend/mock-backend.js site/
       - name: Upload to Cloudflare Pages
         if: steps.secrets.outputs.ok == 'true'
         uses: cloudflare/wrangler-action@v3

@@ -30,7 +30,7 @@ if [ -f scripts/flix_v6_run.sh ] && [ ! -f reports/flix_v6/ALL_DONE ] && [ ! -f 
   (setsid nohup bash scripts/flix_v6_run.sh >> logs/flix_v6.log 2>&1 < /dev/null &)   # waits for v5 itself
   echo "started flix v6 pipeline"
 fi
-# web demo (demo/README.md): runs from the clean checkout ~/Desktop/lipscribe_demo; demo_up.sh starts
+# web demo (backend/README.md): runs from the clean checkout ~/Desktop/lipscribe_demo; backend/run_local.sh starts
 # the backend on 127.0.0.1:8800 and the public tunnel (address in that folder's .demo_url)
 D="$HOME/Desktop/lipscribe_demo"
-[ -x "$D/scripts/demo_up.sh" ] && bash "$D/scripts/demo_up.sh"
+[ -x "$D/backend/run_local.sh" ] && bash "$D/backend/run_local.sh"

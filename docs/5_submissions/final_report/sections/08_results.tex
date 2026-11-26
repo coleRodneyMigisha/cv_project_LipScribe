@@ -1,0 +1,164 @@
+% MERGE NOTE (26 Nov 2026): main had a separate version of this section, by Lisa Lusinga Namugenyi
+% ("Final results and fusion analysis"). It is kept unchanged in 08_results_lisa.tex, which main.tex
+% does not include. Merge the two by hand, then delete 08_results_lisa.tex and this note.
+% Author: Lisa Lusinga Namugenyi (F-03, F-11). Draft written by Charis Opol on 23 Nov 2026 for Lisa
+% to check and extend. Every number is from one of:
+%   analysis/01_grid/tables/test_wer_greedy.md, test_wer_grammar.md, missing_modality.md
+%   analysis/01_grid/bootstrap.txt (paired bootstrap and per-speaker WER;
+%     analysis/scripts/grid_bootstrap.py, built from reports/<run>/hypotheses.csv)
+%   reports/gate_analysis/summary.md
+%   reports/w4_05_curriculum_comparison.md (training budget and epochs)
+\section{Results on GRID}
+\label{sec:results}
+
+\subsection{Protocol}
+Every GRID model is tested once on the four held-out speakers, at each of the five noise levels,
+on the fixed noisy copies of the test set (Section~\ref{sec:data}), giving 3,998 scored clips per
+level. WER and CER are total edits divided by total reference words or characters over the test
+set. Headline numbers use greedy decoding; the grammar decoder is reported beside them. To compare
+two models, we resample the test clips with replacement 2,000 times and recompute the difference in
+WER on the same clips, which gives a 95~\% paired bootstrap interval
+(\texttt{analysis/\allowbreak{}scripts/\allowbreak{}grid\_\allowbreak{}bootstrap.py}). The four test speakers are too few to resample by
+speaker, so these intervals cover variation between sentences, not between speakers. The P models
+were each trained once (seed~1) within the same 30-minute budget
+(\texttt{reports/\allowbreak{}w4\_\allowbreak{}05\_\allowbreak{}curriculum\_\allowbreak{}comparison.md}), and the ablations once each with the same
+seed; like P4, each ablation ran for 6 epochs \textbf{[AQ1]}.
+
+\begin{table*}[t]
+\caption{GRID test WER (\%) on four unseen speakers, greedy decoding (grammar decoding in
+parentheses for the final models). The lips-only models do not hear the noise, so their WER is the
+same at every level.}
+\label{tab:grid}
+\centering
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{llrrrrr}
+\toprule
+Model & Streams and initialisation & clean & 10 dB & 5 dB & 0 dB & $-5$ dB \\
+\midrule
+B1      & audio only                         & 1.96 (1.76) & 3.02 (2.79) & 3.79 (3.47) & 5.44 (4.93) & 9.45 (8.35) \\
+B2 v1   & lips only, 3-D CNN (V1)            & 23.04 & 23.04 & 23.04 & 23.04 & 23.04 \\
+B2 v2   & lips only, ResNet-18 (V2)          & 32.20 & 32.20 & 32.20 & 32.20 & 32.20 \\
+B3 v1   & concatenation, from scratch        & 2.41 & 2.88 & 3.36 & 4.29 & 7.35 \\
+B3 v2   & concatenation, from B1 + B2 v2     & 1.16 (0.77) & 1.66 (1.13) & 1.98 (1.38) & 2.81 (1.99) & 5.21 (3.83) \\
+\midrule
+P1      & model P, from scratch              & 12.58 & 13.05 & 13.55 & 14.49 & 16.28 \\
+P2      & model P, from B2 v1                & 18.19 & 18.20 & 18.53 & 18.93 & 19.85 \\
+P3      & model P, from B1 + B2 v1           & 2.13 & 2.67 & 3.27 & 4.33 & 7.30 \\
+P4      & model P, from B1 + B2 v2           & \textbf{1.02} (0.71) & \textbf{1.53} (1.10) & \textbf{1.87} (1.42) & \textbf{2.79} (2.06) & 5.34 (3.95) \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+% Figure made by figures/make_wer_snr.py. The IEEE Access class needs its \Figure macro: a plain
+% figure environment fails in \@makecaption (\xfigwd undefined). Full width because the image is
+% wider than one column. The class sets a wide figure's caption in a one-line l column, so the
+% caption text is wrapped in a \parbox to let it break.
+\Figure[t!](topskip=0pt, botskip=0pt, midskip=0pt)[width=\textwidth]{figures/wer_vs_snr.pdf}
+{\parbox[t]{0.9\textwidth}{Test WER against noise level for the audio-only model (dashed) and the
+audio + lips model (solid) on each source. GRID: B1 and P4, greedy. TED and films: twin\_v5 and
+ws\_v5, beam search with the language model (Table~\ref{tab:realworld}). Absolute WERs are not
+comparable across panels, because GRID has a 51-word vocabulary and films and TED are open
+vocabulary; the gap within each panel is the quantity of interest.}\label{fig:wersnr}}
+
+\subsection{Fusion against the audio-only baseline}
+Table~\ref{tab:grid} and Fig.~\ref{fig:wersnr} answer the first question. P4 makes about half the
+errors of the audio-only B1 at every level: 1.02~\% against 1.96~\% on clean audio and 5.34~\%
+against 9.45~\% at $-5$~dB. The relative reduction stays between 43.5 and 50.7~\%, so the absolute
+gain grows as the noise rises, from 0.94 points on clean audio (95~\% interval 0.77 to 1.11) to
+4.11 points at $-5$~dB (3.74 to 4.49). Every interval excludes zero. In terms of effective SNR
+gain~\cite{lin2025}, P4 at $-5$~dB (5.34~\%) is still better than B1 at 0~dB (5.44~\%), so the
+lips are worth more than 5~dB of noise on GRID; we cannot say how much more, because no level below
+$-5$~dB was tested. The grammar decoder lowers P4's WER further, to 0.71~\% clean and 3.95~\% at
+$-5$~dB, well inside the proposal's target of less than 10~\% on clean audio.
+
+The gain holds for each test speaker in noise. At $-5$~dB, P4 lowers the WER of all four speakers,
+from 7.60 to 5.17~\% (s14), 6.85 to 3.35~\% (s24), 9.40 to 3.76~\% (s4) and 13.97 to 9.10~\%
+(s9). On clean audio the picture is mixed: s4 and s9 gain 2.00 and 1.87 points, s24 ties at
+0.30~\%, and s14 is slightly worse (1.48~\% against 1.38~\%).
+
+\subsection{Effect of initialisation and fusion type}
+Within the 30-minute budget, model P learned well only when both encoders started from trained
+baselines (Table~\ref{tab:grid}). From scratch (P1), or with only the lip encoder pretrained (P2),
+it stayed above 12~\% WER even on clean audio. Starting from B1 and a lip encoder (P3, P4) brought it
+below the audio-only baseline. P4, with the ResNet-18 encoder, beat P3 at every level, even though
+its lips-only starting point B2~v2 was weaker on its own than B2~v1 (32.20~\% against 23.04~\%).
+
+The concatenation baseline B3~v2, which starts from the same two encoders and also uses modality
+dropout, comes close to P4. P4 is 0.14 points better on clean audio (interval 0.01 to 0.27), but
+at 10, 5 and 0~dB the intervals include zero, and at $-5$~dB B3~v2 is 0.14 points better, with an
+interval ($-0.12$ to $0.41$) that also includes zero. Most of P4's advantage over B1 therefore comes
+from adding a well-initialised lip stream with modality dropout, not from attention and gating on
+their own. Ablation X2 below sharpens this point.
+
+\subsection{Ablations}
+Table~\ref{tab:ablation} removes one part of P4 at a time (Section~\ref{sec:ablations}). Every
+change makes P4 worse at every noise level, and every interval excludes zero.
+
+\begin{table}[t]
+\caption{Ablations of P4 on the GRID test set: WER (\%), greedy, and the change from P4 with its
+95~\% paired bootstrap interval. Positive means the ablation is worse.}
+\label{tab:ablation}
+\centering
+\setlength{\tabcolsep}{1.8pt}
+\begin{tabular}{lrrrr}
+\toprule
+SNR & P4 & X1 (no dropout) & X2 (concat) & X3 (2-D) \\
+\midrule
+clean   & 1.02 & 1.57 & 1.23 & 1.40 \\
+        &      & $+0.55$ [0.42, 0.70] & $+0.20$ [0.08, 0.33] & $+0.38$ [0.25, 0.52] \\
+10 dB   & 1.53 & 2.09 & 1.78 & 2.22 \\
+        &      & $+0.55$ [0.40, 0.71] & $+0.25$ [0.10, 0.40] & $+0.69$ [0.53, 0.85] \\
+5 dB    & 1.87 & 2.56 & 2.32 & 2.63 \\
+        &      & $+0.70$ [0.53, 0.88] & $+0.45$ [0.29, 0.62] & $+0.77$ [0.58, 0.95] \\
+0 dB    & 2.79 & 3.54 & 3.19 & 3.92 \\
+        &      & $+0.74$ [0.53, 0.95] & $+0.40$ [0.19, 0.60] & $+1.13$ [0.90, 1.36] \\
+$-5$ dB & 5.34 & 6.33 & 5.89 & 7.50 \\
+        &      & $+0.98$ [0.70, 1.28] & $+0.55$ [0.26, 0.83] & $+2.16$ [1.85, 2.48] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{itemize}
+\item \textit{Modality dropout (X1)} is worth 0.55 points on clean audio and 0.98 points at
+$-5$~dB. A model that always sees both streams learns to work less well from either.
+\item \textit{Attention and gating (X2)} are worth 0.20 to 0.55 points. They help, but they are the
+smallest of the three parts, which agrees with the closeness of B3~v2 and P4. X2 is also worse
+than B3~v2, although both concatenate the streams; the two differ in their projection layers and
+training length (7 epochs for B3~v2, 6 for X2), and we did not isolate which difference matters
+\textbf{[AQ2]}.
+\item \textit{The 3-D front end (X3)} matters most in noise: its loss grows from 0.38 points on
+clean audio to 2.16 points at $-5$~dB, a 40~\% relative increase in WER. When the model leans on
+the lips, the short-range lip motion captured by the temporal kernel carries much of the useful
+information.
+\end{itemize}
+
+\subsection{Missing modality}
+With the video removed at test time and replaced by $e_{\text{miss}}$, P4 behaves like an audio-only
+model: 1.88~\% on clean audio (B1: 1.96~\%) and 10.36~\% at $-5$~dB (B1: 9.45~\%)
+(\texttt{analysis/\allowbreak{}01\_\allowbreak{}grid/\allowbreak{}tables/\allowbreak{}missing\_\allowbreak{}modality.md}). With the audio removed, it reads the lips
+at 31.57~\%, close to its lip encoder's starting point B2~v2 (32.20~\%). The concatenation model
+B3~v2, whose missing stream is replaced by zeros, falls apart instead: 75.31~\% from the lips alone
+and 25.18~\% from clean audio alone. The learned $e_{\text{miss}}$ embedding thus allows P4 to degrade gracefully when one stream is
+unavailable, as can happen in live use.
+
+\subsection{Gate behaviour}
+Fig.~\ref{fig:gate} shows P4's gate, averaged over the frames of each test clip. Its mean falls
+steadily from 0.804 on clean audio to 0.786, 0.769, 0.740 and 0.691 at 10, 5, 0 and $-5$~dB, and its
+spread widens, so in noise some clips lean much more on the lips than others. The Spearman
+correlation between SNR and the per-clip gate is 0.47 (\texttt{reports/\allowbreak{}gate\_\allowbreak{}analysis/\allowbreak{}summary.md}).
+The gate never favours the lips on average: even at $-5$~dB about two thirds of the weight goes to
+the audio. The gate therefore shifts towards the lips as noise increases, but the audio remains the
+dominant stream at every tested level.
+
+% Width just under \columnwidth, so \Figure keeps it in one column.
+\Figure[t!](topskip=0pt, botskip=0pt, midskip=0pt)[width=0.98\columnwidth]{figures/gate_boxplot.png}
+{P4's gate per test clip (mean over frames) at each noise level; 1 means full trust in the
+audio, 0 full trust in the lips. Triangles mark the mean. 3,998 clips per level.\label{fig:gate}}
+
+\subsection{Comparison with published GRID results}
+The closest published numbers are not directly comparable, because the speaker splits and the
+tasks differ. Our best lips-only model, B2~v1, has a WER of 23.04~\% on four unseen speakers, which
+is of the same order as the 79.6~\% word accuracy of Wand et al.\ on their held-out
+speakers~\cite{wand2016}. LipNet's 95.2~\% sentence-level accuracy and LCANet's 3.0~\%
+WER~\cite{assael2016,xu2018} come from splits in which every test speaker also appears in training
+(LCANet holds out 255 sentences of each speaker), which is an easier task than ours.

@@ -1,0 +1,62 @@
+% Author: Charis Opol (first draft written 16 Nov from the repository; check and extend).
+\section{Model and Training}
+\label{sec:model}
+
+\subsection{Baselines}
+Three baselines frame the proposed model. B1 hears only the audio, B2 sees only the lips, and
+B3 joins the two encoders by concatenating their features frame by frame. All models end in
+the same connectionist temporal classification (CTC) head~\cite{graves2006} over 28 symbols:
+the 26 letters, the space and the CTC blank.
+
+\subsection{Proposed model P}
+Model P projects each stream from 512 to 256 dimensions with layer normalisation, then lets
+each stream attend to the other with bidirectional cross-modal attention (four heads,
+$d = 256$, attention dropout 0.1, residual connections and layer normalisation). A per-frame
+gate then weighs the two attended streams:
+\begin{equation}
+g_t = \sigma\big(W [\tilde{a}_t; \tilde{v}_t] + b\big), \qquad
+f_t = g_t\, \tilde{a}_t + (1 - g_t)\, \tilde{v}_t ,
+\end{equation}
+so $g_t$ close to 1 means the model trusts the sound and close to 0 that it trusts the lips.
+The gate is a single scalar per frame, in the spirit of the gating layer of Tao and
+Busso~\cite{tao2018}, and the attention lets each stream look at the other before the gate weighs
+them, as in attention-based fusion~\cite{sterpu2018}. Unlike reliability estimates computed from
+the audio alone~\cite{meutzner2017}, $g_t$ is learned from both attended streams.
+A learned 256-dimensional vector $e_{\text{miss}}$ replaces a stream that is missing. During
+training, modality dropout replaces the audio with $e_{\text{miss}}$ for 25~\% of utterances
+and the video for 15~\%, never both at once, so the model learns to work with either stream
+alone. At inference, a clip whose face is missing in more than half of its frames uses
+$e_{\text{miss}}$ for the video.
+
+\subsection{Training}
+All models train with AdamW (learning rate $3 \times 10^{-4}$, weight decay $10^{-2}$), batch
+size 16, one warm-up epoch followed by a cosine schedule, gradient clipping at 5 and mixed
+precision, for up to 40 epochs. Early stopping watches the mean validation WER over the five
+SNR levels, with a patience of 12 epochs, and the checkpoint with the lowest mean validation
+WER is kept. P4, the final model, starts its encoders from the trained B1 and B2~v2
+(\texttt{configs/\allowbreak{}p\_\allowbreak{}init\_\allowbreak{}b1\_\allowbreak{}b2\_\allowbreak{}v2.yaml}); the other initialisations (from scratch, from B2
+only, from B1 and B2~v1) are reported as P1--P3.
+
+\subsection{Decoding}
+Greedy decoding takes the most likely symbol per frame, merges repeats and drops blanks. A CTC
+prefix beam search (width 10) keeps several candidate spellings. The GRID grammar decoder
+allows only sentences that fit GRID's six-slot grammar and returns the allowed sentence that
+best matches the CTC posteriors.
+
+\subsection{Ablations}
+\label{sec:ablations}
+Each ablation changes one part of P4 and keeps everything else, including the initialisation from
+B1 and B2~v2, the seed and the training budget. Their results are in Section~\ref{sec:results}.
+\begin{itemize}
+\item \textit{X1, no modality dropout} (\texttt{configs/\allowbreak{}x1\_\allowbreak{}no\_\allowbreak{}modality\_\allowbreak{}dropout.yaml}). Both
+dropout rates are set to zero, so the model always sees both streams. It tests whether forcing the
+model to work from either stream alone, as in~\cite{zhang2019}, helps when both are present.
+\item \textit{X2, concatenation fusion} (\texttt{configs/\allowbreak{}x2\_\allowbreak{}concat\_\allowbreak{}fusion.yaml}). The two attended
+streams and the gate are replaced by one linear layer over the concatenated projections; the
+projections, $e_{\text{miss}}$ and modality dropout stay. It tests what attention and gating add
+over the simplest fusion~\cite{abdelaziz2018}.
+\item \textit{X3, two-dimensional front end} (\texttt{configs/\allowbreak{}x3\_\allowbreak{}2d\_\allowbreak{}frontend.yaml}). The $5 \times 7 \times 7$
+3-D convolution becomes $1 \times 7 \times 7$, so the lip encoder sees no motion before the ResNet.
+The B2~v2 weights are loaded by summing the 3-D kernel over time. It tests the value of short-range
+lip motion~\cite{stafylakis2017}.
+\end{itemize}

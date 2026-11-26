@@ -35,4 +35,4 @@ Studio recordings of 33 speakers reading six-word commands from a 51-word gramma
       lips than the others?
 - [ ] Gate paragraph from `reports/gate_analysis/summary.md`: does the model lean on the lips as
       noise rises?
-- [ ] One paragraph per finding for the report (`documentation/5_submissions/final_report/sections/08_results.tex`).
+- [ ] One paragraph per finding for the report (`docs/5_submissions/final_report/sections/08_results.tex`).

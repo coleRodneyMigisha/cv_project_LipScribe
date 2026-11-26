@@ -1,0 +1,36 @@
+# LipScribe demo backend on Coolify (the Alienware). Coolify: "Docker Compose" build pack,
+# base directory "/", compose file "/backend/docker-compose.yml" (DEPLOYMENT.md, step 5).
+#
+# Also runs by hand on the Alienware, from the repository root:
+#   docker compose -f backend/docker-compose.yml up -d --build
+services:
+  backend:
+    build:
+      context: ..                    # the repository root (the backend imports lipscribe/ and scripts/)
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    expose:
+      - "8800"                       # reached through Coolify's proxy only; no port opened on the host
+    environment:
+      - DEMO_CODE=${DEMO_CODE:-}
+      - DEMO_MODELS=${DEMO_MODELS:-any,grid}
+      - DEMO_ORIGINS=${DEMO_ORIGINS:-*}
+    # The models, the LM and the face landmarker live on the Alienware, in one folder laid out like
+    # the repository (DEPLOYMENT.md, step 3). Read-only: the container never changes them.
+    volumes:
+      - ${LIPSCRIBE_ASSETS:-/srv/lipscribe/assets}/checkpoints:/app/checkpoints:ro
+      - ${LIPSCRIBE_ASSETS:-/srv/lipscribe/assets}/runs:/app/runs:ro
+      - ${LIPSCRIBE_ASSETS:-/srv/lipscribe/assets}/lm:/app/lm:ro
+      - ${LIPSCRIBE_ASSETS:-/srv/lipscribe/assets}/models:/app/models:ro
+      - ${LIPSCRIBE_ASSETS:-/srv/lipscribe/assets}/pretrained:/app/pretrained:ro
+      - ${LIPSCRIBE_ASSETS:-/srv/lipscribe/assets}/data/stats:/app/data/stats:ro
+      - ${LIPSCRIBE_ASSETS:-/srv/lipscribe/assets}/Data:/app/Data:ro
+    # The GPU (needs the NVIDIA Container Toolkit on the Alienware; DEPLOYMENT.md, step 1).
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    shm_size: "2gb"

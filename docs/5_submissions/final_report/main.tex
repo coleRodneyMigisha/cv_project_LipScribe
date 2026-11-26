@@ -1,0 +1,74 @@
+% LipScribe final technical report (W4-11 skeleton, F-11).
+% Template: IEEE Access (official access.tex sample), as in the project proposal. Copy
+% ieeeaccess.cls, the logo files (logo.png, notaglinelogo.png, bullet.png) and the spotcolor/T1-font
+% files from the proposal's Overleaf project, or from the official IEEE Access LaTeX template zip,
+% into this folder before compiling. They are not in the repository.
+% Template rules followed here: abstract of 150-250 words in one paragraph with no abbreviations,
+% references or equations; keywords in alphabetical order; abbreviations defined at first use in the
+% body; "Fig." in running text; table captions above, figure captions below; Acknowledgment unnumbered
+% after any appendices.
+% Build: latexmk -pdf main.tex
+% Each section file names its author; the editor is Lisa Lusinga Namugenyi.
+\documentclass{ieeeaccess}
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{booktabs}
+\usepackage{url}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
+\begin{document}
+\history{Date of publication xxxx 00, 0000, date of current version xxxx 00, 0000.}
+\doi{10.1109/ACCESS.2026.DOI}
+
+\title{LipScribe: Lip-Assisted Speech Recognition for Robust Live Captioning}
+
+\author{\uppercase{Cole Rodney Migisha}\authorrefmark{1},
+\uppercase{Charis Opol}\authorrefmark{1},
+\uppercase{Ainomugisha Faith}\authorrefmark{1},
+\uppercase{Lisa Lusinga Namugenyi}\authorrefmark{1},
+\uppercase{Ansasire Nehum Naamaye}\authorrefmark{1},
+and \uppercase{Wakisa Isabelle}\authorrefmark{1}}
+
+\address[1]{Department of Computer Science, Uganda Christian University, Mukono, Uganda
+(e-mail: \{b29657, b29654, b27518, b30300, b29785, b30311\}@students.ucu.ac.ug)}
+
+\tfootnote{This work is submitted as the final technical report of the LipScribe project in the
+Computer Vision and Deep Learning course, Group~4.}
+
+\markboth
+{Migisha \headeretal: LipScribe: Lip-Assisted Speech Recognition for Robust Live Captioning}
+{Migisha \headeretal: LipScribe: Lip-Assisted Speech Recognition for Robust Live Captioning}
+
+\corresp{Corresponding author: Cole Rodney Migisha (e-mail: b29657@students.ucu.ac.ug).}
+
+\input{sections/00_abstract}
+
+\titlepgskip=-15pt
+
+\maketitle
+
+\input{sections/01_introduction}
+\input{sections/02_related_work}
+\input{sections/03_data}
+\input{sections/04_pipelines}
+\input{sections/05_model}
+\input{sections/06_application}
+\input{sections/07_testing}
+\input{sections/08_results}
+\input{sections/09_real_world}
+\input{sections/10_limitations}
+\input{sections/11_conclusion}
+
+\section*{Acknowledgment}
+The authors thank the course lecturers for guidance on problem formulation, evaluation standards,
+and responsible computer-vision practice, and for access to the GPU workstation on which the models
+were trained \textbf{[AQ4]}.
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\EOD
+\end{document}

@@ -1,0 +1,78 @@
+% Author: Charis Opol (F-11). Draft of 23 Nov 2026. Every finding below is taken from the paper's
+% abstract or full text in final_report/papers/ (PDFs, kept locally, not in git), except Zhou 2019, Zhang 2019 and Chung 2017,
+% which are cited from their titles and the reading list only (see the author queries).
+\section{Related Work}
+\label{sec:related}
+
+\subsection{Lip reading}
+Neural lip reading began on GRID. Wand et al.~\cite{wand2016} stacked feed-forward and LSTM
+layers into one network trained end to end and reached 79.6~\% word accuracy on held-out GRID
+speakers, 11.6 points above the best system built on hand-crafted features. LipNet~\cite{assael2016}
+moved from words to whole sentences: spatiotemporal convolutions, a recurrent network and a CTC
+loss~\cite{graves2006} gave 95.2~\% sentence-level accuracy on GRID, although with speakers shared
+between training and test. LCANet~\cite{xu2018} added a cascaded attention-CTC decoder and reported
+3.0~\% WER on GRID. Outside GRID, Stafylakis and Tzimiropoulos~\cite{stafylakis2017} combined a
+3-D convolution, a ResNet applied to each frame and a bidirectional LSTM, and reached 83.0~\% word
+accuracy on the 500-word Lip Reading in the Wild benchmark. Martinez et al.~\cite{martinez2020}
+replaced the recurrent layers of that design with temporal convolutional networks and simplified
+its training. LipScribe's lip encoder follows the front end of~\cite{stafylakis2017}, and our
+lips-only GRID baselines are tested, as in~\cite{wand2016}, on speakers not seen in training.
+
+\subsection{End-to-end audio-visual speech recognition}
+Petridis et al.~\cite{petridis2018e2e} trained the first audio-visual model that learns from raw
+pixels and raw waveforms together, with one ResNet and recurrent stream per modality. On clean
+audio it was only slightly better than an audio-only model, but at high noise levels it was much
+better. The same pattern held at sentence level. A hybrid CTC/attention model on LRS2 was 1.3 points
+better than audio alone on clean speech and up to 32.9 points better in noise~\cite{petridis2018hybrid},
+and Afouras et al.~\cite{afouras2022} found that their audio-visual transformers outperformed both
+single-stream models under loud babble noise, with the CTC variants coping better with noise than
+the sequence-to-sequence ones. Conformer encoders over ResNet-18 features then raised the state of
+the art on LRS2 and LRS3~\cite{ma2021}, and Auto-AVSR~\cite{ma2023} reached 0.9~\% WER on LRS3 by
+adding automatically transcribed VoxCeleb2~\cite{chung2018voxceleb2} and AVSpeech clips to the
+training data. Self-supervised pre-training lowers the need for labels: with AV-HuBERT, Shi
+et al.~\cite{shi2022robust} halved the babble-noise WER of the previous state of the art on LRS3
+(28.0~\% to 14.1~\%) using 30 hours of labelled data rather than 433. Whisper-Flamingo~\cite{rouditchenko2024}
+injects lip features into the Whisper recogniser~\cite{radford2023whisper} through gated
+cross-attention and improves on audio-only Whisper in noise. Our real-world model builds on two of
+these lines: its lip encoder is that of Auto-AVSR, and its audio encoder is the self-supervised
+WavLM~\cite{chen2022wavlm}.
+
+\subsection{Fusion, gating and modality reliability}
+How to combine the two streams is the central design choice, and three findings shaped ours. First,
+a fused model can be \emph{worse} than audio alone on clean speech. Tao and Busso~\cite{tao2018}
+observed this drop in a hybrid DNN-HMM system and added a gating layer that suppresses uninformative
+visual features, which kept or improved accuracy in every condition they tested. Second, the right
+weight for each stream changes with the noise. Meutzner et al.~\cite{meutzner2017} derived dynamic
+stream weights from an estimate of audio reliability and outperformed a fixed weighting that knew
+the true SNR, and Zhou et al.~\cite{zhou2019} proposed modality attention for end-to-end AVSR. More
+recently, AV-RelScore~\cite{hong2023} scores the reliability of each stream so that a model can rely
+on the cleaner one even when the video is also corrupted, and router-gated cross-attention~\cite{lim2025}
+down-weights audio tokens that a router judges corrupted, cutting WER by 16.5 to 42.7~\% relative to
+AV-HuBERT on LRS3. Third, a model trained on both streams can learn to ignore the weaker one.
+Sterpu et al.\ showed that attention-based fusion learns to align the two streams and improves on
+audio alone by 7 to 30~\% on TCD-TIMIT~\cite{sterpu2018}, but that on the harder LRS2 it at first
+gave no improvement at all, which they addressed with an auxiliary lip task~\cite{sterpu2020}.
+Multi-condition training with modality dropout~\cite{zhang2019} is a direct way to stop a network
+leaning on one stream. Abdelaziz~\cite{abdelaziz2018} compared five classical fusion models on one
+benchmark and is a reference point for the concatenation baselines we keep. Model P combines these
+ideas: cross-modal attention in the spirit of~\cite{sterpu2018}, a per-frame gate as
+in~\cite{tao2018}, and modality dropout as in~\cite{zhang2019}.
+
+\subsection{Measuring what the lips contribute}
+A low WER does not show that a model uses the lips. Lin and Harte~\cite{lin2025} measured the
+\emph{effective SNR gain}, the drop in SNR at which the audio-visual model matches the audio-only
+model's WER at 0~dB, for three recent systems. Auto-AVSR had the best WER on every noise level but
+the smallest gain, 3.7~dB on LRS2 and 2.5~dB on LRS3, and the authors concluded that current systems
+do not fully exploit the visual stream. We therefore compare each fused model with an audio-only
+model trained in the same way, test what happens when one stream is removed or replaced, and report
+the effective SNR gain alongside WER (Sections~\ref{sec:results} and~\ref{sec:realworld}).
+
+\subsection{Noise, data and synchrony}
+NTCD-TIMIT~\cite{abdelaziz2017} established the practice we follow on GRID: add several noise types
+to clean audio-visual speech at a range of SNRs, and give baselines for audio-only, video-only and
+audio-visual models. Our noise comes from MUSAN~\cite{snyder2015}, a freely licensed corpus of music,
+speech and noise. Our real-world clips come from TED talks, the source of LRS3~\cite{afouras2018},
+and from films, and the Auto-AVSR checkpoint we start from was trained on LRS3 and VoxCeleb2. Finally,
+SyncNet~\cite{chung2017} learns whether a voice and a face are in sync, which is the kind of signal
+our negative result in Section~\ref{sec:realworld} calls for. Ivanko et al.~\cite{ivanko2023} survey
+the deep-learning AVSR work of 2013 to 2023 in more breadth than we can here.
