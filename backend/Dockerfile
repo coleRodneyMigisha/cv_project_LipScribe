@@ -50,7 +50,9 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 COPY backend/requirements.txt backend/requirements.txt
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install -r backend/requirements.txt -c /tmp/torch-constraints.txt
+    pip install -r backend/requirements.txt -c /tmp/torch-constraints.txt \
+    && pip install --no-deps pyctcdecode==0.5.0
+# (--no-deps: pyctcdecode declares numpy<2 but runs on numpy 2; see backend/requirements.txt)
 
 # Code only (.dockerignore at the repository root keeps everything else out).
 COPY pyproject.toml ./

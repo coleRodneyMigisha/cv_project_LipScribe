@@ -27,5 +27,10 @@ jiwer==4.0.0
 matplotlib==3.11.2     # imported by scripts/train.py, which the GRID engine loads checkpoints with
 transformers           # check: WavLM in ws_v5 and twin_v5
 sentencepiece          # check: Auto-AVSR word pieces
-pyctcdecode            # check: beam search
+pygtrie>=2.1,<3.0      # pyctcdecode's only runtime dependency (pyctcdecode itself: see below)
 kenlm                  # check: 4-gram language model (built from source; needs build-essential)
+
+# pyctcdecode (beam search) is NOT listed here: every release declares numpy<2, which conflicts with
+# numpy 2.4.6 (needed by mediapipe and OpenCV 5), and pip then backtracks through every
+# transformers release until a build fails. The Dockerfile installs pyctcdecode==0.5.0 with
+# --no-deps after this file; it was checked to build a decoder and decode on numpy 2.4.6.
