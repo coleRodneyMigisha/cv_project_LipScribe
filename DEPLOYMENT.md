@@ -130,8 +130,9 @@ the report.
 
 The image holds code only. The weights stay on the Alienware and are mounted into the container
 read-only. They are too large for git, and keeping them out of the image makes rebuilds quick.
-`backend/docker-compose.yml` expects one folder laid out like the repository, by default
-`/srv/lipscribe/assets`.
+`backend/docker-compose.yml` expects one folder laid out like the repository, at
+`/srv/lipscribe/assets`. (To use another folder, change that path on every volume line of the
+compose file. Coolify does not accept a variable there; see step 11.)
 
 The demo folder uses symlinks into other folders, and a symlink does not work inside a container
 unless its target is mounted too. So copy the real files (`cp -L` follows the links):
@@ -239,18 +240,18 @@ Without a token, this guide is enough to do every step by hand.
    `scripts/train.py`. The compose file already says `context: ..`.
 5. **Server / Destination:** the Alienware.
 6. Save. Coolify reads the compose file and shows one service, `backend`.
-7. **Environment Variables** (Coolify lists the variables it found in the compose file):
+7. **Environment Variables** (resource → *Environment Variables*; Coolify lists the three it found
+   in the compose file). `backend/.env.example` has the same list to copy from:
 
    | Variable | Value | Why |
    |---|---|---|
    | `DEMO_CODE` | the access code from step 0 | without it, anyone with the address can use the GPU |
    | `DEMO_ORIGINS` | `https://lipscribe.pages.dev,https://lipscribe-api.ucu-dct.org` | the sites allowed to call the backend over HTTP (the WebSocket checks the code instead) |
    | `DEMO_MODELS` | `any,grid` | both model pairs; `any` or `grid` loads one and saves GPU memory |
-   | `LIPSCRIBE_ASSETS` | `/srv/lipscribe/assets` | the folder from step 3 |
 
    Tick **Is Secret** (or *Locked*) for `DEMO_CODE`, so that it is hidden in the UI and the logs.
 
-**Check:** the resource page shows the `backend` service and the four variables, and the
+**Check:** the resource page shows the `backend` service and the three variables, and the
 **Docker Compose** tab shows the `deploy.resources.reservations.devices` block (the GPU) and the
 seven volumes.
 
@@ -441,6 +442,7 @@ code is given on request.
 | Redirect loop (`ERR_TOO_MANY_REDIRECTS`) | https domain in Coolify behind a Cloudflare Tunnel, or Cloudflare SSL mode *Flexible* | step 6: `http://` domain with a tunnel; SSL mode *Full* with a DNS record |
 | Long uploads stop after a few minutes | a proxy timeout on long WebSockets | note the time it stops after and ask the Coolify or domain admin to raise the proxy's idle timeout for this host |
 | "Add test noise" gives an error | the test noise files were not copied | step 3, the noise part |
+| Deployment fails with `invalid spec: ...:: empty section between colons` | a `${VAR:-default}` in a volume line of `backend/docker-compose.yml` (Coolify splits volume lines on `:`) | write the host path out in full, as the compose file now does |
 | `splits.csv` has absolute paths | the noise files are referenced by full path | add a volume to `backend/docker-compose.yml` that mounts that folder at the same full path, read-only |
 
 ---

@@ -17,14 +17,17 @@ services:
       - DEMO_ORIGINS=${DEMO_ORIGINS:-*}
     # The models, the LM and the face landmarker live on the Alienware, in one folder laid out like
     # the repository (DEPLOYMENT.md, step 3). Read-only: the container never changes them.
+    # The host paths are written out in full on purpose: Coolify splits each volume line on ":",
+    # so a variable with a default value here breaks the deployment ("invalid spec ... empty
+    # section between colons"). To use another folder, change /srv/lipscribe/assets on all lines.
     volumes:
-      - ${LIPSCRIBE_ASSETS:-/srv/lipscribe/assets}/checkpoints:/app/checkpoints:ro
-      - ${LIPSCRIBE_ASSETS:-/srv/lipscribe/assets}/runs:/app/runs:ro
-      - ${LIPSCRIBE_ASSETS:-/srv/lipscribe/assets}/lm:/app/lm:ro
-      - ${LIPSCRIBE_ASSETS:-/srv/lipscribe/assets}/models:/app/models:ro
-      - ${LIPSCRIBE_ASSETS:-/srv/lipscribe/assets}/pretrained:/app/pretrained:ro
-      - ${LIPSCRIBE_ASSETS:-/srv/lipscribe/assets}/data/stats:/app/data/stats:ro
-      - ${LIPSCRIBE_ASSETS:-/srv/lipscribe/assets}/Data:/app/Data:ro
+      - /srv/lipscribe/assets/checkpoints:/app/checkpoints:ro
+      - /srv/lipscribe/assets/runs:/app/runs:ro
+      - /srv/lipscribe/assets/lm:/app/lm:ro
+      - /srv/lipscribe/assets/models:/app/models:ro
+      - /srv/lipscribe/assets/pretrained:/app/pretrained:ro
+      - /srv/lipscribe/assets/data/stats:/app/data/stats:ro
+      - /srv/lipscribe/assets/Data:/app/Data:ro
     # The GPU (needs the NVIDIA Container Toolkit on the Alienware; DEPLOYMENT.md, step 1).
     deploy:
       resources:
